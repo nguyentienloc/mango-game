@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../app/reward_controller.dart';
 import '../../app/show_find_letter_controller.dart';
 import '../../core/updater/app_updater.dart';
 import 'update_download_dialog.dart';
@@ -35,10 +36,39 @@ class ParentScreen extends ConsumerWidget {
             onChanged: (v) => ref.read(showFindLetterProvider.notifier).set(v),
           ),
           const UpdateTile(),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text('Đặt lại dữ liệu game', style: TextStyle(color: Colors.red)),
+            subtitle: const Text('Xóa ❄️, lâu đài, mức thuộc và lịch sử chơi; giữ tên và cài đặt'),
+            onTap: () => _confirmReset(context, ref),
+          ),
         ],
       ),
     );
   }
+}
+
+Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Đặt lại dữ liệu'),
+      content: const Text('Xóa toàn bộ tiến độ của Xoài? Không khôi phục được.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Xóa'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  await ref.read(progressResetterProvider).resetProgress();
+  ref.invalidate(rewardStateProvider);
+  if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
 }
 
 String _localeName(String locale) => locale == 'vi-VN' ? 'Tiếng Việt' : 'Tiếng Anh';

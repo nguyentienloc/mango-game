@@ -7,6 +7,7 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/progress/item_stats_store.dart';
+import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
@@ -25,6 +26,7 @@ Widget testApp({
   UpdateCheck update = const UpToDate(),
   Set<String> missingVoices = const {},
   Future<UpdateCheck>? updateFuture,
+  ProgressResetter? resetter,
 }) {
   return ProviderScope(
     overrides: [
@@ -39,6 +41,7 @@ Widget testApp({
       sessionStoreProvider.overrideWithValue(sessions ?? MemorySessionStore()),
       rewardStoreProvider.overrideWithValue(rewards ?? MemoryRewardStore()),
       profileStoreProvider.overrideWithValue(profile ?? MemoryProfileStore()),
+      progressResetterProvider.overrideWithValue(resetter ?? FakeProgressResetter()),
       clockProvider.overrideWithValue(() => DateTime(2026, 11, 2, 9)),
       randomProvider.overrideWithValue(Random(42)),
       appVersionProvider.overrideWithValue('0.1.0'),
