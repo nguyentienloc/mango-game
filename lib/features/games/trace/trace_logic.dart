@@ -10,6 +10,9 @@ const kMinCoverage = 0.8;
 const kMinPrecision = 0.7;
 const kMinLengthRatio = 0.5;
 
+/// Failures on one stroke after which the next drawing is let through.
+const kMaxStrokeFailures = 5;
+
 class StrokeScore {
   const StrokeScore(this.coverage, this.precision, this.lengthRatio);
 
@@ -72,10 +75,12 @@ class TraceLetterSession {
   bool get isDone => _stroke >= targets.length;
   int failuresOn(int stroke) => _failures[stroke];
 
-  /// Scores [drawn] against the current stroke; true when it passes.
+  /// Scores [drawn] against the current stroke; true when it passes. After
+  /// [kMaxStrokeFailures] failures the next drawing is accepted as is, so a
+  /// child can never get stuck (the letter is still a `retry`).
   bool submit(List<TracePoint> drawn) {
     if (isDone) throw StateError('letter already traced');
-    if (scoreStroke(targets[_stroke], drawn).passed) {
+    if (_failures[_stroke] >= kMaxStrokeFailures || scoreStroke(targets[_stroke], drawn).passed) {
       _stroke++;
       return true;
     }

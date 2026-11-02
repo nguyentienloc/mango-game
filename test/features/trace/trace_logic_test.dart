@@ -98,6 +98,22 @@ void main() {
       expect(s.outcome, AnswerOutcome.retry);
     });
 
+    test('after five failures the next drawing completes the stroke, still a retry', () {
+      final s = TraceLetterSession(letterT);
+      final wrong = line(0.15, 0.9, 0.85, 0.9);
+      for (var i = 0; i < 5; i++) {
+        expect(s.submit(wrong), isFalse, reason: 'failure ${i + 1}');
+      }
+      expect(s.strokeIndex, 0);
+      expect(s.submit(wrong), isTrue);
+      expect(s.strokeIndex, 1);
+      // the help is per stroke: the next stroke is scored normally again
+      expect(s.submit(line(0.5, 0.9, 0.5, 0.95)), isFalse);
+      expect(s.submit(line(0.5, 0.1, 0.5, 0.9)), isTrue);
+      expect(s.isDone, isTrue);
+      expect(s.outcome, AnswerOutcome.retry);
+    });
+
     test('two failures on one stroke still count as first try', () {
       final s = TraceLetterSession(letterT);
       s.submit(line(0.15, 0.9, 0.85, 0.9));

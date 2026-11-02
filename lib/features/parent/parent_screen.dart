@@ -50,6 +50,10 @@ class ParentScreen extends ConsumerWidget {
 }
 
 Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+  // Taken before any await: it stays valid even if this screen is gone by then.
+  final container = ProviderScope.containerOf(context, listen: false);
+  final navigator = Navigator.of(context);
+  final messenger = ScaffoldMessenger.of(context);
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -66,9 +70,20 @@ Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
     ),
   );
   if (ok != true || !context.mounted) return;
-  await ref.read(progressResetterProvider).resetProgress();
-  ref.invalidate(rewardStateProvider);
-  if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+  try {
+    await container.read(progressResetterProvider).resetProgress();
+  } catch (e, st) {
+    debugPrint('Reset error: $e\n$st');
+    if (context.mounted) {
+      messenger.showSnackBar(const SnackBar(content: Text('Không đặt lại được dữ liệu, thử lại nhé')));
+    }
+    return;
+  }
+  container.invalidate(rewardStateProvider);
+  if (context.mounted) {
+    navigator.popUntil((r) => r.isFirst);
+    container.read(voiceProvider).say('greet_vi');
+  }
 }
 
 String _localeName(String locale) => locale == 'vi-VN' ? 'Tiếng Việt' : 'Tiếng Anh';
