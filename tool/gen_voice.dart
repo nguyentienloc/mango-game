@@ -12,7 +12,7 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 
 import 'src/voice_gen.dart';
 
-/// Pre-generates the Vbee voices (Vietnamese: HN - Ngọc Huyền, English: Sophia)
+/// Pre-generates the Vbee voices (Vietnamese: HN - Ngọc Huyền, English: Ava)
 /// for every utterance into content/audio/*.ogg + content/audio/index.json.
 /// Resumable: skips clips that already exist. Each single-language part is
 /// synthesised on its own (cached in build/voice-parts/) and the parts of an

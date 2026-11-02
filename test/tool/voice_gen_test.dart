@@ -6,7 +6,7 @@ void main() {
   group('voiceFor', () {
     test('picks the voice by language', () {
       expect(voiceFor('vi'), 'hn_female_ngochuyen_full_48k-fhg');
-      expect(voiceFor('en'), 'en-US-Neural2-G-Premium');
+      expect(voiceFor('en'), 'en-US-Neural2-F-Premium');
     });
     test('unknown language throws', () {
       expect(() => voiceFor('fr'), throwsArgumentError);

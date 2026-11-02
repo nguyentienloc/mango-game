@@ -9,7 +9,7 @@ const provider = 'vbee';
 const voiceSpeed = 0.9;
 const _voices = {
   'vi': 'hn_female_ngochuyen_full_48k-fhg', // HN - Ngọc Huyền
-  'en': 'en-US-Neural2-G-Premium', // Sophia
+  'en': 'en-US-Neural2-F-Premium', // Ava
 };
 
 String voiceFor(String lang) {
