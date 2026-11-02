@@ -1,0 +1,20 @@
+{
+  "id": "vocab_fruits",
+  "version": 1,
+  "title_vi": "Trái cây",
+  "items": [
+    { "id": "apple", "word": "apple", "vi": "quả táo", "image": "images/vocab/apple.png", "emoji": "🍎" },
+    { "id": "banana", "word": "banana", "vi": "quả chuối", "image": "images/vocab/banana.png", "emoji": "🍌" },
+    { "id": "orange", "word": "orange", "vi": "quả cam", "image": "images/vocab/orange.png", "emoji": "🍊" },
+    { "id": "grapes", "word": "grapes", "vi": "chùm nho", "image": "images/vocab/grapes.png", "emoji": "🍇" },
+    { "id": "watermelon", "word": "watermelon", "vi": "quả dưa hấu", "image": "images/vocab/watermelon.png", "emoji": "🍉" },
+    { "id": "strawberry", "word": "strawberry", "vi": "quả dâu tây", "image": "images/vocab/strawberry.png", "emoji": "🍓" },
+    { "id": "mango", "word": "mango", "vi": "quả xoài", "image": "images/vocab/mango.png", "emoji": "🥭" },
+    { "id": "pineapple", "word": "pineapple", "vi": "quả dứa", "image": "images/vocab/pineapple.png", "emoji": "🍍" },
+    { "id": "pear", "word": "pear", "vi": "quả lê", "image": "images/vocab/pear.png", "emoji": "🍐" },
+    { "id": "cherry", "word": "cherry", "vi": "quả anh đào", "image": "images/vocab/cherry.png", "emoji": "🍒" },
+    { "id": "lemon", "word": "lemon", "vi": "quả chanh", "image": "images/vocab/lemon.png", "emoji": "🍋" },
+    { "id": "peach", "word": "peach", "vi": "quả đào", "image": "images/vocab/peach.png", "emoji": "🍑" },
+    { "id": "coconut", "word": "coconut", "vi": "quả dừa", "image": "images/vocab/coconut.png", "emoji": "🥥" }
+  ]
+}

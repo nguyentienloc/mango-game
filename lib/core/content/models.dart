@@ -83,6 +83,26 @@ class ProfileDefaults {
   final int dailyLimitMin;
 }
 
+class VocabItem {
+  const VocabItem({required this.id, required this.word, required this.vi, required this.emoji, required this.topic, this.image});
+
+  factory VocabItem.fromJson(Map<String, dynamic> json, String topic) => VocabItem(
+        id: json['id'] as String,
+        word: json['word'] as String,
+        vi: json['vi'] as String,
+        emoji: json['emoji'] as String,
+        image: json['image'] as String?,
+        topic: topic,
+      );
+
+  final String id;
+  final String word;
+  final String vi;
+  final String emoji;
+  final String? image;
+  final String topic;
+}
+
 class ContentBundle {
   const ContentBundle({
     required this.lettersEn,
@@ -90,12 +110,20 @@ class ContentBundle {
     required this.castle,
     required this.characters,
     required this.profileDefaults,
+    required this.vocab,
   });
 
   /// Builds a bundle from already-validated files (paths relative to content/).
   factory ContentBundle.fromFiles(Map<String, String> files) {
     Map<String, dynamic> read(String path) => jsonDecode(files[path]!) as Map<String, dynamic>;
     final characters = read('characters.json')['items'] as Map<String, dynamic>;
+    final manifest = read('manifest.json');
+    final vocab = [
+      for (final name in (manifest['packs'] as Map<String, dynamic>).keys)
+        if (name.startsWith('vocab_'))
+          for (final j in read('packs/$name.json')['items'] as List)
+            VocabItem.fromJson(j as Map<String, dynamic>, name.substring('vocab_'.length)),
+    ];
     return ContentBundle(
       lettersEn: [
         for (final j in read('packs/letters_en.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
@@ -111,6 +139,7 @@ class ContentBundle {
         for (final e in characters.entries) e.key: CharacterDef.fromJson(e.key, e.value as Map<String, dynamic>),
       },
       profileDefaults: ProfileDefaults.fromJson(read('profile_defaults.json')),
+      vocab: vocab,
     );
   }
 
@@ -119,4 +148,5 @@ class ContentBundle {
   final List<CastleLevel> castle;
   final Map<String, CharacterDef> characters;
   final ProfileDefaults profileDefaults;
+  final List<VocabItem> vocab;
 }

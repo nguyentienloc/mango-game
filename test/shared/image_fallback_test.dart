@@ -22,6 +22,7 @@ void main() {
       castle: content.castle,
       characters: {'olaf': const CharacterDef(id: 'olaf', name: 'Olaf', emoji: '⛄', image: 'missing/olaf.png')},
       profileDefaults: content.profileDefaults,
+      vocab: content.vocab,
     );
     await tester.pumpWidget(testApp(content: withImage, tts: FakeTts(), home: const CharacterView(id: 'olaf')));
     await tester.pump();

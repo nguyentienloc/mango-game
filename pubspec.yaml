@@ -71,6 +71,7 @@ flutter:
     - content/
     - content/packs/
     - content/characters/
+    - content/images/vocab/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

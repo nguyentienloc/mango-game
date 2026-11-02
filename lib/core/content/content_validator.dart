@@ -78,6 +78,7 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
   }
 
   _checkLetters(docs['packs/letters_en.json']!, errors, checkImage);
+  _checkVocab(packs.keys, docs, errors, checkImage);
   _checkPhrases(docs['phrases.json']!, errors);
   final friends = _checkCastle(docs['castle.json']!, errors);
   _checkCharacters(docs['characters.json']!, friends, errors, checkImage);
@@ -136,6 +137,50 @@ void _checkLetters(
     }
     checkImage(where, example['image']);
   }
+}
+
+void _checkVocab(
+  Iterable<String> packNames,
+  Map<String, Map<String, dynamic>> docs,
+  List<String> errors,
+  void Function(String where, Object? image) checkImage,
+) {
+  final names = packNames.where((n) => n.startsWith('vocab_')).toList();
+  if (names.isEmpty) {
+    errors.add('manifest.json: cần ít nhất một gói từ vựng "vocab_..."');
+    return;
+  }
+  final seen = <String, String>{};
+  var total = 0;
+  for (final name in names) {
+    final path = 'packs/$name.json';
+    final items = docs[path]?['items'];
+    if (items is! List || items.isEmpty) {
+      errors.add('$path: "items" phải là danh sách không rỗng');
+      continue;
+    }
+    for (final (i, item) in items.indexed) {
+      final where = '$path items[$i]';
+      if (item is! Map<String, dynamic>) {
+        errors.add('$where: phải là object');
+        continue;
+      }
+      total++;
+      final id = item['id'];
+      if (!_nonEmpty(id)) {
+        errors.add('$where: thiếu "id"');
+      } else if (seen.containsKey(id)) {
+        errors.add(seen[id] == path ? '$where: id "$id" bị trùng' : '$where: id "$id" đã có ở gói khác');
+      } else {
+        seen[id as String] = path;
+      }
+      for (final field in ['word', 'vi', 'emoji']) {
+        if (!_nonEmpty(item[field])) errors.add('$where: thiếu "$field"');
+      }
+      checkImage(where, item['image']);
+    }
+  }
+  if (total < 4) errors.add('Cần ít nhất 4 từ vựng (hiện có $total)');
 }
 
 void _checkPhrases(Map<String, dynamic> doc, List<String> errors) {

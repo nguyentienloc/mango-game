@@ -1,0 +1,27 @@
+{
+  "id": "vocab_animals",
+  "version": 1,
+  "title_vi": "Con vật",
+  "items": [
+    { "id": "cat", "word": "cat", "vi": "con mèo", "image": "images/vocab/cat.png", "emoji": "🐱" },
+    { "id": "dog", "word": "dog", "vi": "con chó", "image": "images/vocab/dog.png", "emoji": "🐶" },
+    { "id": "lion", "word": "lion", "vi": "con sư tử", "image": "images/vocab/lion.png", "emoji": "🦁" },
+    { "id": "elephant", "word": "elephant", "vi": "con voi", "image": "images/vocab/elephant.png", "emoji": "🐘" },
+    { "id": "tiger", "word": "tiger", "vi": "con hổ", "image": "images/vocab/tiger.png", "emoji": "🐯" },
+    { "id": "monkey", "word": "monkey", "vi": "con khỉ", "image": "images/vocab/monkey.png", "emoji": "🐵" },
+    { "id": "rabbit", "word": "rabbit", "vi": "con thỏ", "image": "images/vocab/rabbit.png", "emoji": "🐰" },
+    { "id": "bear", "word": "bear", "vi": "con gấu", "image": "images/vocab/bear.png", "emoji": "🐻" },
+    { "id": "fish", "word": "fish", "vi": "con cá", "image": "images/vocab/fish.png", "emoji": "🐟" },
+    { "id": "bird", "word": "bird", "vi": "con chim", "image": "images/vocab/bird.png", "emoji": "🐦" },
+    { "id": "duck", "word": "duck", "vi": "con vịt", "image": "images/vocab/duck.png", "emoji": "🦆" },
+    { "id": "cow", "word": "cow", "vi": "con bò", "image": "images/vocab/cow.png", "emoji": "🐮" },
+    { "id": "pig", "word": "pig", "vi": "con lợn", "image": "images/vocab/pig.png", "emoji": "🐷" },
+    { "id": "horse", "word": "horse", "vi": "con ngựa", "image": "images/vocab/horse.png", "emoji": "🐴" },
+    { "id": "chicken", "word": "chicken", "vi": "con gà", "image": "images/vocab/chicken.png", "emoji": "🐤" },
+    { "id": "frog", "word": "frog", "vi": "con ếch", "image": "images/vocab/frog.png", "emoji": "🐸" },
+    { "id": "giraffe", "word": "giraffe", "vi": "con hươu cao cổ", "image": "images/vocab/giraffe.png", "emoji": "🦒" },
+    { "id": "zebra", "word": "zebra", "vi": "con ngựa vằn", "image": "images/vocab/zebra.png", "emoji": "🦓" },
+    { "id": "panda", "word": "panda", "vi": "con gấu trúc", "image": "images/vocab/panda.png", "emoji": "🐼" },
+    { "id": "penguin", "word": "penguin", "vi": "con chim cánh cụt", "image": "images/vocab/penguin.png", "emoji": "🐧" }
+  ]
+}

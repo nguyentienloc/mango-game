@@ -1,0 +1,13 @@
+{
+  "id": "vocab_vehicles",
+  "version": 1,
+  "title_vi": "Xe cộ",
+  "items": [
+    { "id": "car", "word": "car", "vi": "ô tô", "image": "images/vocab/car.png", "emoji": "🚗" },
+    { "id": "bus", "word": "bus", "vi": "xe buýt", "image": "images/vocab/bus.png", "emoji": "🚌" },
+    { "id": "train", "word": "train", "vi": "tàu hỏa", "image": "images/vocab/train.png", "emoji": "🚆" },
+    { "id": "airplane", "word": "airplane", "vi": "máy bay", "image": "images/vocab/airplane.png", "emoji": "✈️" },
+    { "id": "boat", "word": "boat", "vi": "con thuyền", "image": "images/vocab/boat.png", "emoji": "⛵" },
+    { "id": "bicycle", "word": "bicycle", "vi": "xe đạp", "image": "images/vocab/bicycle.png", "emoji": "🚲" }
+  ]
+}

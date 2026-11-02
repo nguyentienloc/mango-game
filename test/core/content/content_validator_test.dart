@@ -66,7 +66,48 @@ void main() {
     final files = withJson(validFiles(), 'characters.json', characters);
     expect(validateContent(files), isEmpty);
     expect(validateContent(files, assetPaths: {}), contains('characters.json elsa: không tìm thấy ảnh "characters/elsa.png"'));
-    expect(validateContent(files, assetPaths: {'characters/elsa.png'}), isEmpty);
+    expect(
+      validateContent(files, assetPaths: {'characters/elsa.png', ..._vocabImages}),
+      isEmpty,
+    );
+  });
+
+  test('vocabulary ids must be unique across packs', () {
+    final files = validFiles();
+    final manifest = readJson(files, 'manifest.json');
+    (manifest['packs'] as Map)['vocab_more'] = 1;
+    final more = {
+      'id': 'vocab_more',
+      'version': 1,
+      'title_vi': 'Thêm',
+      'items': [
+        {'id': 'cat', 'word': 'cat', 'vi': 'con mèo', 'image': 'images/vocab/cat.png', 'emoji': '🐱'},
+      ],
+    };
+    final errors = validateContent(withJson(withJson(files, 'manifest.json', manifest), 'packs/vocab_more.json', more));
+    expect(errors, contains('packs/vocab_more.json items[0]: id "cat" đã có ở gói khác'));
+  });
+
+  test('vocabulary items need word, vi and emoji', () {
+    final pack = readJson(validFiles(), 'packs/vocab_animals.json');
+    (pack['items'] as List)[0] = {'id': 'cat', 'word': 'cat', 'image': 'images/vocab/cat.png'};
+    final errors = validateContent(withJson(validFiles(), 'packs/vocab_animals.json', pack));
+    expect(errors, containsAll([
+      'packs/vocab_animals.json items[0]: thiếu "vi"',
+      'packs/vocab_animals.json items[0]: thiếu "emoji"',
+    ]));
+  });
+
+  test('at least four vocabulary words are required', () {
+    final pack = readJson(validFiles(), 'packs/vocab_animals.json');
+    (pack['items'] as List).removeLast();
+    final errors = validateContent(withJson(validFiles(), 'packs/vocab_animals.json', pack));
+    expect(errors, contains('Cần ít nhất 4 từ vựng (hiện có 3)'));
+  });
+
+  test('vocabulary images are checked against asset paths', () {
+    final errors = validateContent(validFiles(), assetPaths: {'images/vocab/cat.png'});
+    expect(errors, contains('packs/vocab_animals.json items[1]: không tìm thấy ảnh "images/vocab/dog.png"'));
   });
 
   test('the shipped content/ directory is valid', () {
@@ -74,3 +115,10 @@ void main() {
     expect(validateContent(snapshot.json, assetPaths: snapshot.assets), isEmpty);
   });
 }
+
+const _vocabImages = {
+  'images/vocab/cat.png',
+  'images/vocab/dog.png',
+  'images/vocab/lion.png',
+  'images/vocab/duck.png',
+};

@@ -1,0 +1,13 @@
+{
+  "id": "vocab_vegetables",
+  "version": 1,
+  "title_vi": "Rau củ",
+  "items": [
+    { "id": "carrot", "word": "carrot", "vi": "củ cà rốt", "image": "images/vocab/carrot.png", "emoji": "🥕" },
+    { "id": "tomato", "word": "tomato", "vi": "quả cà chua", "image": "images/vocab/tomato.png", "emoji": "🍅" },
+    { "id": "corn", "word": "corn", "vi": "bắp ngô", "image": "images/vocab/corn.png", "emoji": "🌽" },
+    { "id": "potato", "word": "potato", "vi": "củ khoai tây", "image": "images/vocab/potato.png", "emoji": "🥔" },
+    { "id": "broccoli", "word": "broccoli", "vi": "cây súp lơ xanh", "image": "images/vocab/broccoli.png", "emoji": "🥦" },
+    { "id": "cucumber", "word": "cucumber", "vi": "quả dưa chuột", "image": "images/vocab/cucumber.png", "emoji": "🥒" }
+  ]
+}
