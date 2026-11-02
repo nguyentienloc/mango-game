@@ -49,9 +49,10 @@ Sau mỗi lượt → Màn thưởng (bông tuyết bay vào lâu đài; mở qu
 Mỗi mục học có một **khóa** duy nhất, ví dụ `letter_en_upper:B`, `letter_en_lower:b`, `letter_vi:đ`, `word:cat`, `color:red`, `number:3`, `conv:name`, `trace_en:B`.
 
 Mỗi khóa có **mức thuộc 0–4**:
-- Đúng ngay lần đầu → +1 (tối đa 4).
-- Đúng sau gợi ý (sau 1–2 lần sai) → giữ nguyên.
-- Sai ≥ 1 lần → −1 (tối thiểu 0), chỉ trừ một lần mỗi câu.
+Mỗi câu kết thúc với một trong ba kết quả:
+- **Đúng ngay lần đầu** (`firstTry`) → +1 (tối đa 4).
+- **Đúng ở lần thử thứ hai** (`retry`, sai 1 lần) → giữ nguyên.
+- **Cần gợi ý** (`hinted`, sai ≥ 2 lần, đáp án đã phát sáng / Elsa đã làm mẫu) → −1 (tối thiểu 0).
 
 **Chọn câu hỏi cho một lượt:**
 - Trọng số mỗi mục = `5 − mức thuộc` (mục chưa gặp coi như mức 0).
@@ -65,7 +66,7 @@ Mỗi khóa có **mức thuộc 0–4**:
 | Sự kiện | Thưởng |
 |---|---|
 | Đúng ngay lần đầu | +1 ❄️ |
-| Đúng sau gợi ý | +0 ❄️ (vẫn khen) |
+| Đúng ở lần 2 / cần gợi ý | +0 ❄️ (vẫn khen) |
 | Hoàn thành một lượt | +5 ❄️ |
 | Hoàn thành nhiệm vụ ngày (3 lượt bất kỳ trong ngày) | 🎁 1 sticker ngẫu nhiên chưa có (hết sticker mới → +20 ❄️) |
 | Chuỗi 3 ngày liên tiếp có chơi | 🎁 quà lớn: +30 ❄️ + 1 sticker |
@@ -112,7 +113,7 @@ Bạn đã mở khóa xuất hiện ở lâu đài và được chọn ngẫu nh
 - **Chấm nét:** lấy mẫu đều các điểm trên nét đích; một điểm được "phủ" nếu cách vệt tô của bé ≤ **12% cạnh khung chữ**. Nét đạt khi ≥ **80%** điểm được phủ. Không bắt buộc thứ tự nét hay chiều tô (bé 5 tuổi), chỉ hướng dẫn.
 - Thả tay mà nét chưa đạt → vệt mờ đi, nét đó cho tô lại (không tính sai).
 - Đủ các nét → chữ biến thành hình ví dụ (A → 🍎), Elsa đọc "A is for Apple!".
-- Chữ hoa trước; chữ thường mở theo cùng quy tắc như 5.1. Khóa `trace_en_upper:X` / `trace_en_lower:x`. Tô xong = đúng ngay lần đầu (+1 mức); nếu phải tô lại một nét ≥ 3 lần = đúng sau gợi ý.
+- Chữ hoa trước; chữ thường mở theo cùng quy tắc như 5.1. Khóa `trace_en_upper:X` / `trace_en_lower:x`. Tô xong không phải tô lại nét nào ≥ 3 lần = `firstTry`; ngược lại = `retry`.
 
 ### 5.3 🗣️ Nói chuyện với Elsa
 
@@ -121,7 +122,7 @@ Bạn đã mở khóa xuất hiện ở lâu đài và được chọn ngẫu nh
 - **Chấm:** chuẩn hóa văn bản nhận được (chữ thường, bỏ dấu câu, tách từ). Câu trả lời đúng nếu có **ít nhất một nhóm** trong `accept` mà mọi từ khóa của nhóm đều xuất hiện. Mỗi từ khóa được so khớp với danh sách **bí danh** (`aliases`) — ví dụ `an` ↔ `ann`, `anne`, `and`, `en`.
 - **Sai lần 1:** "Hmm, can you say it again?"
 - **Sai lần 2:** Elsa làm mẫu "Say: My name is An", bé nói theo.
-- **Lần 3:** luôn tính đạt và khen (đúng sau gợi ý). Nhận giọng trẻ em không đủ chính xác để phạt bé.
+- **Lần 3:** luôn tính đạt và khen (kết quả `hinted`). Nhận giọng trẻ em không đủ chính xác để phạt bé.
 - **Bộ câu ban đầu:** What's your name? / How old are you? / How are you? / Hello! / Goodbye! / What color do you like? / Do you like apples? / Thank you!
 - Câu hỏi có thể dùng `{name_en}` để chèn tên.
 
@@ -170,6 +171,8 @@ content/
 └── stickers/
 ```
 
+**Hình minh họa** của mỗi mục khai báo bằng `emoji` (Android vẽ sẵn, không cần file) hoặc `image` (file PNG trong `content/images/`, ví dụ OpenMoji); có `image` thì ưu tiên `image`. Giai đoạn 1 dùng `emoji`.
+
 `content/` nằm trong repo và **được đóng gói vào APK** làm bản nội dung gốc (app chạy offline ngay lần đầu).
 
 ### 6.2 Định dạng chính
@@ -207,7 +210,7 @@ Nét tô (tọa độ chuẩn hóa 0–1 trong khung chữ, mỗi nét là một
     [[0.5, 0.05], [0.1, 0.95]],
     [[0.5, 0.05], [0.9, 0.95]],
     [[0.25, 0.6], [0.75, 0.6]] ],
-  "example": { "word": "Apple", "image": "images/apple.png" } }
+  "example": { "word": "Apple", "emoji": "🍎" } }
 ```
 
 Câu cố định (`phrases.json`) có mã, ngôn ngữ và nhóm, ví dụ:
@@ -221,8 +224,8 @@ Một trình kiểm tra nội dung (Dart, dùng chung cho app và CLI) xác nh�
 
 ### 6.4 Cập nhật nội dung qua mạng
 
-1. Khi mở app (tối đa 1 lần/giờ) và có mạng: gọi `https://api.github.com/repos/nguyentienloc3103/mango-game/commits/main` để lấy `sha` mới nhất (repo cấu hình trong một hằng số). Trùng `sha` lần kiểm tra trước → dừng.
-2. Tải `https://cdn.jsdelivr.net/gh/nguyentienloc3103/mango-game@<sha>/content/manifest.json` (ghim theo commit nên không bị cache cũ). So `version` từng gói/file với bản đang dùng; gói nào mới hơn → tải từ cùng đường dẫn `@<sha>/content/...`, kèm các ảnh mới mà gói tham chiếu.
+1. Khi mở app (tối đa 1 lần/giờ) và có mạng: gọi `https://api.github.com/repos/nguyentienloc/mango-game/commits/main` để lấy `sha` mới nhất (repo cấu hình trong một hằng số). Trùng `sha` lần kiểm tra trước → dừng.
+2. Tải `https://cdn.jsdelivr.net/gh/nguyentienloc/mango-game@<sha>/content/manifest.json` (ghim theo commit nên không bị cache cũ). So `version` từng gói/file với bản đang dùng; gói nào mới hơn → tải từ cùng đường dẫn `@<sha>/content/...`, kèm các ảnh mới mà gói tham chiếu.
 3. Tải vào thư mục tạm → chạy trình kiểm tra → hợp lệ thì chuyển nguyên khối sang thư mục nội dung đang dùng; lỗi thì bỏ, giữ bản cũ.
 4. Nội dung mới có hiệu lực từ **lần mở app sau**.
 5. Thứ tự ưu tiên khi đọc: nội dung đã tải (nếu mới hơn) → nội dung đóng gói trong APK.
@@ -300,7 +303,7 @@ Thời gian chơi trong ngày = tổng `duration_sec` của các phiên có `dat
 3. Tạo GitHub Release đính kèm `xoai-<tag>.apk`.
 
 **Phía app:**
-1. Khi mở app (tối đa 1 lần/6 giờ) và khi bấm "Kiểm tra" trong khu bố mẹ: gọi `https://api.github.com/repos/nguyentienloc3103/mango-game/releases/latest`.
+1. Mỗi lần mở app và khi bấm "Kiểm tra lại" trong khu bố mẹ: gọi `https://api.github.com/repos/nguyentienloc/mango-game/releases/latest`.
 2. So `tag_name` (semver) với `versionName` hiện tại (`package_info_plus`). Mới hơn → chấm đỏ trên ổ khóa.
 3. Bố mẹ bấm "Cập nhật" → tải asset `.apk` (thanh tiến trình, hủy được) vào bộ nhớ cache → mở trình cài đặt Android qua FileProvider.
 4. Cần quyền `REQUEST_INSTALL_PACKAGES`; lần đầu Android yêu cầu bật "Cài ứng dụng không rõ nguồn gốc" — app hướng dẫn và mở đúng màn cài đặt đó.
