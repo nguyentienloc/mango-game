@@ -1357,6 +1357,21 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _showFindLetterMeta = const VerificationMeta(
+    'showFindLetter',
+  );
+  @override
+  late final GeneratedColumn<bool> showFindLetter = GeneratedColumn<bool>(
+    'show_find_letter',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_find_letter" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1365,6 +1380,7 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
     dailyLimitMin,
     musicOn,
     testMode,
+    showFindLetter,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1420,6 +1436,15 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
         testMode.isAcceptableOrUnknown(data['test_mode']!, _testModeMeta),
       );
     }
+    if (data.containsKey('show_find_letter')) {
+      context.handle(
+        _showFindLetterMeta,
+        showFindLetter.isAcceptableOrUnknown(
+          data['show_find_letter']!,
+          _showFindLetterMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1453,6 +1478,10 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}test_mode'],
       )!,
+      showFindLetter: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_find_letter'],
+      )!,
     );
   }
 
@@ -1469,6 +1498,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final int dailyLimitMin;
   final bool musicOn;
   final bool testMode;
+  final bool showFindLetter;
   const ProfileRow({
     required this.id,
     required this.nameEn,
@@ -1476,6 +1506,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     required this.dailyLimitMin,
     required this.musicOn,
     required this.testMode,
+    required this.showFindLetter,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1486,6 +1517,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     map['daily_limit_min'] = Variable<int>(dailyLimitMin);
     map['music_on'] = Variable<bool>(musicOn);
     map['test_mode'] = Variable<bool>(testMode);
+    map['show_find_letter'] = Variable<bool>(showFindLetter);
     return map;
   }
 
@@ -1497,6 +1529,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       dailyLimitMin: Value(dailyLimitMin),
       musicOn: Value(musicOn),
       testMode: Value(testMode),
+      showFindLetter: Value(showFindLetter),
     );
   }
 
@@ -1512,6 +1545,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       dailyLimitMin: serializer.fromJson<int>(json['dailyLimitMin']),
       musicOn: serializer.fromJson<bool>(json['musicOn']),
       testMode: serializer.fromJson<bool>(json['testMode']),
+      showFindLetter: serializer.fromJson<bool>(json['showFindLetter']),
     );
   }
   @override
@@ -1524,6 +1558,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'dailyLimitMin': serializer.toJson<int>(dailyLimitMin),
       'musicOn': serializer.toJson<bool>(musicOn),
       'testMode': serializer.toJson<bool>(testMode),
+      'showFindLetter': serializer.toJson<bool>(showFindLetter),
     };
   }
 
@@ -1534,6 +1569,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     int? dailyLimitMin,
     bool? musicOn,
     bool? testMode,
+    bool? showFindLetter,
   }) => ProfileRow(
     id: id ?? this.id,
     nameEn: nameEn ?? this.nameEn,
@@ -1541,6 +1577,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     dailyLimitMin: dailyLimitMin ?? this.dailyLimitMin,
     musicOn: musicOn ?? this.musicOn,
     testMode: testMode ?? this.testMode,
+    showFindLetter: showFindLetter ?? this.showFindLetter,
   );
   ProfileRow copyWithCompanion(ProfileCompanion data) {
     return ProfileRow(
@@ -1552,6 +1589,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           : this.dailyLimitMin,
       musicOn: data.musicOn.present ? data.musicOn.value : this.musicOn,
       testMode: data.testMode.present ? data.testMode.value : this.testMode,
+      showFindLetter: data.showFindLetter.present
+          ? data.showFindLetter.value
+          : this.showFindLetter,
     );
   }
 
@@ -1563,14 +1603,22 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('nameVi: $nameVi, ')
           ..write('dailyLimitMin: $dailyLimitMin, ')
           ..write('musicOn: $musicOn, ')
-          ..write('testMode: $testMode')
+          ..write('testMode: $testMode, ')
+          ..write('showFindLetter: $showFindLetter')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, nameEn, nameVi, dailyLimitMin, musicOn, testMode);
+  int get hashCode => Object.hash(
+    id,
+    nameEn,
+    nameVi,
+    dailyLimitMin,
+    musicOn,
+    testMode,
+    showFindLetter,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1580,7 +1628,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.nameVi == this.nameVi &&
           other.dailyLimitMin == this.dailyLimitMin &&
           other.musicOn == this.musicOn &&
-          other.testMode == this.testMode);
+          other.testMode == this.testMode &&
+          other.showFindLetter == this.showFindLetter);
 }
 
 class ProfileCompanion extends UpdateCompanion<ProfileRow> {
@@ -1590,6 +1639,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
   final Value<int> dailyLimitMin;
   final Value<bool> musicOn;
   final Value<bool> testMode;
+  final Value<bool> showFindLetter;
   const ProfileCompanion({
     this.id = const Value.absent(),
     this.nameEn = const Value.absent(),
@@ -1597,6 +1647,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     this.dailyLimitMin = const Value.absent(),
     this.musicOn = const Value.absent(),
     this.testMode = const Value.absent(),
+    this.showFindLetter = const Value.absent(),
   });
   ProfileCompanion.insert({
     this.id = const Value.absent(),
@@ -1605,6 +1656,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     required int dailyLimitMin,
     this.musicOn = const Value.absent(),
     this.testMode = const Value.absent(),
+    this.showFindLetter = const Value.absent(),
   }) : nameEn = Value(nameEn),
        nameVi = Value(nameVi),
        dailyLimitMin = Value(dailyLimitMin);
@@ -1615,6 +1667,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     Expression<int>? dailyLimitMin,
     Expression<bool>? musicOn,
     Expression<bool>? testMode,
+    Expression<bool>? showFindLetter,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1623,6 +1676,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
       if (dailyLimitMin != null) 'daily_limit_min': dailyLimitMin,
       if (musicOn != null) 'music_on': musicOn,
       if (testMode != null) 'test_mode': testMode,
+      if (showFindLetter != null) 'show_find_letter': showFindLetter,
     });
   }
 
@@ -1633,6 +1687,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     Value<int>? dailyLimitMin,
     Value<bool>? musicOn,
     Value<bool>? testMode,
+    Value<bool>? showFindLetter,
   }) {
     return ProfileCompanion(
       id: id ?? this.id,
@@ -1641,6 +1696,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
       dailyLimitMin: dailyLimitMin ?? this.dailyLimitMin,
       musicOn: musicOn ?? this.musicOn,
       testMode: testMode ?? this.testMode,
+      showFindLetter: showFindLetter ?? this.showFindLetter,
     );
   }
 
@@ -1665,6 +1721,9 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     if (testMode.present) {
       map['test_mode'] = Variable<bool>(testMode.value);
     }
+    if (showFindLetter.present) {
+      map['show_find_letter'] = Variable<bool>(showFindLetter.value);
+    }
     return map;
   }
 
@@ -1676,7 +1735,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
           ..write('nameVi: $nameVi, ')
           ..write('dailyLimitMin: $dailyLimitMin, ')
           ..write('musicOn: $musicOn, ')
-          ..write('testMode: $testMode')
+          ..write('testMode: $testMode, ')
+          ..write('showFindLetter: $showFindLetter')
           ..write(')'))
         .toString();
   }
@@ -2398,6 +2458,7 @@ typedef $$ProfileTableCreateCompanionBuilder = ProfileCompanion Function({
   required int dailyLimitMin,
   Value<bool> musicOn,
   Value<bool> testMode,
+  Value<bool> showFindLetter,
 });
 typedef $$ProfileTableUpdateCompanionBuilder = ProfileCompanion Function({
   Value<int> id,
@@ -2406,6 +2467,7 @@ typedef $$ProfileTableUpdateCompanionBuilder = ProfileCompanion Function({
   Value<int> dailyLimitMin,
   Value<bool> musicOn,
   Value<bool> testMode,
+  Value<bool> showFindLetter,
 });
 
 class $$ProfileTableFilterComposer
@@ -2444,6 +2506,11 @@ class $$ProfileTableFilterComposer
 
   ColumnFilters<bool> get testMode => $composableBuilder(
     column: $table.testMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showFindLetter => $composableBuilder(
+    column: $table.showFindLetter,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2486,6 +2553,11 @@ class $$ProfileTableOrderingComposer
     column: $table.testMode,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get showFindLetter => $composableBuilder(
+    column: $table.showFindLetter,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProfileTableAnnotationComposer
@@ -2516,6 +2588,11 @@ class $$ProfileTableAnnotationComposer
 
   GeneratedColumn<bool> get testMode =>
       $composableBuilder(column: $table.testMode, builder: (column) => column);
+
+  GeneratedColumn<bool> get showFindLetter => $composableBuilder(
+    column: $table.showFindLetter,
+    builder: (column) => column,
+  );
 }
 
 class $$ProfileTableTableManager
@@ -2555,6 +2632,7 @@ class $$ProfileTableTableManager
                 Value<int> dailyLimitMin = const Value.absent(),
                 Value<bool> musicOn = const Value.absent(),
                 Value<bool> testMode = const Value.absent(),
+                Value<bool> showFindLetter = const Value.absent(),
               }) => ProfileCompanion(
                 id: id,
                 nameEn: nameEn,
@@ -2562,6 +2640,7 @@ class $$ProfileTableTableManager
                 dailyLimitMin: dailyLimitMin,
                 musicOn: musicOn,
                 testMode: testMode,
+                showFindLetter: showFindLetter,
               ),
           createCompanionCallback:
               ({
@@ -2571,6 +2650,7 @@ class $$ProfileTableTableManager
                 required int dailyLimitMin,
                 Value<bool> musicOn = const Value.absent(),
                 Value<bool> testMode = const Value.absent(),
+                Value<bool> showFindLetter = const Value.absent(),
               }) => ProfileCompanion.insert(
                 id: id,
                 nameEn: nameEn,
@@ -2578,6 +2658,7 @@ class $$ProfileTableTableManager
                 dailyLimitMin: dailyLimitMin,
                 musicOn: musicOn,
                 testMode: testMode,
+                showFindLetter: showFindLetter,
               ),
           withReferenceMapper: (p0) => p0
               .map(

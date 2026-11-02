@@ -47,6 +47,7 @@ class Profile extends Table {
   IntColumn get dailyLimitMin => integer()();
   BoolColumn get musicOn => boolean().withDefault(const Constant(true))();
   BoolColumn get testMode => boolean().withDefault(const Constant(false))();
+  BoolColumn get showFindLetter => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -57,5 +58,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.addColumn(profile, profile.showFindLetter);
+        },
+      );
 }

@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:xoai_castle/core/content/models.dart';
+import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/progress/item_stat.dart';
 import 'package:xoai_castle/core/progress/item_stats_store.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
@@ -102,4 +105,19 @@ class MemoryRewardStore implements RewardStore {
 
   @override
   Future<void> save(RewardState s) async => state = s;
+}
+
+class MemoryProfileStore implements ProfileStore {
+  MemoryProfileStore({this.show = false});
+
+  bool show;
+
+  @override
+  Future<Names> loadNames(ProfileDefaults defaults) async => const Names(en: 'An', vi: 'Xoài');
+
+  @override
+  Future<bool> showFindLetter() async => show;
+
+  @override
+  Future<void> setShowFindLetter(bool value) async => show = value;
 }
