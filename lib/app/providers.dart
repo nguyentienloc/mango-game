@@ -7,11 +7,13 @@ import '../core/db/database.dart';
 import '../core/progress/item_stats_store.dart';
 import '../core/rewards/reward_store.dart';
 import '../core/session/session_store.dart';
+import '../core/voice/voice_service.dart';
 
 /// Overridden in main() after bootstrapping.
 final contentProvider = Provider<ContentBundle>((ref) => throw UnimplementedError('contentProvider'));
 final databaseProvider = Provider<AppDatabase>((ref) => throw UnimplementedError('databaseProvider'));
 final appVersionProvider = Provider<String>((ref) => throw UnimplementedError('appVersionProvider'));
+final voiceProvider = Provider<VoiceService>((ref) => throw UnimplementedError('voiceProvider'));
 
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 final randomProvider = Provider<Random>((ref) => Random());
