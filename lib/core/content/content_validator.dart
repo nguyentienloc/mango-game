@@ -130,6 +130,7 @@ void _checkLetters(
     } else if (!seen.add(char)) {
       errors.add('$where: chữ "$char" bị trùng');
     }
+    _checkStrokes(item['strokes'], where, errors);
     final example = item['example'];
     if (example is! Map<String, dynamic> || !_nonEmpty(example['word'])) {
       errors.add('$where: thiếu "example.word"');
@@ -139,6 +140,46 @@ void _checkLetters(
       errors.add('$where: cần "example.emoji" hoặc "example.image"');
     }
     checkImage(where, example['image']);
+  }
+}
+
+void _checkStrokes(Object? strokes, String where, List<String> errors) {
+  if (strokes is! List || strokes.isEmpty) {
+    errors.add('$where: thiếu "strokes"');
+    return;
+  }
+  bool inBox(Object? v) => v is num && v >= 0 && v <= 1;
+  for (final (si, stroke) in strokes.indexed) {
+    if (stroke is! List || stroke.isEmpty) {
+      errors.add('$where strokes[$si]: nét phải là danh sách đoạn không rỗng');
+      continue;
+    }
+    for (final (gi, seg) in stroke.indexed) {
+      final sw = '$where strokes[$si][$gi]';
+      if (seg is! Map<String, dynamic>) {
+        errors.add('$sw: phải là object');
+        continue;
+      }
+      final line = seg['line'];
+      final arc = seg['arc'];
+      if (line is List) {
+        if (line.length < 2) {
+          errors.add('$sw: "line" cần ít nhất 2 điểm');
+        } else if (!line.every((p) => p is List && p.length == 2 && inBox(p[0]) && inBox(p[1]))) {
+          errors.add('$sw: tọa độ phải trong khoảng 0–1');
+        }
+      } else if (arc is List) {
+        if (arc.length != 6 || !arc.every((v) => v is num)) {
+          errors.add('$sw: "arc" cần 6 số [cx, cy, rx, ry, start, sweep]');
+        } else if ((arc[2] as num) <= 0 || (arc[3] as num) <= 0 || arc[5] == 0) {
+          errors.add('$sw: "arc" cần rx, ry > 0 và sweep khác 0');
+        } else if (!inBox(arc[0]) || !inBox(arc[1])) {
+          errors.add('$sw: tọa độ phải trong khoảng 0–1');
+        }
+      } else {
+        errors.add('$sw: cần "line" hoặc "arc"');
+      }
+    }
   }
 }
 
