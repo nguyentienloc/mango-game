@@ -1,17 +1,16 @@
-# xoai_castle
+# Lâu đài băng của Xoài
 
-A new Flutter project.
+Game học tiếng Anh/tiếng Việt cho bé Xoài (Flutter, Android).
 
-## Getting Started
+- Thiết kế: `docs/superpowers/specs/2026-11-02-xoai-ice-castle-design.md`
+- Chạy test: `flutter test`
+- Kiểm tra nội dung: `dart run tool/validate_content.dart`
+- Sinh code DB sau khi sửa `lib/core/db/database.dart`: `dart run build_runner build --delete-conflicting-outputs`
 
-This project is a starting point for a Flutter application.
+## Phát hành bản mới
 
-A few resources to get you started if this is your first Flutter project:
+1. Tăng `version:` trong `pubspec.yaml`.
+2. `git tag vX.Y.Z && git push origin vX.Y.Z`
+3. GitHub Actions build APK đã ký và tạo Release; app trên điện thoại báo chấm đỏ ở ổ khóa.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Keystore nằm ở `~/.xoai-keystore/` (không commit). Mất keystore thì không cập nhật đè được app đã cài.
