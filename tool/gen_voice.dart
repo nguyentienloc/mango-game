@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/voice/tts_quota.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
 /// Pre-generates the Leda voice for every utterance (Gemini TTS) into
@@ -37,8 +38,10 @@ Future<void> main(List<String> args) async {
 
   void saveIndex() {
     final sorted = Map.fromEntries(clips.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
-    indexFile.writeAsStringSync(const JsonEncoder.withIndent('  ')
-        .convert({'voice': _voice, 'model': _model, 'style': _style, 'clips': sorted}));
+    final tmp = File('${indexFile.path}.tmp')
+      ..writeAsStringSync(const JsonEncoder.withIndent('  ')
+          .convert({'voice': _voice, 'model': _model, 'style': _style, 'clips': sorted}));
+    tmp.renameSync(indexFile.path);
   }
 
   final todo = [
@@ -58,6 +61,7 @@ Future<void> main(List<String> args) async {
     return;
   }
 
+  await _preflightFfmpeg();
   final key = _readKey();
   final client = HttpClient();
   var done = 0;
@@ -83,12 +87,12 @@ Future<void> main(List<String> args) async {
   if (prune) {
     final keep = {for (final p in planned) p.utterance.key};
     clips.removeWhere((k, _) => !keep.contains(k));
+    saveIndex(); // index first, so a crash never leaves it pointing at deleted files
     final files = clips.values.toSet();
     for (final f in dir.listSync().whereType<File>()) {
       final name = f.uri.pathSegments.last;
       if (name.endsWith('.ogg') && !files.contains(name)) f.deleteSync();
     }
-    saveIndex();
   }
 }
 
@@ -108,22 +112,6 @@ class _DailyQuotaExceeded implements Exception {
   final String message;
   @override
   String toString() => message;
-}
-
-/// True when a 429 body says the daily quota (not the per-minute one) is spent.
-/// Per-minute bodies look like "... (limit: 3 requests per minute on Free Tier).
-/// Please retry in 43s ...", so only an explicit daily marker counts.
-bool _isDailyQuota(String body) {
-  final b = body.toLowerCase();
-  return b.contains('per day') || b.contains('perday') || b.contains('daily');
-}
-
-/// Parses "Please retry in 43s" / "retry in 4m55s" / "retry in 1h2m3s" into seconds.
-int? _retryDelaySeconds(String body) {
-  final m = RegExp(r'retry in (?:(\d+)h)?(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?').firstMatch(body);
-  if (m == null || (m[1] == null && m[2] == null && m[3] == null)) return null;
-  final secs = (int.parse(m[1] ?? '0') * 3600) + (int.parse(m[2] ?? '0') * 60) + (double.parse(m[3] ?? '0')).ceil();
-  return secs + 3;
 }
 
 /// Calls Gemini TTS and returns WAV bytes. Waits and retries on per-minute
@@ -172,8 +160,8 @@ Future<List<int>> _tts(HttpClient client, String key, String text) async {
       return base64Decode(audios.last['data'] as String);
     }
     if (res.statusCode == 429) {
-      final wait = _retryDelaySeconds(resBody);
-      if (wait == null || _isDailyQuota(resBody)) {
+      final wait = quotaWaitSeconds(resBody);
+      if (wait == null) {
         throw _DailyQuotaExceeded('HTTP 429: ${resBody.length > 400 ? resBody.substring(0, 400) : resBody}');
       }
       stdout.writeln('… giới hạn theo phút, đợi ${wait}s');
@@ -185,16 +173,36 @@ Future<List<int>> _tts(HttpClient client, String key, String text) async {
   throw const HttpException('Gemini TTS: too many retries');
 }
 
+/// Fails fast (before spending API quota) when ffmpeg or libopus is missing.
+Future<void> _preflightFfmpeg() async {
+  try {
+    final r = await Process.run('ffmpeg', ['-hide_banner', '-encoders']);
+    if (r.exitCode == 0 && '${r.stdout}'.contains('libopus')) return;
+    stderr.writeln('ffmpeg có nhưng thiếu bộ mã hóa libopus.');
+  } on ProcessException {
+    stderr.writeln('Không tìm thấy ffmpeg (cần ffmpeg có libopus, ví dụ: brew install ffmpeg).');
+  }
+  exit(1);
+}
+
+/// Encodes to `<name>.tmp.ogg` and renames, so an interrupted run never leaves a
+/// half-written clip. If ffmpeg fails the WAV is kept (path printed), since the
+/// API call it came from already used quota.
 Future<void> _toOgg(List<int> wav, File out) async {
-  final tmp = File('${Directory.systemTemp.path}/xoai-${DateTime.now().microsecondsSinceEpoch}.wav')
+  final tmpWav = File('${Directory.systemTemp.path}/xoai-${DateTime.now().microsecondsSinceEpoch}.wav')
     ..writeAsBytesSync(wav);
+  final tmpOgg = File('${out.path}.tmp.ogg');
   try {
     final r = await Process.run('ffmpeg', [
-      '-y', '-loglevel', 'error', '-i', tmp.path,
-      '-ac', '1', '-c:a', 'libopus', '-b:a', '32k', '-application', 'voip', out.path,
+      '-y', '-loglevel', 'error', '-i', tmpWav.path,
+      '-ac', '1', '-c:a', 'libopus', '-b:a', '32k', '-application', 'voip', tmpOgg.path,
     ]);
     if (r.exitCode != 0) throw ProcessException('ffmpeg', [], '${r.stderr}', r.exitCode);
-  } finally {
-    tmp.deleteSync();
+    tmpOgg.renameSync(out.path);
+    tmpWav.deleteSync();
+  } on Object {
+    if (tmpOgg.existsSync()) tmpOgg.deleteSync();
+    stderr.writeln('ffmpeg lỗi; giữ lại WAV tại ${tmpWav.path}');
+    rethrow;
   }
 }
