@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/clip_player.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
@@ -17,8 +18,12 @@ const phrases = {
   'try_b': Phrase(id: 'try_b', lang: 'vi', text: 'Thử lại nha!', group: 'try_again'),
 };
 
-VoiceService voice(FakeTts tts, [int seed = 1]) =>
-    VoiceService(tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), random: Random(seed));
+VoiceService voice(FakeTts tts, [int seed = 1]) => VoiceService(
+  tts: tts,
+  phrases: phrases,
+  names: const Names(en: 'An', vi: 'Xoài'),
+  random: Random(seed),
+);
 
 void main() {
   test('render fills names and vars and keeps unknown placeholders', () {
@@ -63,10 +68,11 @@ void main() {
     final v = VoiceService(
       tts: tts,
       phrases: const {
-        'correct': Phrase.multi(id: 'correct', group: 'vocab', parts: [
-          PhrasePart('en', '{Word}!'),
-          PhrasePart('vi', '{Vi}!'),
-        ]),
+        'correct': Phrase.multi(
+          id: 'correct',
+          group: 'vocab',
+          parts: [PhrasePart('en', '{Word}!'), PhrasePart('vi', '{Vi}!')],
+        ),
       },
       names: const Names(en: 'An', vi: 'Xoài'),
     );
@@ -84,13 +90,13 @@ void main() {
   });
 
   VoiceService twoParts(GatedTts tts) => VoiceService(
-        tts: tts,
-        phrases: const {
-          'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
-          'next': Phrase(id: 'next', lang: 'en', text: 'Next', group: 'h'),
-        },
-        names: const Names(en: 'An', vi: 'Xoài'),
-      );
+    tts: tts,
+    phrases: const {
+      'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
+      'next': Phrase(id: 'next', lang: 'en', text: 'Next', group: 'h'),
+    },
+    names: const Names(en: 'An', vi: 'Xoài'),
+  );
 
   test('stop while the first part is speaking skips the remaining parts', () async {
     final tts = GatedTts();
@@ -123,11 +129,12 @@ void main() {
     };
 
     VoiceService build(FakeTts tts, FakeClipPlayer player, String clipsJson) => VoiceService(
-        tts: tts,
-        phrases: phrases,
-        names: const Names(en: 'An', vi: 'Xoài'),
-        clips: ClipLibrary.parse(clipsJson),
-        player: player);
+      tts: tts,
+      phrases: phrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: ClipLibrary.parse(clipsJson),
+      player: player,
+    );
 
     test('plays a clip per part, in order', () async {
       final tts = FakeTts();
@@ -215,13 +222,16 @@ void main() {
   });
 
   group('clip circuit breaker', () {
-    const phrases = {
-      'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet'),
-    };
+    const phrases = {'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet')};
     final clips = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg"}}');
 
     VoiceService build(FakeTts tts, ClipPlayer player) => VoiceService(
-        tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: clips, player: player);
+      tts: tts,
+      phrases: phrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: clips,
+      player: player,
+    );
 
     test('after 2 consecutive failures clips are not tried again, TTS speaks', () async {
       final tts = FakeTts();
@@ -276,7 +286,12 @@ void main() {
     final clips = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg"}}');
 
     VoiceService withClips(FakeTts tts, FakeClipPlayer player) => VoiceService(
-        tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: clips, player: player);
+      tts: tts,
+      phrases: phrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: clips,
+      player: player,
+    );
 
     test('plays the clip instead of TTS when one exists', () async {
       final tts = FakeTts();
@@ -339,7 +354,12 @@ void main() {
       final player = FakeClipPlayer();
       final both = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg", "en|Bye!": "bye.ogg"}}');
       final v = VoiceService(
-          tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: both, player: player);
+        tts: tts,
+        phrases: phrases,
+        names: const Names(en: 'An', vi: 'Xoài'),
+        clips: both,
+        player: player,
+      );
       final first = v.say('hello');
       await Future<void>.delayed(Duration.zero);
       final second = v.say('bye');
@@ -348,6 +368,71 @@ void main() {
       await first;
       await second;
       expect(player.played, ['content/audio/bye.ogg']);
+    });
+  });
+  group('speech speed', () {
+    const mixed = {
+      'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
+    };
+    final clips = ClipLibrary.parse('{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
+    const names = Names(en: 'An', vi: 'Xoài');
+
+    test('default speeds are en 0.85 and vi 1.0', () {
+      const s = VoiceSpeeds();
+      expect([s.en, s.vi], [0.85, 1.0]);
+      expect([s.forLang('en'), s.forLang('vi')], [0.85, 1.0]);
+    });
+
+    test('each part of a bilingual phrase plays its clip at its own language speed', () async {
+      final player = FakeClipPlayer();
+      final v = VoiceService(
+        tts: FakeTts(),
+        phrases: mixed,
+        names: names,
+        clips: clips,
+        player: player,
+        speeds: const VoiceSpeeds(en: 0.7, vi: 1.2),
+      );
+      await v.say('two');
+      expect(player.played, ['content/audio/one.ogg', 'content/audio/hai.ogg']);
+      expect(player.speeds, [0.7, 1.2]);
+    });
+
+    test('device voice parts get the same per-language speeds', () async {
+      final tts = FakeTts();
+      final v = VoiceService(tts: tts, phrases: mixed, names: names, speeds: const VoiceSpeeds(en: 0.6, vi: 1.3));
+      await v.say('two');
+      expect(tts.speeds, [0.6, 1.3]);
+    });
+
+    test('a clip that fails falls back to TTS at the same speed', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer()..failWith = StateError('decoder');
+      final v = VoiceService(
+        tts: tts,
+        phrases: mixed,
+        names: names,
+        clips: clips,
+        player: player,
+        speeds: const VoiceSpeeds(en: 0.75, vi: 1.1),
+      );
+      await v.say('two');
+      expect(tts.speeds, [0.75, 1.1]);
+    });
+
+    test('speeds can be changed at runtime and apply to the next phrase', () async {
+      final tts = FakeTts();
+      final v = VoiceService(tts: tts, phrases: mixed, names: names);
+      await v.say('two');
+      v.speeds = const VoiceSpeeds(en: 1.0, vi: 0.9);
+      await v.say('two');
+      expect(tts.speeds, [0.85, 1.0, 1.0, 0.9]);
+    });
+
+    test('out-of-range values are clamped to 0.6 - 1.3', () {
+      final s = const VoiceSpeeds(en: 0.1, vi: 5).clamped();
+      expect([s.en, s.vi], [0.6, 1.3]);
+      expect(const VoiceSpeeds(en: 0.9, vi: 1.0).clamped(), const VoiceSpeeds(en: 0.9, vi: 1.0));
     });
   });
 }
@@ -362,7 +447,7 @@ class _GatedClipPlayer extends FakeClipPlayer {
   }
 
   @override
-  Future<void> play(String assetPath) {
+  Future<void> play(String assetPath, {double speed = 1.0}) {
     played.add(assetPath);
     final c = Completer<void>();
     _pending.add(c);
@@ -375,7 +460,7 @@ class _HangingClipPlayer extends FakeClipPlayer {
   final Future<void> _result;
 
   @override
-  Future<void> play(String assetPath) {
+  Future<void> play(String assetPath, {double speed = 1.0}) {
     played.add(assetPath);
     return _result;
   }
@@ -396,7 +481,7 @@ class _SlowStopTts extends FakeTts {
 
 class _NeverEndingClipPlayer extends FakeClipPlayer {
   @override
-  Future<void> play(String assetPath) {
+  Future<void> play(String assetPath, {double speed = 1.0}) {
     played.add(assetPath);
     return Completer<void>().future;
   }
@@ -406,7 +491,7 @@ class _LogTts extends FakeTts {
   _LogTts(this.log);
   final List<String> log;
   @override
-  Future<void> speak(String text, {required String lang}) async {
+  Future<void> speak(String text, {required String lang, double speed = 1.0}) async {
     log.add('tts:$text');
   }
 }
@@ -415,7 +500,7 @@ class _LogPlayer extends FakeClipPlayer {
   _LogPlayer(this.log);
   final List<String> log;
   @override
-  Future<void> play(String assetPath) async {
+  Future<void> play(String assetPath, {double speed = 1.0}) async {
     log.add('clip:$assetPath');
   }
 }

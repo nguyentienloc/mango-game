@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../content/models.dart';
 import '../profile/names.dart';
+import '../profile/profile_store.dart';
 import 'clip_library.dart';
 import 'clip_player.dart';
 import 'tts_engine.dart';
@@ -17,13 +18,14 @@ class VoiceService {
     required Names names,
     ClipLibrary clips = ClipLibrary.empty,
     ClipPlayer? player,
+    this.speeds = const VoiceSpeeds(),
     Random? random,
-  })  : _tts = tts,
-        _clips = clips,
-        _player = player,
-        _phrases = phrases,
-        _names = names,
-        _random = random ?? Random();
+  }) : _tts = tts,
+       _clips = clips,
+       _player = player,
+       _phrases = phrases,
+       _names = names,
+       _random = random ?? Random();
 
   final TtsEngine _tts;
   final Map<String, Phrase> _phrases;
@@ -32,6 +34,9 @@ class VoiceService {
   final ClipPlayer? _player;
   final Random _random;
   int _generation = 0;
+
+  /// Speech speed per language; can be changed at any time, applies from the next part.
+  VoiceSpeeds speeds;
 
   String render(String template, [Map<String, String> vars = const {}]) => renderTemplate(template, _names, vars);
 
@@ -97,10 +102,11 @@ class VoiceService {
   /// superseded, so the remaining parts must not play.
   Future<bool> _playPart(UtterancePart part, int gen) async {
     final asset = _clips.assetFor(part);
+    final speed = speeds.forLang(part.lang);
     final player = _player;
     if (asset != null && player != null && _clipFailures < _maxClipFailures) {
       try {
-        await player.play(asset).timeout(_clipTimeout);
+        await player.play(asset, speed: speed).timeout(_clipTimeout);
         _clipFailures = 0;
         return gen == _generation;
       } catch (e) {
@@ -113,7 +119,7 @@ class VoiceService {
         if (gen != _generation) return false;
       }
     }
-    await _tts.speak(part.text, lang: part.lang);
+    await _tts.speak(part.text, lang: part.lang, speed: speed);
     return gen == _generation;
   }
 }

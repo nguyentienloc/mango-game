@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:xoai_castle/app/providers.dart';
 import 'package:xoai_castle/core/content/models.dart';
+import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
@@ -21,12 +24,9 @@ void main() {
   });
 
   Future<void> pumpParent(WidgetTester tester, {Set<String> missing = const {}}) async {
-    await tester.pumpWidget(testApp(
-      content: content,
-      tts: FakeTts(),
-      home: const ParentScreen(),
-      missingVoices: missing,
-    ));
+    await tester.pumpWidget(
+      testApp(content: content, tts: FakeTts(), home: const ParentScreen(), missingVoices: missing),
+    );
     await tester.pump();
     await tester.pump();
   }
@@ -48,12 +48,14 @@ void main() {
   });
 
   testWidgets('the checking tile has a retry button', (tester) async {
-    await tester.pumpWidget(testApp(
-      content: content,
-      tts: FakeTts(),
-      home: const ParentScreen(),
-      updateFuture: Completer<UpdateCheck>().future,
-    ));
+    await tester.pumpWidget(
+      testApp(
+        content: content,
+        tts: FakeTts(),
+        home: const ParentScreen(),
+        updateFuture: Completer<UpdateCheck>().future,
+      ),
+    );
     await tester.pump();
     expect(find.text('Đang kiểm tra cập nhật…'), findsOneWidget);
     expect(find.text('Kiểm tra lại'), findsOneWidget);
@@ -88,7 +90,9 @@ void main() {
     final rewards = MemoryRewardStore(const RewardState(snowflakesTotal: 50, castleLevel: 3));
     final resetter = FakeProgressResetter()..onReset = () async => rewards.state = const RewardState();
     final tts = FakeTts();
-    await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen(), rewards: rewards, resetter: resetter));
+    await tester.pumpWidget(
+      testApp(content: content, tts: tts, home: const HomeScreen(), rewards: rewards, resetter: resetter),
+    );
     await tester.pump();
     expect(find.text('❄️ 50'), findsOneWidget);
     const greeting = 'Chào Xoài! Hôm nay mình chơi gì nào?';
@@ -123,5 +127,76 @@ void main() {
     expect(find.text('Không đặt lại được dữ liệu, thử lại nhé'), findsOneWidget);
     expect(find.byType(ParentScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  group('voice speed', () {
+    Finder sliderIn(String title) =>
+        find.descendant(of: find.widgetWithText(ListTile, title), matching: find.byType(Slider));
+
+    testWidgets('two sliders with labels show the stored speeds', (tester) async {
+      await tester.pumpWidget(
+        testApp(
+          content: content,
+          tts: FakeTts(),
+          home: const ParentScreen(),
+          profile: MemoryProfileStore(speeds: const VoiceSpeeds(en: 0.7, vi: 1.25)),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      final en = tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Anh'));
+      final vi = tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Việt'));
+      expect([en.min, en.max, en.divisions], [0.6, 1.3, 14]);
+      expect([vi.min, vi.max, vi.divisions], [0.6, 1.3, 14]);
+      expect([en.value, vi.value], [0.7, 1.25]);
+      expect(en.label, '0,70×');
+      expect(vi.label, '1,25×');
+    });
+
+    testWidgets('releasing the English slider saves, applies to the voice and speaks the sample', (tester) async {
+      final profile = MemoryProfileStore();
+      final tts = FakeTts();
+      await tester.pumpWidget(testApp(content: content, tts: tts, home: const ParentScreen(), profile: profile));
+      await tester.pump();
+      await tester.pump();
+      // The centre of the slider is the middle of 0.6..1.3, i.e. 0.95.
+      await tester.tap(sliderIn('Tốc độ đọc tiếng Anh'));
+      await tester.pump();
+      await tester.pump();
+      expect(profile.speeds.en, closeTo(0.95, 1e-9));
+      expect(profile.speeds.vi, 1.0);
+      final container = ProviderScope.containerOf(tester.element(find.byType(ParentScreen)));
+      expect(container.read(voiceProvider).speeds.en, closeTo(0.95, 1e-9));
+      expect(tts.spoken.last, (text: 'Find the lion!', lang: 'en'));
+      expect(tts.speeds.last, closeTo(0.95, 1e-9));
+    });
+
+    testWidgets('releasing the Vietnamese slider speaks the greeting', (tester) async {
+      final profile = MemoryProfileStore();
+      final tts = FakeTts();
+      await tester.pumpWidget(testApp(content: content, tts: tts, home: const ParentScreen(), profile: profile));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(sliderIn('Tốc độ đọc tiếng Việt'));
+      await tester.pump();
+      await tester.pump();
+      expect(profile.speeds.vi, closeTo(0.95, 1e-9));
+      expect(profile.speeds.en, 0.85);
+      expect(tts.spoken.last, (text: 'Chào Xoài! Hôm nay mình chơi gì nào?', lang: 'vi'));
+      expect(tts.speeds.last, closeTo(0.95, 1e-9));
+    });
+
+    testWidgets('Mặc định puts both speeds back to 0.85 / 1.0', (tester) async {
+      final profile = MemoryProfileStore(speeds: const VoiceSpeeds(en: 0.7, vi: 1.25));
+      await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const ParentScreen(), profile: profile));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Mặc định'));
+      await tester.pump();
+      await tester.pump();
+      expect(profile.speeds, const VoiceSpeeds());
+      expect(tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Anh')).value, 0.85);
+      expect(tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Việt')).value, 1.0);
+    });
   });
 }

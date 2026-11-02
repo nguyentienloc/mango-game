@@ -108,8 +108,7 @@ void main() {
     expect(done, isTrue);
   });
 
-  test('stale cancel/complete before start of new speak does not complete it',
-      () async {
+  test('stale cancel/complete before start of new speak does not complete it', () async {
     final first = engine.speak('one', lang: 'en');
     await settle();
     tts.onStart?.call();
@@ -158,8 +157,7 @@ void main() {
 
   test('a new speak completes the previous pending one', () async {
     var firstDone = false;
-    final first =
-        engine.speak('one', lang: 'en').then((_) => firstDone = true);
+    final first = engine.speak('one', lang: 'en').then((_) => firstDone = true);
     await settle();
     final second = engine.speak('two', lang: 'en');
     await first;
@@ -169,11 +167,9 @@ void main() {
     await second;
   });
 
-  test('throwing platform speak propagates and leaves nothing pending',
-      () async {
+  test('throwing platform speak propagates and leaves nothing pending', () async {
     tts.speakError = StateError('platform down');
-    await expectLater(
-        engine.speak('hi', lang: 'en'), throwsA(isA<StateError>()));
+    await expectLater(engine.speak('hi', lang: 'en'), throwsA(isA<StateError>()));
 
     tts.speakError = null;
     var done = false;
@@ -192,8 +188,7 @@ void main() {
 
   test('throwing setLanguage propagates and the next speak works', () async {
     tts.languageError = StateError('no voice');
-    await expectLater(
-        engine.speak('hi', lang: 'vi'), throwsA(isA<StateError>()));
+    await expectLater(engine.speak('hi', lang: 'vi'), throwsA(isA<StateError>()));
 
     tts.languageError = null;
     final f = engine.speak('again', lang: 'vi');
@@ -204,8 +199,7 @@ void main() {
     expect(tts.languages, ['vi-VN']);
   });
 
-  testWidgets('15 s safety timeout completes speak and clears pending state',
-      (tester) async {
+  testWidgets('15 s safety timeout completes speak and clears pending state', (tester) async {
     var done = false;
     final f = engine.speak('hi', lang: 'en').then((_) => done = true);
     await tester.pump(const Duration(seconds: 14));
@@ -224,8 +218,7 @@ void main() {
     expect(done2, isTrue);
   });
 
-  testWidgets('a platform speak() that never resolves still times out and clears pending state',
-      (tester) async {
+  testWidgets('a platform speak() that never resolves still times out and clears pending state', (tester) async {
     // Broken/missing Android TTS engine: the method-channel call itself hangs.
     tts.speakHangs = Completer<void>();
     var done = false;
@@ -286,5 +279,29 @@ void main() {
       final e = await FlutterTtsEngine.createWith(tts);
       expect(e.missingLocales, {'vi-VN', 'en-US'});
     });
+  });
+
+  test('speech rate is 0.42 x speed and only set when the speed changes', () async {
+    final rates = <double>[];
+    final f = engine.speak('hi', lang: 'en', speed: 0.5);
+    await settle();
+    expect(tts.rate, closeTo(0.21, 1e-9));
+    rates.add(tts.rate!);
+    tts.onStart?.call();
+    tts.onComplete!();
+    await f;
+    tts.rate = null;
+    final g = engine.speak('again', lang: 'en', speed: 0.5);
+    await settle();
+    expect(tts.rate, isNull, reason: 'unchanged speed must not call setSpeechRate');
+    tts.onStart?.call();
+    tts.onComplete!();
+    await g;
+    final h = engine.speak('back', lang: 'en');
+    await settle();
+    expect(tts.rate, closeTo(0.42, 1e-9));
+    tts.onStart?.call();
+    tts.onComplete!();
+    await h;
   });
 }

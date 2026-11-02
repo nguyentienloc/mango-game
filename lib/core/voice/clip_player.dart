@@ -2,8 +2,8 @@ import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 
 abstract interface class ClipPlayer {
-  /// Plays an asset; completes when playback ends or is stopped.
-  Future<void> play(String assetPath);
+  /// Plays an asset at [speed] (1.0 = as recorded); completes when playback ends or is stopped.
+  Future<void> play(String assetPath, {double speed = 1.0});
 
   Future<void> stop();
 }
@@ -21,12 +21,14 @@ class JustAudioClipPlayer implements ClipPlayer {
   }
 
   @override
-  Future<void> play(String assetPath) async {
+  Future<void> play(String assetPath, {double speed = 1.0}) async {
     final token = ++_token;
     // No stop() first: setAsset already interrupts the current clip, and a
     // second stop would rebuild ExoPlayer twice per phrase.
     await _player.setAsset(assetPath);
     // stop() (or a newer play) may have been called while the asset was loading.
+    if (token != _token) return;
+    await _player.setSpeed(speed);
     if (token != _token) return;
     // just_audio's play() completes when playback finishes, pauses or stops.
     await _player.play();

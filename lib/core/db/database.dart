@@ -48,6 +48,8 @@ class Profile extends Table {
   BoolColumn get musicOn => boolean().withDefault(const Constant(true))();
   BoolColumn get testMode => boolean().withDefault(const Constant(false))();
   BoolColumn get showFindLetter => boolean().withDefault(const Constant(false))();
+  RealColumn get enSpeed => real().withDefault(const Constant(0.85))();
+  RealColumn get viSpeed => real().withDefault(const Constant(1.0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -58,13 +60,17 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) => m.createAll(),
-        onUpgrade: (m, from, to) async {
-          if (from < 2) await m.addColumn(profile, profile.showFindLetter);
-        },
-      );
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) await m.addColumn(profile, profile.showFindLetter);
+      if (from < 3) {
+        await m.addColumn(profile, profile.enSpeed);
+        await m.addColumn(profile, profile.viSpeed);
+      }
+    },
+  );
 }
