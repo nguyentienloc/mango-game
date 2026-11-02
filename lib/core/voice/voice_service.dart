@@ -77,6 +77,8 @@ class VoiceService {
     final gen = ++_generation;
     await _tts.stop();
     await _player?.stop();
+    // A stop() or newer say() may have arrived while the engines were being cut.
+    if (gen != _generation) return;
     final asset = _clips.assetFor(u);
     final player = _player;
     if (asset != null && player != null) {

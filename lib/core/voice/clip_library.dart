@@ -15,7 +15,7 @@ class ClipLibrary {
 
   static ClipLibrary parse(String indexJson) {
     final json = jsonDecode(indexJson) as Map<String, dynamic>;
-    return ClipLibrary((json['clips'] as Map<String, dynamic>).cast<String, String>());
+    return ClipLibrary(Map<String, String>.from(json['clips'] as Map));
   }
 
   /// An unreadable or missing index means no clips: everything falls back to TTS.

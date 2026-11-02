@@ -167,6 +167,35 @@ void main() {
       await first;
       expect(tts.spoken, isEmpty);
     });
+    test('stop while the previous speech is still being cut never starts the clip', () async {
+      final tts = _SlowStopTts();
+      final player = FakeClipPlayer();
+      final v = withClips(tts, player);
+      final first = v.say('hello');
+      await Future<void>.delayed(Duration.zero);
+      final stopping = v.stop();
+      tts.release();
+      await first;
+      await stopping;
+      expect(player.played, isEmpty);
+      expect(tts.spoken, isEmpty);
+    });
+
+    test('a newer say while the first is still being cut plays only the newer clip', () async {
+      final tts = _SlowStopTts();
+      final player = FakeClipPlayer();
+      final both = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg", "en|Bye!": "bye.ogg"}}');
+      final v = VoiceService(
+          tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: both, player: player);
+      final first = v.say('hello');
+      await Future<void>.delayed(Duration.zero);
+      final second = v.say('bye');
+      await Future<void>.delayed(Duration.zero);
+      tts.release();
+      await first;
+      await second;
+      expect(player.played, ['content/audio/bye.ogg']);
+    });
   });
 }
 
@@ -178,5 +207,18 @@ class _HangingClipPlayer extends FakeClipPlayer {
   Future<void> play(String assetPath) {
     played.add(assetPath);
     return _result;
+  }
+}
+
+/// stop() stays pending until release(), like a slow native engine.
+class _SlowStopTts extends FakeTts {
+  final _gate = Completer<void>();
+
+  void release() => _gate.complete();
+
+  @override
+  Future<void> stop() async {
+    calls.add('stop');
+    await _gate.future;
   }
 }

@@ -24,7 +24,12 @@ Future<void> main() async {
   final db = AppDatabase(driftDatabase(name: 'xoai'));
   final names = await DriftProfileStore(db).loadNames(content.profileDefaults);
   final clips = await ClipLibrary.load(AssetContentSource());
-  final player = await JustAudioClipPlayer.create();
+  ClipPlayer? player;
+  try {
+    player = await JustAudioClipPlayer.create();
+  } on Object catch (e) {
+    debugPrint('Clip player unavailable: $e — voice uses TTS only');
+  }
   final tts = await FlutterTtsEngine.create();
   final info = await PackageInfo.fromPlatform();
 

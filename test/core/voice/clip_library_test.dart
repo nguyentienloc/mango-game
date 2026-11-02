@@ -24,4 +24,8 @@ void main() {
     expect((await ClipLibrary.load(_Source(null))).length, 0);
     expect((await ClipLibrary.load(_Source('{oops'))).length, 0);
   });
+
+  test('an index with a non-string value gives an empty library', () async {
+    expect((await ClipLibrary.load(_Source('{"clips": {"en|Hi": 5}}'))).length, 0);
+  });
 }
