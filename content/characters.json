@@ -1,10 +1,26 @@
 {
-  "version": 1,
+  "version": 2,
   "items": {
-    "elsa": { "name": "Elsa", "emoji": "👸" },
-    "olaf": { "name": "Olaf", "emoji": "⛄" },
-    "anna": { "name": "Anna", "emoji": "👧" },
-    "sven": { "name": "Sven", "emoji": "🦌" },
-    "kristoff": { "name": "Kristoff", "emoji": "🧔" }
+    "elsa": {
+      "name": "Elsa",
+      "emoji": "👸",
+      "image": "characters/elsa.png"
+    },
+    "olaf": {
+      "name": "Olaf",
+      "emoji": "⛄"
+    },
+    "anna": {
+      "name": "Anna",
+      "emoji": "👧"
+    },
+    "sven": {
+      "name": "Sven",
+      "emoji": "🦌"
+    },
+    "kristoff": {
+      "name": "Kristoff",
+      "emoji": "🧔"
+    }
   }
 }
