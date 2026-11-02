@@ -26,23 +26,62 @@ class TracePad extends StatefulWidget {
   State<TracePad> createState() => _TracePadState();
 }
 
+/// Shortest path (in pad units) that counts as a stroke rather than a tap.
+const _kMinStrokeLength = 0.04;
+
+/// Dashed guide paths only depend on the strokes and the pad size, so they are
+/// built once instead of on every pointer move.
+class _DashCache {
+  List<List<TracePoint>>? _strokes;
+  double _side = 0;
+  final Map<int, Path> _paths = {};
+
+  Path get(
+    List<List<TracePoint>> strokes,
+    int index,
+    double side,
+    Path Function() build,
+  ) {
+    if (!identical(_strokes, strokes) || _side != side) {
+      _strokes = strokes;
+      _side = side;
+      _paths.clear();
+    }
+    return _paths.putIfAbsent(index, build);
+  }
+}
+
 class _TracePadState extends State<TracePad> {
   List<TracePoint> _drawing = [];
 
   /// The pointer currently drawing; other fingers are ignored until it lifts.
   int? _pointer;
 
+  final _dashCache = _DashCache();
+
   TracePoint _point(Offset local, double side) => TracePoint(
     (local.dx / side).clamp(0.0, 1.0),
     (local.dy / side).clamp(0.0, 1.0),
   );
+
+  static double _length(List<TracePoint> pts) {
+    var total = 0.0;
+    for (var i = 1; i < pts.length; i++) {
+      total += pts[i - 1].distanceTo(pts[i]);
+    }
+    return total;
+  }
 
   void _end(PointerEvent e, {required bool cancelled}) {
     if (e.pointer != _pointer) return;
     _pointer = null;
     final drawn = _drawing;
     setState(() => _drawing = []);
-    if (!cancelled && widget.enabled && drawn.length >= 2) {
+    // A tap or a dab with a little jitter is not a stroke: say nothing.
+    if (!cancelled &&
+        widget.enabled &&
+        drawn.length >= 2 &&
+        _length(drawn) >= _kMinStrokeLength) {
       widget.onStrokeDrawn(List.of(drawn));
     }
   }
@@ -79,6 +118,7 @@ class _TracePadState extends State<TracePad> {
                   widget.strokes,
                   widget.current,
                   _drawing,
+                  _dashCache,
                 ),
               ),
             ),
@@ -90,11 +130,12 @@ class _TracePadState extends State<TracePad> {
 }
 
 class _TracePainter extends CustomPainter {
-  _TracePainter(this.strokes, this.current, this.drawing);
+  _TracePainter(this.strokes, this.current, this.drawing, this.dashCache);
 
   final List<List<TracePoint>> strokes;
   final int current;
   final List<TracePoint> drawing;
+  final _DashCache dashCache;
 
   Offset _o(TracePoint p, double side) => Offset(p.x * side, p.y * side);
 
@@ -147,11 +188,12 @@ class _TracePainter extends CustomPainter {
     for (var i = 0; i < strokes.length; i++) {
       final pts = strokes[i];
       if (pts.length < 2) continue;
+      Path dashed() => dashCache.get(strokes, i, side, () => _dashed(pts, side));
       if (i < current) {
         canvas.drawPath(_path(pts, side), stroke(IceColors.deep, width));
       } else if (i == current) {
         canvas.drawPath(
-          _dashed(pts, side),
+          dashed(),
           stroke(
             IceColors.frost.withValues(alpha: 0.6),
             width * 1.6,
@@ -159,14 +201,14 @@ class _TracePainter extends CustomPainter {
           )..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.5),
         );
         canvas.drawPath(
-          _dashed(pts, side),
+          dashed(),
           stroke(IceColors.frost, width * 0.8, dashed: true),
         );
         _paintArrow(canvas, pts, side);
         _paintNumber(canvas, pts.first, i + 1, side);
       } else {
         canvas.drawPath(
-          _dashed(pts, side),
+          dashed(),
           stroke(Colors.grey.shade300, width * 0.8, dashed: true),
         );
       }

@@ -84,12 +84,28 @@ void main() {
     await tester.pump();
     await tester.pump();
     await drawPoints(tester, [
-      for (var i = 0; i <= 20; i++) TracePoint(0.02 + i * 0.001, 0.02),
+      for (var i = 0; i <= 20; i++) TracePoint(0.02 + i * 0.0125, 0.98),
     ]);
     expect(
       tts.texts.where((t) => t == 'Try again!' || t == 'Thử lại nha con!'),
       hasLength(1),
     );
+    expect(asked(tts), hasLength(1));
+  });
+
+  testWidgets('a jittery tap is not a stroke: no try again and no failure', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const TraceScreen()));
+    await tester.pump();
+    await tester.pump();
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    for (var i = 0; i < 4; i++) {
+      final g = await tester.startGesture(rect.center);
+      await g.moveBy(const Offset(2, 1));
+      await g.up();
+      await tester.pump();
+    }
+    expect(tts.texts.where((t) => t == 'Try again!' || t == 'Thử lại nha con!'), isEmpty);
     expect(asked(tts), hasLength(1));
   });
 
@@ -180,5 +196,50 @@ void padTests() {
     await tester.pump();
     expect(strokes, hasLength(1));
     expect(strokes.single.last.x, closeTo(100 / 300, 0.005));
+  });
+
+  testWidgets('a tap with a tiny jitter does not report a stroke', (tester) async {
+    final strokes = <List<TracePoint>>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SizedBox.square(
+            dimension: 300,
+            child: TracePad(strokes: const [], current: 0, onStrokeDrawn: strokes.add),
+          ),
+        ),
+      ),
+    ));
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    final g = await tester.startGesture(rect.center);
+    await g.moveBy(const Offset(1, 2));
+    await g.up();
+    await tester.pump();
+    expect(strokes, isEmpty);
+  });
+
+  testWidgets('a cancelled pointer reports nothing and the next stroke works', (tester) async {
+    final strokes = <List<TracePoint>>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SizedBox.square(
+            dimension: 300,
+            child: TracePad(strokes: const [], current: 0, onStrokeDrawn: strokes.add),
+          ),
+        ),
+      ),
+    ));
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    final g = await tester.startGesture(rect.topLeft + const Offset(30, 30));
+    await g.moveTo(rect.topLeft + const Offset(150, 30));
+    await g.cancel();
+    await tester.pump();
+    expect(strokes, isEmpty);
+    final g2 = await tester.startGesture(rect.topLeft + const Offset(30, 60));
+    await g2.moveTo(rect.topLeft + const Offset(150, 60));
+    await g2.up();
+    await tester.pump();
+    expect(strokes, hasLength(1));
   });
 }
