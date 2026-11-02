@@ -56,6 +56,17 @@ void main() {
       expect(scoreStroke(vertical, const []).passed, isFalse);
       expect(scoreStroke(vertical, const [TracePoint(0.5, 0.5)]).passed, isFalse);
     });
+
+    test('a tap at the middle of a short stroke fails on length', () {
+      final crossbar = const Stroke([LineSegment([TracePoint(0.55, 0.57), TracePoint(0.85, 0.57)])]).sample();
+      expect(scoreStroke(crossbar, const [TracePoint(0.7, 0.57), TracePoint(0.7, 0.57)]).passed, isFalse);
+      expect(scoreStroke(crossbar, line(0.55, 0.57, 0.85, 0.57)).passed, isTrue);
+    });
+
+    test('a tap on a very short stroke fails on length', () {
+      final dash = const Stroke([LineSegment([TracePoint(0.5, 0.5), TracePoint(0.6, 0.5)])]).sample();
+      expect(scoreStroke(dash, const [TracePoint(0.55, 0.5), TracePoint(0.55, 0.5)]).passed, isFalse);
+    });
   });
 
   group('TraceLetterSession', () {
@@ -85,6 +96,15 @@ void main() {
       s.submit(line(0.15, 0.1, 0.85, 0.1));
       s.submit(line(0.5, 0.1, 0.5, 0.9));
       expect(s.outcome, AnswerOutcome.retry);
+    });
+
+    test('two failures on one stroke still count as first try', () {
+      final s = TraceLetterSession(letterT);
+      s.submit(line(0.15, 0.9, 0.85, 0.9));
+      s.submit(line(0.15, 0.9, 0.85, 0.9));
+      s.submit(line(0.15, 0.1, 0.85, 0.1));
+      s.submit(line(0.5, 0.1, 0.5, 0.9));
+      expect(s.outcome, AnswerOutcome.firstTry);
     });
   });
 

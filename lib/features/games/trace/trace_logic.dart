@@ -8,14 +8,25 @@ import '../../../core/progress/question_picker.dart';
 const kTraceTolerance = 0.12;
 const kMinCoverage = 0.8;
 const kMinPrecision = 0.7;
+const kMinLengthRatio = 0.5;
 
 class StrokeScore {
-  const StrokeScore(this.coverage, this.precision);
+  const StrokeScore(this.coverage, this.precision, this.lengthRatio);
 
   final double coverage;
   final double precision;
+  /// Drawn polyline length / target polyline length.
+  final double lengthRatio;
 
-  bool get passed => coverage >= kMinCoverage && precision >= kMinPrecision;
+  bool get passed => coverage >= kMinCoverage && precision >= kMinPrecision && lengthRatio >= kMinLengthRatio;
+}
+
+double _polylineLength(List<TracePoint> pts) {
+  var total = 0.0;
+  for (var i = 1; i < pts.length; i++) {
+    total += pts[i - 1].distanceTo(pts[i]);
+  }
+  return total;
 }
 
 double _distToSegment(TracePoint p, TracePoint a, TracePoint b) {
@@ -28,7 +39,7 @@ double _distToSegment(TracePoint p, TracePoint a, TracePoint b) {
 }
 
 StrokeScore scoreStroke(List<TracePoint> target, List<TracePoint> drawn, {double tolerance = kTraceTolerance}) {
-  if (drawn.length < 2 || target.isEmpty) return const StrokeScore(0, 0);
+  if (drawn.length < 2 || target.isEmpty) return const StrokeScore(0, 0, 0);
   double distToDrawn(TracePoint p) {
     var best = double.infinity;
     for (var i = 1; i < drawn.length; i++) {
@@ -40,7 +51,9 @@ StrokeScore scoreStroke(List<TracePoint> target, List<TracePoint> drawn, {double
   double distToTarget(TracePoint p) => target.map(p.distanceTo).reduce(min);
   final covered = target.where((p) => distToDrawn(p) <= tolerance).length;
   final precise = drawn.where((p) => distToTarget(p) <= tolerance).length;
-  return StrokeScore(covered / target.length, precise / drawn.length);
+  final targetLength = _polylineLength(target);
+  final lengthRatio = targetLength > 0 ? _polylineLength(drawn) / targetLength : 0.0;
+  return StrokeScore(covered / target.length, precise / drawn.length, lengthRatio);
 }
 
 String traceKey(LetterItem l) => 'trace_en_upper:${l.char}';
