@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xoai_castle/app/providers.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/progress/item_stats_store.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
@@ -20,6 +21,7 @@ Widget testApp({
   ItemStatsStore? itemStats,
   SessionStore? sessions,
   RewardStore? rewards,
+  ProfileStore? profile,
   UpdateCheck update = const UpToDate(),
   Set<String> missingVoices = const {},
   Future<UpdateCheck>? updateFuture,
@@ -36,6 +38,7 @@ Widget testApp({
       itemStatsStoreProvider.overrideWithValue(itemStats ?? MemoryItemStatsStore()),
       sessionStoreProvider.overrideWithValue(sessions ?? MemorySessionStore()),
       rewardStoreProvider.overrideWithValue(rewards ?? MemoryRewardStore()),
+      profileStoreProvider.overrideWithValue(profile ?? MemoryProfileStore()),
       clockProvider.overrideWithValue(() => DateTime(2026, 11, 2, 9)),
       randomProvider.overrideWithValue(Random(42)),
       appVersionProvider.overrideWithValue('0.1.0'),

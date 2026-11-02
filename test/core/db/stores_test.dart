@@ -70,4 +70,12 @@ void main() {
     expect([first.en, first.vi], ['An', 'Xoài']);
     expect([second.en, second.vi], ['An', 'Xoài']);
   });
+
+  test('showFindLetter defaults to false and can be toggled', () async {
+    final store = DriftProfileStore(db);
+    await store.loadNames(const ProfileDefaults(nameEn: 'An', nameVi: 'Xoài', dailyLimitMin: 20));
+    expect(await store.showFindLetter(), isFalse);
+    await store.setShowFindLetter(true);
+    expect(await DriftProfileStore(db).showFindLetter(), isTrue);
+  });
 }

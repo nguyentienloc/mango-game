@@ -21,22 +21,45 @@ class LetterItem {
   String get lower => char.toLowerCase();
 }
 
-class Phrase {
-  const Phrase({required this.id, required this.lang, required this.text, required this.group, this.priority = false});
+class PhrasePart {
+  const PhrasePart(this.lang, this.text);
 
-  factory Phrase.fromJson(Map<String, dynamic> json) => Phrase(
-        id: json['id'] as String,
-        lang: json['lang'] as String,
-        text: json['text'] as String,
-        group: json['group'] as String,
-        priority: json['priority'] as bool? ?? false,
-      );
-
-  final String id;
   final String lang;
   final String text;
+}
+
+class Phrase {
+  const Phrase({required this.id, required String lang, required String text, required this.group, this.priority = false})
+      : _lang = lang,
+        _text = text,
+        _parts = null;
+
+  const Phrase.multi({required this.id, required List<PhrasePart> parts, required this.group, this.priority = false})
+      : _lang = null,
+        _text = null,
+        _parts = parts;
+
+  factory Phrase.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String;
+    final group = json['group'] as String;
+    final priority = json['priority'] as bool? ?? false;
+    final parts = json['parts'] as List?;
+    if (parts != null) {
+      return Phrase.multi(id: id, group: group, priority: priority, parts: [
+        for (final p in parts) PhrasePart((p as Map<String, dynamic>)['lang'] as String, p['text'] as String),
+      ]);
+    }
+    return Phrase(id: id, lang: json['lang'] as String, text: json['text'] as String, group: group, priority: priority);
+  }
+
+  final String id;
   final String group;
   final bool priority;
+  final String? _lang;
+  final String? _text;
+  final List<PhrasePart>? _parts;
+
+  List<PhrasePart> get allParts => _parts ?? [PhrasePart(_lang!, _text!)];
 }
 
 class CastleLevel {
@@ -83,6 +106,26 @@ class ProfileDefaults {
   final int dailyLimitMin;
 }
 
+class VocabItem {
+  const VocabItem({required this.id, required this.word, required this.vi, required this.emoji, required this.topic, this.image});
+
+  factory VocabItem.fromJson(Map<String, dynamic> json, String topic) => VocabItem(
+        id: json['id'] as String,
+        word: json['word'] as String,
+        vi: json['vi'] as String,
+        emoji: json['emoji'] as String,
+        image: json['image'] as String?,
+        topic: topic,
+      );
+
+  final String id;
+  final String word;
+  final String vi;
+  final String emoji;
+  final String? image;
+  final String topic;
+}
+
 class ContentBundle {
   const ContentBundle({
     required this.lettersEn,
@@ -90,12 +133,20 @@ class ContentBundle {
     required this.castle,
     required this.characters,
     required this.profileDefaults,
+    required this.vocab,
   });
 
   /// Builds a bundle from already-validated files (paths relative to content/).
   factory ContentBundle.fromFiles(Map<String, String> files) {
     Map<String, dynamic> read(String path) => jsonDecode(files[path]!) as Map<String, dynamic>;
     final characters = read('characters.json')['items'] as Map<String, dynamic>;
+    final manifest = read('manifest.json');
+    final vocab = [
+      for (final name in (manifest['packs'] as Map<String, dynamic>).keys)
+        if (name.startsWith('vocab_'))
+          for (final j in read('packs/$name.json')['items'] as List)
+            VocabItem.fromJson(j as Map<String, dynamic>, name.substring('vocab_'.length)),
+    ];
     return ContentBundle(
       lettersEn: [
         for (final j in read('packs/letters_en.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
@@ -111,6 +162,7 @@ class ContentBundle {
         for (final e in characters.entries) e.key: CharacterDef.fromJson(e.key, e.value as Map<String, dynamic>),
       },
       profileDefaults: ProfileDefaults.fromJson(read('profile_defaults.json')),
+      vocab: vocab,
     );
   }
 
@@ -119,4 +171,5 @@ class ContentBundle {
   final List<CastleLevel> castle;
   final Map<String, CharacterDef> characters;
   final ProfileDefaults profileDefaults;
+  final List<VocabItem> vocab;
 }

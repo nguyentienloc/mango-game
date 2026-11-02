@@ -3,6 +3,9 @@ import 'dart:math';
 import '../../../core/content/models.dart';
 import '../../../core/progress/item_stat.dart';
 import '../../../core/progress/question_picker.dart';
+import '../pick_session.dart';
+
+export '../pick_session.dart' show PickSession, TapResult;
 
 enum FindLetterMode { upper, lower, match }
 
@@ -23,7 +26,7 @@ FindLetterMode highestUnlockedMode(List<LetterItem> letters, Map<String, ItemSta
   return FindLetterMode.match;
 }
 
-class FindLetterQuestion {
+class FindLetterQuestion implements PickQuestion {
   const FindLetterQuestion({required this.mode, required this.item, required this.options});
 
   final FindLetterMode mode;
@@ -32,7 +35,9 @@ class FindLetterQuestion {
   /// Letters written on the falling snowflakes, answer included.
   final List<String> options;
 
+  @override
   String get key => findLetterKey(mode, item);
+  @override
   String get answer => mode == FindLetterMode.upper ? item.char : item.lower;
 
   /// Big capital shown on screen in match mode.
@@ -81,42 +86,4 @@ FindLetterQuestion _question(
   return FindLetterQuestion(mode: mode, item: item, options: options);
 }
 
-enum TapResult { correct, wrong, ignored }
-
-class FindLetterSession {
-  FindLetterSession(this.questions);
-
-  final List<FindLetterQuestion> questions;
-  final List<AnswerOutcome> outcomes = [];
-  int _index = 0;
-  int _wrong = 0;
-  bool _answered = false;
-
-  int get index => _index;
-  bool get isFinished => _index >= questions.length;
-  FindLetterQuestion get current => questions[_index];
-  bool get showHint => _wrong >= 2;
-  int get firstTryCount => outcomes.where((o) => o == AnswerOutcome.firstTry).length;
-
-  TapResult tap(String option) {
-    if (isFinished || _answered) return TapResult.ignored;
-    if (option != current.answer) {
-      _wrong++;
-      return TapResult.wrong;
-    }
-    _answered = true;
-    outcomes.add(switch (_wrong) {
-      0 => AnswerOutcome.firstTry,
-      1 => AnswerOutcome.retry,
-      _ => AnswerOutcome.hinted,
-    });
-    return TapResult.correct;
-  }
-
-  /// Moves to the next question after the correct-answer celebration.
-  void next() {
-    _index++;
-    _wrong = 0;
-    _answered = false;
-  }
-}
+typedef FindLetterSession = PickSession<FindLetterQuestion>;

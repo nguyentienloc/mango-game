@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../app/reward_controller.dart';
+import '../../app/show_find_letter_controller.dart';
 import '../../core/rewards/reward_rules.dart';
 import '../../core/rewards/reward_state.dart';
 import '../../core/time.dart';
@@ -17,6 +18,7 @@ import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
 import '../games/find_letter/find_letter_screen.dart';
+import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
 
 class _GameEntry {
@@ -28,14 +30,6 @@ class _GameEntry {
 
   bool get enabled => builder != null;
 }
-
-final _games = <_GameEntry>[
-  _GameEntry('🎈', 'game_find_letter', (_) => const FindLetterScreen()),
-  const _GameEntry('✏️', 'game_trace'),
-  const _GameEntry('🗣️', 'game_talk'),
-  const _GameEntry('🇻🇳', 'game_vi'),
-  const _GameEntry('🐶', 'game_vocab'),
-];
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -93,6 +87,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final rewards = ref.watch(rewardStateProvider).value ?? const RewardState();
     final today = dayKey(ref.watch(clockProvider)());
     final hasUpdate = ref.watch(updateCheckProvider).value is UpdateAvailable;
+    final showFindLetter = ref.watch(showFindLetterProvider).value ?? false;
+    final games = <_GameEntry>[
+      _GameEntry('🐾', 'game_vocab', (_) => const VocabScreen()),
+      if (showFindLetter) _GameEntry('🎈', 'game_find_letter', (_) => const FindLetterScreen()),
+      const _GameEntry('✏️', 'game_trace'),
+      const _GameEntry('🗣️', 'game_talk'),
+      const _GameEntry('🇻🇳', 'game_vi'),
+    ];
     // Home is the root: the back gesture must not exit the app by accident.
     return PopScope(
       canPop: false,
@@ -141,7 +143,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: [
-                    for (final g in _games) BigButton(emoji: g.emoji, enabled: g.enabled, onTap: () => _openGame(g)),
+                    for (final g in games) BigButton(emoji: g.emoji, enabled: g.enabled, onTap: () => _openGame(g)),
                   ],
                 ),
               ),

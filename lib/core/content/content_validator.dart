@@ -15,6 +15,9 @@ const requiredPhraseIds = {
   'game_talk',
   'game_vi',
   'game_vocab',
+  'vocab_prompt',
+  'vocab_correct',
+  'vocab_hint',
   'game_castle',
   'go_home',
   'coming_soon',
@@ -78,6 +81,7 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
   }
 
   _checkLetters(docs['packs/letters_en.json']!, errors, checkImage);
+  _checkVocab(packs.keys, docs, errors, checkImage);
   _checkPhrases(docs['phrases.json']!, errors);
   final friends = _checkCastle(docs['castle.json']!, errors);
   _checkCharacters(docs['characters.json']!, friends, errors, checkImage);
@@ -138,6 +142,50 @@ void _checkLetters(
   }
 }
 
+void _checkVocab(
+  Iterable<String> packNames,
+  Map<String, Map<String, dynamic>> docs,
+  List<String> errors,
+  void Function(String where, Object? image) checkImage,
+) {
+  final names = packNames.where((n) => n.startsWith('vocab_')).toList();
+  if (names.isEmpty) {
+    errors.add('manifest.json: cần ít nhất một gói từ vựng "vocab_..."');
+    return;
+  }
+  final seen = <String, String>{};
+  var total = 0;
+  for (final name in names) {
+    final path = 'packs/$name.json';
+    final items = docs[path]?['items'];
+    if (items is! List || items.isEmpty) {
+      errors.add('$path: "items" phải là danh sách không rỗng');
+      continue;
+    }
+    for (final (i, item) in items.indexed) {
+      final where = '$path items[$i]';
+      if (item is! Map<String, dynamic>) {
+        errors.add('$where: phải là object');
+        continue;
+      }
+      total++;
+      final id = item['id'];
+      if (!_nonEmpty(id)) {
+        errors.add('$where: thiếu "id"');
+      } else if (seen.containsKey(id)) {
+        errors.add(seen[id] == path ? '$where: id "$id" bị trùng' : '$where: id "$id" đã có ở gói khác');
+      } else {
+        seen[id as String] = path;
+      }
+      for (final field in ['word', 'vi', 'emoji']) {
+        if (!_nonEmpty(item[field])) errors.add('$where: thiếu "$field"');
+      }
+      checkImage(where, item['image']);
+    }
+  }
+  if (total < 4) errors.add('Cần ít nhất 4 từ vựng (hiện có $total)');
+}
+
 void _checkPhrases(Map<String, dynamic> doc, List<String> errors) {
   final items = doc['items'];
   if (items is! List || items.isEmpty) {
@@ -158,10 +206,25 @@ void _checkPhrases(Map<String, dynamic> doc, List<String> errors) {
     } else if (!ids.add(id as String)) {
       errors.add('$where: id "$id" bị trùng');
     }
-    if (item['lang'] != 'en' && item['lang'] != 'vi') {
-      errors.add('$where: "lang" phải là "en" hoặc "vi"');
+    final parts = item['parts'];
+    if (parts != null) {
+      if (parts is! List || parts.isEmpty) {
+        errors.add('$where: "parts" phải là danh sách không rỗng');
+      } else {
+        for (final (j, part) in parts.indexed) {
+          final pw = '$where parts[$j]';
+          if (part is! Map<String, dynamic>) {
+            errors.add('$pw: phải là object');
+            continue;
+          }
+          if (part['lang'] != 'en' && part['lang'] != 'vi') errors.add('$pw: "lang" phải là "en" hoặc "vi"');
+          if (!_nonEmpty(part['text'])) errors.add('$pw: thiếu "text"');
+        }
+      }
+    } else {
+      if (item['lang'] != 'en' && item['lang'] != 'vi') errors.add('$where: "lang" phải là "en" hoặc "vi"');
+      if (!_nonEmpty(item['text'])) errors.add('$where: thiếu "text"');
     }
-    if (!_nonEmpty(item['text'])) errors.add('$where: thiếu "text"');
     final group = item['group'];
     if (!_nonEmpty(group)) {
       errors.add('$where: thiếu "group"');
@@ -245,4 +308,25 @@ void _checkProfile(Map<String, dynamic> doc, List<String> errors) {
   if (limit is! int || limit < 0) {
     errors.add('profile_defaults.json: "daily_limit_min" phải là số nguyên ≥ 0');
   }
+}
+
+/// Checks content/audio/index.json against the files present (paths relative to content/).
+List<String> validateAudioIndex(String indexJson, Set<String> assetPaths) {
+  final errors = <String>[];
+  final Map<String, dynamic> clips;
+  try {
+    clips = (jsonDecode(indexJson) as Map<String, dynamic>)['clips'] as Map<String, dynamic>;
+  } on Object catch (e) {
+    return ['audio/index.json: không đọc được ($e)'];
+  }
+  final used = <String>{};
+  for (final file in clips.values) {
+    final path = 'audio/$file';
+    used.add(path);
+    if (!assetPaths.contains(path)) errors.add('audio/index.json: thiếu file "$path"');
+  }
+  for (final path in assetPaths.where((p) => p.startsWith('audio/') && p.endsWith('.ogg'))) {
+    if (!used.contains(path)) errors.add('$path: không có câu nào dùng file này');
+  }
+  return errors;
 }

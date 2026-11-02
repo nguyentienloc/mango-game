@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
@@ -54,5 +55,17 @@ void main() {
     await tester.pump();
     expect(find.text('Đang kiểm tra cập nhật…'), findsOneWidget);
     expect(find.text('Kiểm tra lại'), findsOneWidget);
+  });
+
+  testWidgets('the find-letter switch is off by default and saves when toggled', (tester) async {
+    final profile = MemoryProfileStore();
+    await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const ParentScreen(), profile: profile));
+    await tester.pump();
+    final tile = find.widgetWithText(SwitchListTile, 'Hiện trò Tìm chữ cái');
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    await tester.tap(tile);
+    await tester.pump();
+    expect(profile.show, isTrue);
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
   });
 }

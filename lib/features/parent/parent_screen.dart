@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../app/show_find_letter_controller.dart';
 import '../../core/updater/app_updater.dart';
 import 'update_download_dialog.dart';
 
@@ -25,6 +26,13 @@ class ParentScreen extends ConsumerWidget {
             leading: const Icon(Icons.info_outline),
             title: const Text('Phiên bản app'),
             subtitle: Text(ref.watch(appVersionProvider)),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.abc),
+            title: const Text('Hiện trò Tìm chữ cái'),
+            subtitle: const Text('Trò 🎈 tìm chữ cái tiếng Anh, dành cho khi bé đã thuộc mặt chữ'),
+            value: ref.watch(showFindLetterProvider).value ?? false,
+            onChanged: (v) => ref.read(showFindLetterProvider.notifier).set(v),
           ),
           const UpdateTile(),
         ],
