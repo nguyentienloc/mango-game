@@ -10,6 +10,8 @@ import 'core/content/asset_content_source.dart';
 import 'core/content/content_repository.dart';
 import 'core/db/database.dart';
 import 'core/profile/profile_store.dart';
+import 'core/voice/clip_library.dart';
+import 'core/voice/clip_player.dart';
 import 'core/voice/flutter_tts_engine.dart';
 import 'core/voice/voice_service.dart';
 
@@ -21,6 +23,8 @@ Future<void> main() async {
   final content = await ContentRepository(AssetContentSource()).load();
   final db = AppDatabase(driftDatabase(name: 'xoai'));
   final names = await DriftProfileStore(db).loadNames(content.profileDefaults);
+  final clips = await ClipLibrary.load(AssetContentSource());
+  final player = await JustAudioClipPlayer.create();
   final tts = await FlutterTtsEngine.create();
   final info = await PackageInfo.fromPlatform();
 
@@ -28,7 +32,8 @@ Future<void> main() async {
     overrides: [
       contentProvider.overrideWithValue(content),
       databaseProvider.overrideWithValue(db),
-      voiceProvider.overrideWithValue(VoiceService(tts: tts, phrases: content.phrases, names: names)),
+      voiceProvider.overrideWithValue(
+          VoiceService(tts: tts, phrases: content.phrases, names: names, clips: clips, player: player)),
       appVersionProvider.overrideWithValue(info.version),
       missingVoicesProvider.overrideWithValue(tts.missingLocales),
     ],

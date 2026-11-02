@@ -1,7 +1,11 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import '../content/models.dart';
 import '../profile/names.dart';
+import 'clip_library.dart';
+import 'clip_player.dart';
 import 'tts_engine.dart';
 import 'utterance.dart';
 
@@ -11,8 +15,12 @@ class VoiceService {
     required TtsEngine tts,
     required Map<String, Phrase> phrases,
     required Names names,
+    ClipLibrary clips = ClipLibrary.empty,
+    ClipPlayer? player,
     Random? random,
   })  : _tts = tts,
+        _clips = clips,
+        _player = player,
         _phrases = phrases,
         _names = names,
         _random = random ?? Random();
@@ -20,6 +28,8 @@ class VoiceService {
   final TtsEngine _tts;
   final Map<String, Phrase> _phrases;
   final Names _names;
+  final ClipLibrary _clips;
+  final ClipPlayer? _player;
   final Random _random;
   int _generation = 0;
 
@@ -50,9 +60,10 @@ class VoiceService {
   }
 
   /// Cuts the current phrase, including any parts not yet spoken.
-  Future<void> stop() {
+  Future<void> stop() async {
     _generation++;
-    return _tts.stop();
+    await _player?.stop();
+    await _tts.stop();
   }
 
   Utterance _build(Phrase phrase, Map<String, String> vars) =>
@@ -60,9 +71,25 @@ class VoiceService {
 
   Future<void> _speak(Phrase phrase, Map<String, String> vars) => _play(_build(phrase, vars));
 
+  static const _clipTimeout = Duration(seconds: 15);
+
   Future<void> _play(Utterance u) async {
     final gen = ++_generation;
     await _tts.stop();
+    await _player?.stop();
+    final asset = _clips.assetFor(u);
+    final player = _player;
+    if (asset != null && player != null) {
+      try {
+        await player.play(asset).timeout(_clipTimeout);
+        return;
+      } catch (e) {
+        debugPrint('Clip failed ($asset): $e — using TTS');
+        if (gen != _generation) return;
+        // A timed-out clip may still be playing; don't talk over it.
+        await player.stop().catchError((Object _) {});
+      }
+    }
     for (final part in u.parts) {
       if (gen != _generation) return;
       await _tts.speak(part.text, lang: part.lang);

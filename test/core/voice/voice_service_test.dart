@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
 
 import '../../support/fakes.dart';
@@ -112,4 +114,69 @@ void main() {
     await second;
     expect(tts.texts, ['One', 'Next']);
   });
+
+  group('pre-generated clips', () {
+    const phrases = {
+      'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet'),
+      'bye': Phrase(id: 'bye', lang: 'en', text: 'Bye!', group: 'greet'),
+    };
+    final clips = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg"}}');
+
+    VoiceService withClips(FakeTts tts, FakeClipPlayer player) => VoiceService(
+        tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: clips, player: player);
+
+    test('plays the clip instead of TTS when one exists', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer();
+      await withClips(tts, player).say('hello');
+      expect(player.played, ['content/audio/hello.ogg']);
+      expect(tts.spoken, isEmpty);
+    });
+
+    test('falls back to TTS when there is no clip', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer();
+      await withClips(tts, player).say('bye');
+      expect(player.played, isEmpty);
+      expect(tts.texts, ['Bye!']);
+    });
+
+    test('falls back to TTS when the clip fails to play', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer()..failWith = StateError('decoder');
+      await withClips(tts, player).say('hello');
+      expect(tts.texts, ['Chào Xoài!']);
+    });
+
+    test('stop stops both the clip player and TTS', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer();
+      await withClips(tts, player).stop();
+      expect(player.stops, 1);
+      expect(tts.calls, contains('stop'));
+    });
+    test('a clip that fails after being superseded does not fall back to TTS', () async {
+      final tts = FakeTts();
+      final failing = Completer<void>();
+      final player = _HangingClipPlayer(failing.future);
+      final v = withClips(tts, player);
+      final first = v.say('hello');
+      await Future<void>.delayed(Duration.zero);
+      await v.stop();
+      failing.completeError(StateError('interrupted'));
+      await first;
+      expect(tts.spoken, isEmpty);
+    });
+  });
+}
+
+class _HangingClipPlayer extends FakeClipPlayer {
+  _HangingClipPlayer(this._result);
+  final Future<void> _result;
+
+  @override
+  Future<void> play(String assetPath) {
+    played.add(assetPath);
+    return _result;
+  }
 }
