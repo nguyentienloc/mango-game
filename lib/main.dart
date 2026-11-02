@@ -30,6 +30,7 @@ Future<void> main() async {
       databaseProvider.overrideWithValue(db),
       voiceProvider.overrideWithValue(VoiceService(tts: tts, phrases: content.phrases, names: names)),
       appVersionProvider.overrideWithValue(info.version),
+      missingVoicesProvider.overrideWithValue(tts.missingLocales),
     ],
     child: const XoaiApp(),
   ));

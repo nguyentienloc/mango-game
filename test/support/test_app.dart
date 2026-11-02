@@ -21,6 +21,8 @@ Widget testApp({
   SessionStore? sessions,
   RewardStore? rewards,
   UpdateCheck update = const UpToDate(),
+  Set<String> missingVoices = const {},
+  Future<UpdateCheck>? updateFuture,
 }) {
   return ProviderScope(
     overrides: [
@@ -37,7 +39,8 @@ Widget testApp({
       clockProvider.overrideWithValue(() => DateTime(2026, 11, 2, 9)),
       randomProvider.overrideWithValue(Random(42)),
       appVersionProvider.overrideWithValue('0.1.0'),
-      updateCheckProvider.overrideWith((ref) async => update),
+      updateCheckProvider.overrideWith((ref) => updateFuture ?? Future.value(update)),
+      missingVoicesProvider.overrideWithValue(missingVoices),
     ],
     child: MaterialApp(home: home),
   );

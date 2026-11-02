@@ -10,10 +10,17 @@ class ParentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final missing = ref.watch(missingVoicesProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Khu bố mẹ')),
       body: ListView(
         children: [
+          if (missing.isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.record_voice_over, color: Colors.orange),
+              title: Text('Máy chưa có giọng đọc: ${missing.map(_localeName).join(', ')}'),
+              subtitle: const Text('Cài đặt → Hệ thống → Ngôn ngữ → Chuyển văn bản thành giọng nói → Google → cài dữ liệu giọng'),
+            ),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('Phiên bản app'),
@@ -25,6 +32,8 @@ class ParentScreen extends ConsumerWidget {
     );
   }
 }
+
+String _localeName(String locale) => locale == 'vi-VN' ? 'Tiếng Việt' : 'Tiếng Anh';
 
 class UpdateTile extends ConsumerWidget {
   const UpdateTile({super.key});
@@ -41,9 +50,13 @@ class UpdateTile extends ConsumerWidget {
         );
 
     return ref.watch(updateCheckProvider).when(
-          loading: () => const ListTile(
-            leading: SizedBox.square(dimension: 24, child: CircularProgressIndicator(strokeWidth: 2)),
-            title: Text('Đang kiểm tra cập nhật…'),
+          loading: () => ListTile(
+            leading: const SizedBox.square(dimension: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+            title: const Text('Đang kiểm tra cập nhật…'),
+            trailing: TextButton(
+              onPressed: () => ref.invalidate(updateCheckProvider),
+              child: const Text('Kiểm tra lại'),
+            ),
           ),
           error: (e, _) => retry('Lỗi kiểm tra cập nhật: $e'),
           data: (check) => switch (check) {

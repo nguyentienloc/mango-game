@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -15,6 +17,9 @@ class FakeFlutterTts extends Fake implements FlutterTts {
   double? pitch;
   Object? speakError;
   Object? languageError;
+  Completer<void>? speakHangs;
+  Object? Function(String)? languageAvailability;
+  Object? languageResult = 1;
 
   @override
   Future<dynamic> awaitSpeakCompletion(bool awaitCompletion) async => 1;
@@ -34,13 +39,18 @@ class FakeFlutterTts extends Fake implements FlutterTts {
   Future<dynamic> setLanguage(String language) async {
     if (languageError != null) throw languageError!;
     languages.add(language);
-    return 1;
+    return languageResult;
   }
+
+  @override
+  Future<dynamic> isLanguageAvailable(String language) async =>
+      languageAvailability == null ? true : languageAvailability!(language);
 
   @override
   Future<dynamic> speak(String text, {bool focus = false}) async {
     if (speakError != null) throw speakError!;
     spoken.add(text);
+    if (speakHangs != null) await speakHangs!.future;
     return 1;
   }
 
@@ -212,5 +222,69 @@ void main() {
     tts.onComplete!();
     await g;
     expect(done2, isTrue);
+  });
+
+  testWidgets('a platform speak() that never resolves still times out and clears pending state',
+      (tester) async {
+    // Broken/missing Android TTS engine: the method-channel call itself hangs.
+    tts.speakHangs = Completer<void>();
+    var done = false;
+    final f = engine.speak('hi', lang: 'en').then((_) => done = true);
+    await tester.pump(const Duration(seconds: 2));
+    expect(done, isFalse);
+    await tester.pump(const Duration(seconds: 14));
+    await f;
+    expect(done, isTrue);
+
+    tts.speakHangs = null;
+    var done2 = false;
+    final g = engine.speak('again', lang: 'en').then((_) => done2 = true);
+    await tester.pump();
+    // A stale completion must not finish the new utterance before it starts.
+    tts.onComplete!();
+    await tester.pump();
+    expect(done2, isFalse);
+    tts.onStart?.call();
+    tts.onComplete!();
+    await g;
+    expect(done2, isTrue);
+  });
+
+  test('a failing setLanguage result is not cached, so the next speak retries', () async {
+    tts.languageResult = 0;
+    final f = engine.speak('hi', lang: 'vi');
+    await settle();
+    tts.onStart?.call();
+    tts.onComplete!();
+    await f;
+    tts.languageResult = 1;
+    final g = engine.speak('again', lang: 'vi');
+    await settle();
+    tts.onStart?.call();
+    tts.onComplete!();
+    await g;
+    expect(tts.languages, ['vi-VN', 'vi-VN']);
+  });
+
+  group('missing voices', () {
+    test('none missing when both locales are available', () async {
+      expect(engine.missingLocales, isEmpty);
+    });
+
+    test('reports locales the engine says are unavailable, tolerating odd return types', () async {
+      tts.languageAvailability = (l) => l == 'vi-VN' ? 0 : 'true';
+      final e = await FlutterTtsEngine.createWith(tts);
+      expect(e.missingLocales, {'vi-VN'});
+
+      tts.languageAvailability = (l) => l == 'en-US' ? false : 1;
+      final e2 = await FlutterTtsEngine.createWith(tts);
+      expect(e2.missingLocales, {'en-US'});
+    });
+
+    test('a throwing availability check counts as missing, not as a crash', () async {
+      tts.languageAvailability = (_) => throw StateError('no engine');
+      final e = await FlutterTtsEngine.createWith(tts);
+      expect(e.missingLocales, {'vi-VN', 'en-US'});
+    });
   });
 }

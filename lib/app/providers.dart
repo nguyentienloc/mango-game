@@ -18,6 +18,9 @@ final databaseProvider = Provider<AppDatabase>((ref) => throw UnimplementedError
 final appVersionProvider = Provider<String>((ref) => throw UnimplementedError('appVersionProvider'));
 final voiceProvider = Provider<VoiceService>((ref) => throw UnimplementedError('voiceProvider'));
 
+/// Locales ('vi-VN', 'en-US') the device has no TTS voice for; the parent area warns about them.
+final missingVoicesProvider = Provider<Set<String>>((ref) => const {});
+
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 final randomProvider = Provider<Random>((ref) => Random());
 
@@ -26,7 +29,12 @@ final sessionStoreProvider = Provider<SessionStore>((ref) => DriftSessionStore(r
 final rewardStoreProvider = Provider<RewardStore>((ref) => DriftRewardStore(ref.watch(databaseProvider)));
 
 final appUpdaterProvider = Provider<AppUpdater>((ref) {
-  final dio = Dio();
+  // One Dio for the update check and the APK download. receiveTimeout in dio 5
+  // is inactivity between received chunks (not a total cap), so a slow but
+  // steady download is fine while a stalled check or download fails.
+  final dio = Dio(
+    BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 30)),
+  );
   return AppUpdater(api: GithubReleaseApi(dio, kGithubRepo), dio: dio, currentVersion: ref.watch(appVersionProvider));
 });
 
