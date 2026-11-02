@@ -15,10 +15,10 @@ Game học tiếng Anh/tiếng Việt cho bé Xoài (Flutter, Android).
 
 Keystore nằm ở `~/.xoai-keystore/` (không commit). Mất keystore thì không cập nhật đè được app đã cài.
 
-## Giọng Vbee (HN – Ngọc Huyền + Ava)
+## Giọng Vbee (HN – Ngọc Huyền + Heart)
 
 Sau khi sửa nội dung (`content/phrases.json`, `content/packs/*`): `dart run tool/gen_voice.dart`
-(cần `ffmpeg` có libopus). Tiếng Việt dùng giọng **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), tiếng Anh dùng **Ava** (`en-US-Neural2-F-Premium`), tốc độ 0.9.
+(cần `ffmpeg` có libopus). Tiếng Việt dùng giọng **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), tiếng Anh dùng **Heart** (`af_heart`), tốc độ 0.9.
 Khóa Vbee nằm ở `~/.config/xoai/vbee.env` (hai dòng `VBEE_APP_ID=…` và `VBEE_TOKEN=…`, hoặc biến môi trường cùng tên), không commit.
 Mỗi đoạn một ngôn ngữ được đọc riêng (lưu đệm ở `build/voice-parts/`), các đoạn của một câu nối nhau cách 0,25 s. Tối đa 3 câu chạy song song; script tự chờ khi bị giới hạn đồng thời (HTTP 429) và chạy tiếp được.
 **Chi phí:** Vbee tính credit theo số ký tự gửi đi; `--dry-run` in số ký tự cần đọc (bỏ qua phần đã lưu đệm). Hết credit/gói thì script dừng (mã thoát 2) và in số câu còn thiếu.

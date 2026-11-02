@@ -12,7 +12,7 @@ Kết quả: bản **v0.2.0**.
 - Trò mới 🐾 **Nhìn hình đoán từ** làm trò chính trên màn chính.
 - Ẩn trò 🎈 Tìm chữ cái; công tắc trong khu bố mẹ để hiện lại.
 - 4 chủ đề, 45 từ, ảnh **Microsoft Fluent Emoji 3D** (MIT) đóng gói trong APK.
-- **Giọng Vbee** (tiếng Việt HN – Ngọc Huyền, tiếng Anh Ava) tạo sẵn thành file âm thanh, đóng gói trong APK; giọng máy chỉ còn là dự phòng.
+- **Giọng Vbee** (tiếng Việt HN – Ngọc Huyền, tiếng Anh Heart) tạo sẵn thành file âm thanh, đóng gói trong APK; giọng máy chỉ còn là dự phòng.
 - Lần nâng cấp schema DB đầu tiên (thêm công tắc) kèm `MigrationStrategy`.
 
 **Không có:** gọi Vbee lúc chạy app; chọn chủ đề; thu âm bố mẹ (giai đoạn sau); ảnh AI tự vẽ.
@@ -117,13 +117,13 @@ Một **câu nói** (`Utterance`) là danh sách đoạn `(lang, text)`. Phrase 
 
 ### 4.3 Tạo file giọng — `tool/gen_voice.dart`
 - Đọc khóa từ `~/.config/xoai/vbee.env` (`VBEE_APP_ID=…`, `VBEE_TOKEN=…`, hoặc biến môi trường cùng tên); **không bao giờ** ghi khóa ra file trong repo, in ra log hay đặt trên dòng lệnh.
-- Giọng theo ngôn ngữ của từng đoạn: `vi` → **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), `en` → **Ava** (`en-US-Neural2-F-Premium`); tốc độ 0.9.
+- Giọng theo ngôn ngữ của từng đoạn: `vi` → **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), `en` → **Heart** (`af_heart`); tốc độ 0.9.
 - Gói của tài khoản không có chế độ đồng bộ nên dùng **async**: `POST https://api.vbee.vn/v1/tts` (header `Authorization: Bearer …`, `App-Id: …`; body `text`, `voiceCode`, `mode: "async"`, `outputFormat: "mp3"`, `bitrate: 128`, `speed: 0.9`, `webhookUrl` trỏ tới tên miền `.invalid` vì API bắt buộc có webhook nhưng không được gọi tới server thật), rồi hỏi `GET /v1/tts/requests/<requestId>` mỗi ~2 s (tối đa ~120 s) đến khi `COMPLETED` → tải `audioLink` (URL ký sẵn, hết hạn sau 3 phút, chuyển hướng sang S3).
 - Mỗi **đoạn** được tạo riêng và lưu đệm ở `build/voice-parts/<sha1(lang|text|voice|speed)>.mp3` (đoạn dùng chung giữa nhiều câu chỉ tạo một lần). Câu nhiều đoạn: `ffmpeg` nối các đoạn, giữa các đoạn chèn ~0,25 s im lặng → **Opus trong OGG**, mono, 32 kbps → `content/audio/<sha1(key)[:16]>.ogg`.
 - Ghi `content/audio/index.json` sau mỗi clip (ghi nguyên tử bằng `*.tmp` + đổi tên):
   ```json
   { "provider": "vbee",
-    "voices": { "vi": "hn_female_ngochuyen_full_48k-fhg", "en": "en-US-Neural2-F-Premium" },
+    "voices": { "vi": "hn_female_ngochuyen_full_48k-fhg", "en": "af_heart" },
     "speed": 0.9,
     "clips": { "vi|Chào Xoài! Hôm nay mình chơi gì nào?": "3f2a9c….ogg" } }
   ```
