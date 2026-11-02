@@ -29,40 +29,63 @@ class TracePad extends StatefulWidget {
 class _TracePadState extends State<TracePad> {
   List<TracePoint> _drawing = [];
 
-  TracePoint _point(Offset local, double side) =>
-      TracePoint((local.dx / side).clamp(0.0, 1.0), (local.dy / side).clamp(0.0, 1.0));
+  /// The pointer currently drawing; other fingers are ignored until it lifts.
+  int? _pointer;
+
+  TracePoint _point(Offset local, double side) => TracePoint(
+    (local.dx / side).clamp(0.0, 1.0),
+    (local.dy / side).clamp(0.0, 1.0),
+  );
+
+  void _end(PointerEvent e, {required bool cancelled}) {
+    if (e.pointer != _pointer) return;
+    _pointer = null;
+    final drawn = _drawing;
+    setState(() => _drawing = []);
+    if (!cancelled && widget.enabled && drawn.length >= 2) {
+      widget.onStrokeDrawn(List.of(drawn));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      final side = min(c.maxWidth, c.maxHeight);
-      return SizedBox.square(
-        key: const Key('trace-pad'),
-        dimension: side,
-        child: GestureDetector(
-          onPanStart: (d) {
-            if (!widget.enabled) return;
-            setState(() => _drawing = [_point(d.localPosition, side)]);
-          },
-          onPanUpdate: (d) {
-            if (!widget.enabled) return;
-            setState(() => _drawing = [..._drawing, _point(d.localPosition, side)]);
-          },
-          onPanEnd: (_) {
-            final drawn = _drawing;
-            setState(() => _drawing = []);
-            if (widget.enabled && drawn.length >= 2) widget.onStrokeDrawn(List.of(drawn));
-          },
-          onPanCancel: () {
-            if (_drawing.isNotEmpty) setState(() => _drawing = []);
-          },
-          child: CustomPaint(
-            size: Size.square(side),
-            painter: _TracePainter(widget.strokes, widget.current, _drawing),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final side = min(c.maxWidth, c.maxHeight);
+        // A Listener (not a pan recognizer) so the very first touch point is
+        // recorded: a pan only starts after the touch slop and would drop it.
+        return SizedBox.square(
+          key: const Key('trace-pad'),
+          dimension: side,
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (e) {
+              if (!widget.enabled || _pointer != null) return;
+              _pointer = e.pointer;
+              setState(() => _drawing = [_point(e.localPosition, side)]);
+            },
+            onPointerMove: (e) {
+              if (e.pointer != _pointer) return;
+              setState(
+                () => _drawing = [..._drawing, _point(e.localPosition, side)],
+              );
+            },
+            onPointerUp: (e) => _end(e, cancelled: false),
+            onPointerCancel: (e) => _end(e, cancelled: true),
+            child: RepaintBoundary(
+              child: CustomPaint(
+                size: Size.square(side),
+                painter: _TracePainter(
+                  widget.strokes,
+                  widget.current,
+                  _drawing,
+                ),
+              ),
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
@@ -83,34 +106,42 @@ class _TracePainter extends CustomPainter {
     return path;
   }
 
-  /// Alternating segments: [on] sample points drawn, [off] skipped.
-  Path _dashed(List<TracePoint> pts, double side, {int on = 2, int off = 2}) {
-    final path = Path();
-    var i = 0;
-    while (i < pts.length - 1) {
-      final end = min(i + on, pts.length - 1);
-      path.moveTo(pts[i].x * side, pts[i].y * side);
-      for (var k = i + 1; k <= end; k++) {
-        path.lineTo(pts[k].x * side, pts[k].y * side);
+  /// Dashes measured along the path: [dash] drawn, [gap] skipped (in pad units).
+  Path _dashed(
+    List<TracePoint> pts,
+    double side, {
+    double dash = 0.05,
+    double gap = 0.04,
+  }) {
+    final out = Path();
+    for (final m in _path(pts, side).computeMetrics()) {
+      var d = 0.0;
+      while (d < m.length) {
+        out.addPath(
+          m.extractPath(d, min(d + dash * side, m.length)),
+          Offset.zero,
+        );
+        d += (dash + gap) * side;
       }
-      i += on + off;
     }
-    return path;
+    return out;
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     final side = size.shortestSide;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(24)),
-      Paint()..color = Colors.white,
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(24),
     );
+    canvas.clipRRect(rrect);
+    canvas.drawRRect(rrect, Paint()..color = Colors.white);
     final width = 0.07 * side;
-    Paint stroke(Color color, double w) => Paint()
+    Paint stroke(Color color, double w, {bool dashed = false}) => Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = w
-      ..strokeCap = StrokeCap.round
+      ..strokeCap = dashed ? StrokeCap.butt : StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     for (var i = 0; i < strokes.length; i++) {
@@ -121,19 +152,33 @@ class _TracePainter extends CustomPainter {
       } else if (i == current) {
         canvas.drawPath(
           _dashed(pts, side),
-          stroke(IceColors.frost.withValues(alpha: 0.6), width * 1.6)..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.5),
+          stroke(
+            IceColors.frost.withValues(alpha: 0.6),
+            width * 1.6,
+            dashed: true,
+          )..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.5),
         );
-        canvas.drawPath(_dashed(pts, side), stroke(IceColors.frost, width * 0.8));
+        canvas.drawPath(
+          _dashed(pts, side),
+          stroke(IceColors.frost, width * 0.8, dashed: true),
+        );
         _paintArrow(canvas, pts, side);
         _paintNumber(canvas, pts.first, i + 1, side);
       } else {
-        canvas.drawPath(_dashed(pts, side), stroke(Colors.grey.shade300, width * 0.8));
+        canvas.drawPath(
+          _dashed(pts, side),
+          stroke(Colors.grey.shade300, width * 0.8, dashed: true),
+        );
       }
     }
 
     if (drawing.length >= 2) {
       final p = _path(drawing, side);
-      canvas.drawPath(p, stroke(IceColors.ice.withValues(alpha: 0.7), width * 1.8)..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.6));
+      canvas.drawPath(
+        p,
+        stroke(IceColors.ice.withValues(alpha: 0.7), width * 1.8)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.6),
+      );
       canvas.drawPath(p, stroke(const Color(0xFFD6F0FF), width));
     }
   }
@@ -142,7 +187,14 @@ class _TracePainter extends CustomPainter {
     final center = _o(at, side);
     canvas.drawCircle(center, 0.045 * side, Paint()..color = IceColors.deep);
     final tp = TextPainter(
-      text: TextSpan(text: '$n', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 0.06 * side)),
+      text: TextSpan(
+        text: '$n',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 0.06 * side,
+        ),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
@@ -160,13 +212,21 @@ class _TracePainter extends CustomPainter {
     final tip = a + dir * len;
     final path = Path()
       ..moveTo(tip.dx, tip.dy)
-      ..lineTo((a - dir * len * 0.4 + normal * len * 0.7).dx, (a - dir * len * 0.4 + normal * len * 0.7).dy)
-      ..lineTo((a - dir * len * 0.4 - normal * len * 0.7).dx, (a - dir * len * 0.4 - normal * len * 0.7).dy)
+      ..lineTo(
+        (a - dir * len * 0.4 + normal * len * 0.7).dx,
+        (a - dir * len * 0.4 + normal * len * 0.7).dy,
+      )
+      ..lineTo(
+        (a - dir * len * 0.4 - normal * len * 0.7).dx,
+        (a - dir * len * 0.4 - normal * len * 0.7).dy,
+      )
       ..close();
     canvas.drawPath(path, Paint()..color = IceColors.deep);
   }
 
   @override
   bool shouldRepaint(_TracePainter old) =>
-      old.strokes != strokes || old.current != current || old.drawing != drawing;
+      old.strokes != strokes ||
+      old.current != current ||
+      old.drawing != drawing;
 }
