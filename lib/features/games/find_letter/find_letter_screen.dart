@@ -36,6 +36,15 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
 
   VoiceService get _voice => ref.read(voiceProvider);
 
+  /// Celebrating the last question: the round is fully answered and only
+  /// _finish (save session, award snowflakes) is left. Leaving now would
+  /// dispose the screen first and the round would earn nothing, so 🏠 and the
+  /// back gesture are ignored for these ~1-2 seconds.
+  bool get _finishing {
+    final session = _session;
+    return _celebrating != null && session != null && session.index == session.questions.length - 1;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -126,85 +135,96 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
   Future<void> _finish() async {
     final session = _session!;
     final now = ref.read(clockProvider)();
-    await ref.read(sessionStoreProvider).add(SessionRecord(
-          date: dayKey(_startedAt),
-          game: 'find_letter',
-          startedAt: _startedAt,
-          durationSec: now.difference(_startedAt).inSeconds,
-          correct: session.firstTryCount,
-          total: session.questions.length,
-        ));
+    await ref
+        .read(sessionStoreProvider)
+        .add(
+          SessionRecord(
+            date: dayKey(_startedAt),
+            game: 'find_letter',
+            startedAt: _startedAt,
+            durationSec: now.difference(_startedAt).inSeconds,
+            correct: session.firstTryCount,
+            total: session.questions.length,
+          ),
+        );
     final outcome = await ref.read(rewardStateProvider.notifier).completeRound(session.firstTryCount);
     if (!mounted) return;
-    await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome)));
+    await Navigator.of(context)
+        .pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome)));
   }
 
   @override
   Widget build(BuildContext context) {
     final session = _session;
     if (session == null || session.isFinished) {
-      return const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator())));
+      return const Scaffold(
+        body: IceBackground(child: Center(child: CircularProgressIndicator())),
+      );
     }
     final q = session.current;
     final shown = q.shownLetter;
     final celebrating = _celebrating;
-    return Scaffold(
-      body: IceBackground(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  BigButton(
-                    emoji: '🏠',
-                    size: 64,
-                    onTap: () {
-                      _voice.say('go_home');
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${session.index + 1}/${session.questions.length}',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: IceColors.deep),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 120,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => _voice.say(q.promptPhraseId, vars: q.promptVars),
-                    child: const CharacterView(id: 'elsa', size: 110),
-                  ),
-                  if (shown != null)
-                    Text(
-                      shown,
-                      style: const TextStyle(fontSize: 96, fontWeight: FontWeight.bold, color: IceColors.deep),
+    return PopScope(
+      canPop: !_finishing,
+      child: Scaffold(
+        body: IceBackground(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    BigButton(
+                      emoji: '🏠',
+                      size: 64,
+                      onTap: () {
+                        if (_finishing) return;
+                        _voice.say('go_home');
+                        Navigator.of(context).pop();
+                      },
                     ),
-                ],
+                    const Spacer(),
+                    Text(
+                      '${session.index + 1}/${session.questions.length}',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: IceColors.deep),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  FallingFlakes(
-                    key: ValueKey(session.index),
-                    options: q.options,
-                    onTap: _onTap,
-                    hint: session.showHint ? q.answer : null,
-                    shaking: _shaking,
-                    burst: _burst,
-                  ),
-                  if (celebrating != null) Center(child: ExampleCard(item: celebrating)),
-                ],
+              SizedBox(
+                height: 120,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _voice.say(q.promptPhraseId, vars: q.promptVars),
+                      child: const CharacterView(id: 'elsa', size: 110),
+                    ),
+                    if (shown != null)
+                      Text(
+                        shown,
+                        style: const TextStyle(fontSize: 96, fontWeight: FontWeight.bold, color: IceColors.deep),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Expanded(
+                child: Stack(
+                  children: [
+                    FallingFlakes(
+                      key: ValueKey(session.index),
+                      options: q.options,
+                      onTap: _onTap,
+                      hint: session.showHint ? q.answer : null,
+                      shaking: _shaking,
+                      burst: _burst,
+                    ),
+                    if (celebrating != null) Center(child: ExampleCard(item: celebrating)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

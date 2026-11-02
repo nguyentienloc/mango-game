@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:xoai_castle/core/progress/item_stat.dart';
 import 'package:xoai_castle/core/progress/item_stats_store.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
@@ -19,6 +21,32 @@ class FakeTts implements TtsEngine {
 
   @override
   Future<void> stop() async => calls.add('stop');
+}
+
+/// Like the real engine: speak() stays pending until stop() or release().
+class GatedTts extends FakeTts {
+  final _pending = <Completer<void>>[];
+
+  @override
+  Future<void> speak(String text, {required String lang}) {
+    spoken.add((text: text, lang: lang));
+    final c = Completer<void>();
+    _pending.add(c);
+    return c.future;
+  }
+
+  @override
+  Future<void> stop() async {
+    calls.add('stop');
+    release();
+  }
+
+  void release() {
+    for (final c in _pending) {
+      if (!c.isCompleted) c.complete();
+    }
+    _pending.clear();
+  }
 }
 
 class MemoryItemStatsStore implements ItemStatsStore {

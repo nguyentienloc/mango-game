@@ -19,6 +19,17 @@ class RewardScreen extends ConsumerStatefulWidget {
 }
 
 class _RewardScreenState extends ConsumerState<RewardScreen> {
+  /// Set as soon as the route starts popping (✅ or back) and on dispose; the
+  /// pop transition keeps the screen mounted for a moment, and stopping the
+  /// current phrase would otherwise let the chain carry on over "Về lâu đài nào!".
+  bool _leaving = false;
+
+  @override
+  void dispose() {
+    _leaving = true;
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -29,8 +40,11 @@ class _RewardScreenState extends ConsumerState<RewardScreen> {
     final voice = ref.read(voiceProvider);
     final o = widget.outcome;
     await voice.say('round_done');
+    if (_leaving) return;
     if (o.questCompleted) await voice.say('quest_done');
+    if (_leaving) return;
     if (o.leveledUp) await voice.say('castle_level_up');
+    if (_leaving) return;
     if (o.friendUnlocked != null) await voice.say('friend_unlocked');
   }
 
@@ -38,38 +52,49 @@ class _RewardScreenState extends ConsumerState<RewardScreen> {
   Widget build(BuildContext context) {
     final o = widget.outcome;
     final friend = o.friendUnlocked;
-    return Scaffold(
-      body: IceBackground(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: o.leveledUp ? 0.7 : 1, end: 1),
-                duration: const Duration(milliseconds: 900),
-                curve: Curves.elasticOut,
-                builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-                child: CastleView(level: o.newLevel, width: 280),
-              ),
-              TweenAnimationBuilder<int>(
-                tween: IntTween(begin: 0, end: o.earned),
-                duration: const Duration(milliseconds: 1200),
-                builder: (context, value, _) => Text(
-                  '+$value ❄️',
-                  style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: IceColors.deep),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _leaving = true;
+      },
+      child: Scaffold(
+        body: IceBackground(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Shrinks on short phones so the ✅ button is never pushed off screen.
+                Flexible(
+                  child: FittedBox(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: o.leveledUp ? 0.7 : 1, end: 1),
+                      duration: const Duration(milliseconds: 900),
+                      curve: Curves.elasticOut,
+                      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                      child: CastleView(level: o.newLevel, width: 280),
+                    ),
+                  ),
                 ),
-              ),
-              if (o.questCompleted) const Text('🎁', style: TextStyle(fontSize: 72)),
-              if (friend != null) CharacterView(id: friend, size: 96),
-              BigButton(
-                emoji: '✅',
-                size: 96,
-                onTap: () {
-                  ref.read(voiceProvider).say('go_home');
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
+                TweenAnimationBuilder<int>(
+                  tween: IntTween(begin: 0, end: o.earned),
+                  duration: const Duration(milliseconds: 1200),
+                  builder: (context, value, _) => Text(
+                    '+$value ❄️',
+                    style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: IceColors.deep),
+                  ),
+                ),
+                if (o.questCompleted) const Text('🎁', style: TextStyle(fontSize: 72)),
+                if (friend != null) CharacterView(id: friend, size: 96),
+                BigButton(
+                  emoji: '✅',
+                  size: 96,
+                  onTap: () {
+                    _leaving = true;
+                    ref.read(voiceProvider).say('go_home');
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -104,4 +104,47 @@ void main() {
     expect(tts.texts, contains('Mình về lâu đài nha!'));
     expect(find.byType(FindLetterScreen), findsNothing);
   });
+
+  testWidgets('leaving during the celebration of the last question still finishes the round', (tester) async {
+    final tts = FakeTts();
+    final sessions = MemorySessionStore();
+    final rewards = MemoryRewardStore();
+    await tester.pumpWidget(testApp(
+      content: content,
+      tts: tts,
+      sessions: sessions,
+      rewards: rewards,
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FindLetterScreen())),
+          child: const Text('go'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('go'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    for (var i = 0; i < 7; i++) {
+      await tester.tap(find.text(prompts(tts).last));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+    expect(prompts(tts), hasLength(8));
+    await tester.tap(find.text(prompts(tts).last));
+    await tester.pump(); // celebration of the last question has started
+    await tester.tap(find.text('🏠'));
+    // Without the guard the pop transition ends (screen disposed) before the celebration does.
+    for (var k = 0; k < 6; k++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(find.byType(RewardScreen), findsOneWidget);
+    expect(sessions.records.single.correct, 8);
+    expect(rewards.state.snowflakesTotal, 13);
+  });
 }
