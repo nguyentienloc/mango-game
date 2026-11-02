@@ -58,6 +58,31 @@ void main() {
     expect(find.byType(FindLetterScreen), findsOneWidget);
   });
 
+  testWidgets('the game opens only after its name has been spoken', (tester) async {
+    final tts = GatedTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));
+    await tester.pump();
+    await tester.pump();
+    tts.release();
+    await tester.tap(find.text('🎈'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts.last, 'Tìm chữ cái');
+    expect(find.byType(FindLetterScreen), findsNothing);
+
+    tts.release();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(FindLetterScreen), findsOneWidget);
+  });
+
+  testWidgets('the back gesture does not leave the app from home', (tester) async {
+    await pumpHome(tester);
+    final popped = await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(popped, isTrue);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
   testWidgets('tapping the castle opens the castle screen', (tester) async {
     await pumpHome(tester);
     await tester.tap(find.byKey(const Key('home-castle')));

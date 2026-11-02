@@ -17,16 +17,26 @@ class CharacterView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final def = ref.watch(contentProvider).characters[id];
     final image = def?.image;
+    final emoji = SizedBox.square(
+      dimension: size,
+      child: Center(
+        child: Text(def?.emoji ?? '❓', style: TextStyle(fontSize: size * 0.6)),
+      ),
+    );
     if (image != null) {
-      return Image.asset('content/$image', width: size, height: size, fit: BoxFit.contain);
+      // A missing or broken file falls back to the emoji instead of a red error box.
+      return Image.asset(
+        'content/$image',
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => emoji,
+      );
     }
     if (id == 'elsa') {
       return CustomPaint(size: Size.square(size), painter: const PrincessPainter());
     }
-    return SizedBox.square(
-      dimension: size,
-      child: Center(child: Text(def?.emoji ?? '❓', style: TextStyle(fontSize: size * 0.6))),
-    );
+    return emoji;
   }
 }
 

@@ -57,7 +57,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       await voice.say('coming_soon');
       return;
     }
-    voice.say(game.phraseId);
+    // Name the game first so the game's own first prompt doesn't cut it off.
+    await voice.say(game.phraseId);
+    if (!mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: builder));
   }
 
@@ -71,63 +73,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final rewards = ref.watch(rewardStateProvider).value ?? const RewardState();
     final today = dayKey(ref.watch(clockProvider)());
     final hasUpdate = ref.watch(updateCheckProvider).value is UpdateAvailable;
-    return Scaffold(
-      body: IceBackground(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SnowflakeCounter(count: rewards.snowflakesTotal),
-                  QuestDots(done: roundsToday(rewards, today)),
-                ],
-              ),
-            ),
-            Expanded(
-              // Full width so Elsa sits at the screen edge, not on top of the castle.
-              child: SizedBox(
-                width: double.infinity,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
+    // Home is the root: the back gesture must not exit the app by accident.
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: IceBackground(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    GestureDetector(
-                      key: const Key('home-castle'),
-                      onTap: _openCastle,
-                      child: CastleView(level: rewards.castleLevel, width: 300),
-                    ),
-                    Positioned(
-                      left: 8,
-                      bottom: 0,
-                      child: GestureDetector(
-                        onTap: () => ref.read(voiceProvider).say('greet_en'),
-                        child: const CharacterView(id: 'elsa', size: 150),
-                      ),
-                    ),
+                    SnowflakeCounter(count: rewards.snowflakesTotal),
+                    QuestDots(done: roundsToday(rewards, today)),
                   ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (final g in _games) BigButton(emoji: g.emoji, enabled: g.enabled, onTap: () => _openGame(g)),
-                ],
+              Expanded(
+                // Full width so Elsa sits at the screen edge, not on top of the castle.
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      GestureDetector(
+                        key: const Key('home-castle'),
+                        onTap: _openCastle,
+                        child: CastleView(level: rewards.castleLevel, width: 300),
+                      ),
+                      Positioned(
+                        left: 8,
+                        bottom: 0,
+                        child: GestureDetector(
+                          onTap: () => ref.read(voiceProvider).say('greet_en'),
+                          child: const CharacterView(id: 'elsa', size: 150),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: ParentLockButton(hasUpdate: hasUpdate),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final g in _games) BigButton(emoji: g.emoji, enabled: g.enabled, onTap: () => _openGame(g)),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: ParentLockButton(hasUpdate: hasUpdate),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

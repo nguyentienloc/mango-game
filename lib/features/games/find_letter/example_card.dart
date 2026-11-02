@@ -12,6 +12,7 @@ class ExampleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = item.exampleImage;
+    final emoji = Text(item.exampleEmoji ?? '❓', style: const TextStyle(fontSize: 96));
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.5, end: 1),
       duration: const Duration(milliseconds: 300),
@@ -26,9 +27,10 @@ class ExampleCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (image != null)
-                Image.asset('content/$image', width: 120, height: 120)
+                // A missing or broken file falls back to the emoji instead of a red error box.
+                Image.asset('content/$image', width: 120, height: 120, errorBuilder: (_, _, _) => emoji)
               else
-                Text(item.exampleEmoji ?? '', style: const TextStyle(fontSize: 96)),
+                emoji,
               Text(
                 item.exampleWord,
                 style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: IceColors.deep),

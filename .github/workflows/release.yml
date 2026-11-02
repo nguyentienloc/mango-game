@@ -39,7 +39,25 @@ jobs:
             echo "storeFile=release.jks"
           } > android/key.properties
       - name: Build APK
-        run: flutter build apk --release --build-name="${GITHUB_REF_NAME#v}" --build-number="${{ github.run_number }}"
+        # The tag (vX.Y.Z) is the source of truth for the version; versionCode
+        # is derived from it so it always grows with the semver.
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Tag '$GITHUB_REF_NAME' is not vX.Y.Z (numeric)" >&2
+            exit 1
+          fi
+          BUILD_NUMBER=$((10#${BASH_REMATCH[1]} * 10000 + 10#${BASH_REMATCH[2]} * 100 + 10#${BASH_REMATCH[3]}))
+          flutter build apk --release --build-name="$VERSION" --build-number="$BUILD_NUMBER"
+      - name: Verify APK is release-signed
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)"
+          OUT="$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)"
+          echo "$OUT"
+          if ! grep -q 'CN=Xoai Castle, O=Family, C=VN' <<<"$OUT"; then
+            echo "APK is not signed with the release keystore" >&2
+            exit 1
+          fi
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
