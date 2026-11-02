@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "packs": { "letters_en": 1 },
+  "files": { "phrases": 1, "castle": 1, "characters": 1, "profile_defaults": 1 }
+}

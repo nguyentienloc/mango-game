@@ -1,0 +1,32 @@
+{
+  "id": "letters_en",
+  "version": 1,
+  "items": [
+    { "char": "A", "example": { "word": "Apple", "emoji": "🍎" } },
+    { "char": "B", "example": { "word": "Ball", "emoji": "⚽" } },
+    { "char": "C", "example": { "word": "Cat", "emoji": "🐱" } },
+    { "char": "D", "example": { "word": "Dog", "emoji": "🐶" } },
+    { "char": "E", "example": { "word": "Egg", "emoji": "🥚" } },
+    { "char": "F", "example": { "word": "Fish", "emoji": "🐟" } },
+    { "char": "G", "example": { "word": "Grapes", "emoji": "🍇" } },
+    { "char": "H", "example": { "word": "Hat", "emoji": "🎩" } },
+    { "char": "I", "example": { "word": "Ice cream", "emoji": "🍦" } },
+    { "char": "J", "example": { "word": "Juice", "emoji": "🧃" } },
+    { "char": "K", "example": { "word": "Kite", "emoji": "🪁" } },
+    { "char": "L", "example": { "word": "Lion", "emoji": "🦁" } },
+    { "char": "M", "example": { "word": "Moon", "emoji": "🌙" } },
+    { "char": "N", "example": { "word": "Nose", "emoji": "👃" } },
+    { "char": "O", "example": { "word": "Orange", "emoji": "🍊" } },
+    { "char": "P", "example": { "word": "Pig", "emoji": "🐷" } },
+    { "char": "Q", "example": { "word": "Queen", "emoji": "👑" } },
+    { "char": "R", "example": { "word": "Rabbit", "emoji": "🐰" } },
+    { "char": "S", "example": { "word": "Sun", "emoji": "☀️" } },
+    { "char": "T", "example": { "word": "Tree", "emoji": "🌳" } },
+    { "char": "U", "example": { "word": "Umbrella", "emoji": "☂️" } },
+    { "char": "V", "example": { "word": "Van", "emoji": "🚐" } },
+    { "char": "W", "example": { "word": "Watermelon", "emoji": "🍉" } },
+    { "char": "X", "example": { "word": "Xmas tree", "emoji": "🎄" } },
+    { "char": "Y", "example": { "word": "Yo-yo", "emoji": "🪀" } },
+    { "char": "Z", "example": { "word": "Zebra", "emoji": "🦓" } }
+  ]
+}

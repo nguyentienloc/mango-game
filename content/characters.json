@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "items": {
+    "elsa": { "name": "Elsa", "emoji": "👸" },
+    "olaf": { "name": "Olaf", "emoji": "⛄" },
+    "anna": { "name": "Anna", "emoji": "👧" },
+    "sven": { "name": "Sven", "emoji": "🦌" },
+    "kristoff": { "name": "Kristoff", "emoji": "🧔" }
+  }
+}
