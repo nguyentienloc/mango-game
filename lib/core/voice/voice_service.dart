@@ -70,8 +70,10 @@ class VoiceService {
 
   Future<void> _speak(Phrase phrase, Map<String, String> vars) => _play(_build(phrase, vars));
 
-  /// The longest clip is ~3.5 s; anything slower than this is a stuck player.
-  static const _clipTimeout = Duration(seconds: 6);
+  /// The longest clip is ~3.5 s at speed 1.0 and takes 1/speed times as long
+  /// when slowed (0.6 -> ~5.8 s); anything beyond that plus 2 s is a stuck player.
+  static Duration _clipTimeout(double speed) =>
+      const Duration(seconds: 2) + Duration(milliseconds: (4000 / speed).round());
 
   /// After this many clip failures/timeouts in a row, clips are skipped for the
   /// rest of the process (TTS only), so a broken player never delays speech again.
@@ -79,7 +81,7 @@ class VoiceService {
   int _clipFailures = 0;
 
   /// Silence between two parts of one utterance.
-  static const _partGap = Duration(milliseconds: 200);
+  static const _partGap = Duration(milliseconds: 60);
 
   Future<void> _play(Utterance u) async {
     final gen = ++_generation;
@@ -106,7 +108,7 @@ class VoiceService {
     final player = _player;
     if (asset != null && player != null && _clipFailures < _maxClipFailures) {
       try {
-        await player.play(asset, speed: speed).timeout(_clipTimeout);
+        await player.play(asset, speed: speed).timeout(_clipTimeout(speed));
         _clipFailures = 0;
         return gen == _generation;
       } catch (e) {

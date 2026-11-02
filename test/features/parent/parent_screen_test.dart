@@ -188,7 +188,8 @@ void main() {
 
     testWidgets('Mặc định puts both speeds back to 0.85 / 1.0', (tester) async {
       final profile = MemoryProfileStore(speeds: const VoiceSpeeds(en: 0.7, vi: 1.25));
-      await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const ParentScreen(), profile: profile));
+      final tts = FakeTts();
+      await tester.pumpWidget(testApp(content: content, tts: tts, home: const ParentScreen(), profile: profile));
       await tester.pump();
       await tester.pump();
       await tester.tap(find.text('Mặc định'));
@@ -197,6 +198,8 @@ void main() {
       expect(profile.speeds, const VoiceSpeeds());
       expect(tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Anh')).value, 0.85);
       expect(tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Việt')).value, 1.0);
+      expect(tts.spoken.last, (text: 'Find the lion!', lang: 'en'));
+      expect(tts.speeds.last, 0.85);
     });
   });
 }

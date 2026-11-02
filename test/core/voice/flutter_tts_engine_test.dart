@@ -20,11 +20,14 @@ class FakeFlutterTts extends Fake implements FlutterTts {
   Completer<void>? speakHangs;
   Object? Function(String)? languageAvailability;
   Object? languageResult = 1;
+  Completer<void>? languageGate;
+  Completer<void>? rateGate;
 
   @override
   Future<dynamic> awaitSpeakCompletion(bool awaitCompletion) async => 1;
   @override
   Future<dynamic> setSpeechRate(double rate) async {
+    if (rateGate != null) await rateGate!.future;
     this.rate = rate;
     return 1;
   }
@@ -39,6 +42,7 @@ class FakeFlutterTts extends Fake implements FlutterTts {
   Future<dynamic> setLanguage(String language) async {
     if (languageError != null) throw languageError!;
     languages.add(language);
+    if (languageGate != null) await languageGate!.future;
     return languageResult;
   }
 
@@ -76,6 +80,28 @@ void main() {
   setUp(() async {
     tts = FakeFlutterTts();
     engine = await FlutterTtsEngine.createWith(tts);
+  });
+
+  test('stop() while the language is being set means the text is never spoken', () async {
+    tts.languageGate = Completer<void>();
+    final f = engine.speak('hi', lang: 'vi');
+    await settle();
+    expect(tts.languages, ['vi-VN']);
+    await engine.stop();
+    tts.languageGate!.complete();
+    await f;
+    expect(tts.spoken, isEmpty);
+  });
+
+  test('stop() while the speech rate is being set means the text is never spoken', () async {
+    tts.rateGate = Completer<void>();
+    final f = engine.speak('hi', lang: 'en', speed: 0.7);
+    await settle();
+    await engine.stop();
+    tts.rateGate!.complete();
+    await f;
+    expect(tts.spoken, isEmpty);
+    expect(tts.languages, isEmpty);
   });
 
   test('configures rate, pitch and maps lang to locale', () async {

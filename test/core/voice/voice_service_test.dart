@@ -180,7 +180,7 @@ void main() {
       await tester.pump();
       expect(player.played, ['content/audio/one.ogg']);
       player.release();
-      await tester.pump(const Duration(milliseconds: 100)); // inside the 200 ms gap
+      await tester.pump(const Duration(milliseconds: 30)); // inside the 60 ms gap
       await v.stop();
       await tester.pump(const Duration(milliseconds: 300));
       await done;
@@ -195,7 +195,7 @@ void main() {
       final first = v.say('two');
       await tester.pump();
       player.release();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 30));
       final second = v.say('next');
       await tester.pump(const Duration(milliseconds: 300));
       await first;
@@ -204,16 +204,16 @@ void main() {
       expect(tts.texts, ['Next']);
     });
 
-    testWidgets('parts are separated by a 200 ms silence', (tester) async {
+    testWidgets('parts are separated by a 60 ms silence', (tester) async {
       final tts = FakeTts();
       final player = _GatedClipPlayer();
       final v = build(tts, player, '{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
       final done = v.say('two');
       await tester.pump();
       player.release();
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 40));
       expect(player.played, hasLength(1));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 40));
       expect(player.played, hasLength(2));
       player.release();
       await tester.pump();
@@ -258,6 +258,27 @@ void main() {
       await v.say('hello');
       expect(player.played, hasLength(4));
       expect(tts.texts, hasLength(2));
+    });
+
+    testWidgets('the clip timeout scales with speed: a 6.5 s clip at 0.6 is not timed out', (tester) async {
+      final tts = FakeTts();
+      final player = _GatedClipPlayer();
+      final v = build(tts, player)..speeds = const VoiceSpeeds(vi: 0.6);
+      final done = v.say('hello');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 6500));
+      expect(tts.spoken, isEmpty, reason: 'timeout at 0.6 is 2 s + 6.67 s');
+      player.release();
+      await tester.pump();
+      await done;
+      expect(tts.spoken, isEmpty);
+      expect(player.played, hasLength(1));
+      // A genuinely stuck clip is still given up after that long.
+      final stuck = v.say('hello');
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 9));
+      await stuck;
+      expect(tts.spoken, hasLength(1));
     });
 
     testWidgets('clips that never finish time out after 6 s and are given up after 2', (tester) async {

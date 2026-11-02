@@ -125,6 +125,7 @@ class _SpeedSection extends ConsumerWidget {
           onChanged: (v) => controller.preview(withSpeed(_round(v))),
           onChangeEnd: (v) async {
             await controller.set(withSpeed(_round(v)));
+            if (!context.mounted) return;
             sample(lang);
           },
         ),
@@ -140,7 +141,14 @@ class _SpeedSection extends ConsumerWidget {
           alignment: Alignment.centerRight,
           child: Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: TextButton(onPressed: () => controller.set(const VoiceSpeeds()), child: const Text('Mặc định')),
+            child: TextButton(
+              onPressed: () async {
+                await controller.set(const VoiceSpeeds());
+                if (!context.mounted) return;
+                sample('en');
+              },
+              child: const Text('Mặc định'),
+            ),
           ),
         ),
       ],

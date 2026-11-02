@@ -11,7 +11,7 @@
 ## Global Constraints
 - Nhánh `feat/voice-speed`. Phát hành `0.3.1+4`, tag `v0.3.1`.
 - Khóa clip = khóa đoạn `lang|text` (như `UtterancePart` trong `Utterance.key`). File `content/audio/<sha1(partKey) 16 hex>.ogg`, Opus mono 32 kbps. `index.json` có `"granularity": "part"`.
-- Khoảng lặng giữa các đoạn khi phát: 200 ms (thay cho 0,25 s ghép sẵn trước đây).
+- Khoảng lặng giữa các đoạn khi phát: 60 ms (clip đã có sẵn ~0,2–0,4 s lặng) (thay cho 0,25 s ghép sẵn trước đây).
 - Tốc độ: `enSpeed` mặc định **0.85**, `viSpeed` mặc định **1.0**; khoảng cho phép 0.6–1.3, bước 0.05.
 - Giọng máy: `setSpeechRate(0.42 × tốc độ)` theo ngôn ngữ của đoạn.
 - Giữ nguyên: bộ đếm generation (câu mới/stop cắt các đoạn còn lại, kể cả đang ở khoảng lặng), circuit breaker clip (2 lỗi liên tiếp → chỉ dùng giọng máy), timeout clip.
@@ -24,7 +24,7 @@
 
 - [ ] `enumerateUtterances` giữ nguyên. Công cụ tạo giọng: tập clip cần có = **mọi đoạn khác nhau** của mọi câu (bỏ trùng theo khóa đoạn). Với mỗi đoạn: lấy MP3 từ cache part (khóa cache hiện có `lang|text|voice|speed`); không có → nếu `--allow-api` thì tạo qua Vbee như cũ, ngược lại ghi vào danh sách thiếu và cuối cùng thoát mã 2 kèm số đoạn thiếu. Mã hóa MP3 → Opus (không ghép, không chèn lặng). Ghi `index.json` `{provider, voices, speed, granularity: "part", clips: {partKey: file}}`. Index cũ (không có `granularity: "part"`) coi là hết hạn; `--prune` xóa file cũ.
 - [ ] `ClipLibrary.assetFor(UtterancePart part)` (tra theo `'${part.lang}|${part.text}'`). Bỏ tra theo cả câu.
-- [ ] `VoiceService._play(Utterance u)`: với mỗi đoạn theo thứ tự: kiểm tra generation; nếu không phải đoạn đầu → chờ 200 ms (rồi kiểm tra generation lại); có clip và breaker cho phép → phát clip (timeout như cũ; lỗi → tăng breaker, đọc đoạn đó bằng giọng máy); không có clip → giọng máy đọc đoạn đó. (Task 2 thêm tốc độ.)
+- [ ] `VoiceService._play(Utterance u)`: với mỗi đoạn theo thứ tự: kiểm tra generation; nếu không phải đoạn đầu → chờ 60 ms (rồi kiểm tra generation lại); có clip và breaker cho phép → phát clip (timeout như cũ; lỗi → tăng breaker, đọc đoạn đó bằng giọng máy); không có clip → giọng máy đọc đoạn đó. (Task 2 thêm tốc độ.)
 - [ ] Test (viết trước, thấy fail): ClipLibrary tra theo đoạn; câu 2 đoạn chỉ có clip cho một đoạn → đoạn đó phát clip, đoạn kia giọng máy, đúng thứ tự; `stop()` trong khoảng lặng giữa hai đoạn → đoạn hai không phát; breaker vẫn hoạt động. Coverage test: mọi đoạn của câu loại `fixed`, `vocab`, `trace` có clip + file tồn tại. Parity test: chuyển sang kiểm tra mọi đoạn đều được phát bằng clip.
 - [ ] Chạy `dart run tool/gen_voice.dart --prune` (từ cache, không gọi API) → kiểm tra số file ≈ số đoạn khác nhau, `dart run tool/validate_content.dart` sạch. Commit `feat: per-part voice clips`.
 
