@@ -43,7 +43,7 @@ void main() {
     }
 
     for (final id in content.phrases.keys) {
-      if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id)) continue;
+      if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id)) continue;
       await check(id, id);
     }
     for (final w in content.vocab) {
@@ -52,6 +52,7 @@ void main() {
       }
     }
     for (final l in content.lettersEn) {
+      await check('trace_prompt', 'trace_prompt', {'letter': l.char});
       for (final mode in FindLetterMode.values) {
         final q = FindLetterQuestion(mode: mode, item: l, options: const []);
         await check(q.promptPhraseId, q.promptPhraseId, q.promptVars);

@@ -40,9 +40,15 @@ void main() {
     ]));
   });
 
-  test('letters cover upper and lower prompts, small prompts and examples', () {
+  test('letters cover upper and lower prompts and small prompts', () {
     final letters = keys(UtteranceKind.letters).toSet();
-    expect(letters, containsAll(['en|Find the letter B!', 'en|Find the letter b!', 'en|Find the small b!', 'en|B! B is for Ball!']));
-    expect(letters, hasLength(26 * 4));
+    expect(letters, containsAll(['en|Find the letter B!', 'en|Find the letter b!', 'en|Find the small b!']));
+    expect(letters, hasLength(26 * 3));
+  });
+
+  test('tracing needs a prompt and an example for every letter', () {
+    final trace = keys(UtteranceKind.trace).toSet();
+    expect(trace, containsAll(['en|Let\'s write B!', 'en|B! B is for Ball!']));
+    expect(trace, hasLength(26 * 2));
   });
 }

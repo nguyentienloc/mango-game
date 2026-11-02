@@ -12,8 +12,8 @@ Map<String, String> validFiles() => {
         'id': 'letters_en',
         'version': 1,
         'items': [
-          {'char': 'A', 'example': {'word': 'Apple', 'emoji': '🍎'}},
-          {'char': 'B', 'example': {'word': 'Ball', 'emoji': '⚽'}},
+          {'char': 'A', 'example': {'word': 'Apple', 'emoji': '🍎'}, 'strokes': [[{'line': [[0.5, 0.1], [0.15, 0.9]]}]]},
+          {'char': 'B', 'example': {'word': 'Ball', 'emoji': '⚽'}, 'strokes': [[{'line': [[0.25, 0.1], [0.25, 0.9]]}]]},
         ],
       }),
       'packs/vocab_animals.json': jsonEncode({

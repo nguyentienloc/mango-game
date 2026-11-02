@@ -5,6 +5,7 @@ import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/progress/item_stat.dart';
 import 'package:xoai_castle/core/progress/item_stats_store.dart';
+import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
@@ -120,4 +121,15 @@ class MemoryProfileStore implements ProfileStore {
 
   @override
   Future<void> setShowFindLetter(bool value) async => show = value;
+}
+
+class FakeProgressResetter implements ProgressResetter {
+  int calls = 0;
+  Future<void> Function()? onReset;
+
+  @override
+  Future<void> resetProgress() async {
+    calls++;
+    await onReset?.call();
+  }
 }

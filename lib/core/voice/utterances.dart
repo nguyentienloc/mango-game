@@ -3,7 +3,7 @@ import '../content/vocab.dart';
 import '../profile/names.dart';
 import 'utterance.dart';
 
-enum UtteranceKind { fixed, vocab, letters }
+enum UtteranceKind { fixed, vocab, trace, letters }
 
 class PlannedUtterance {
   const PlannedUtterance(this.utterance, this.kind);
@@ -13,6 +13,7 @@ class PlannedUtterance {
 }
 
 const vocabPhraseIds = ['vocab_prompt', 'vocab_correct', 'vocab_hint'];
+const tracePhraseIds = ['trace_prompt'];
 const letterPhraseIds = ['find_letter_prompt', 'find_letter_small_prompt', 'letter_example'];
 
 /// Every utterance the app can say, with names and item variables filled in.
@@ -29,7 +30,7 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   }
 
   for (final id in content.phrases.keys) {
-    if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id)) continue;
+    if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id)) continue;
     add(id, const {}, UtteranceKind.fixed);
   }
   for (final w in content.vocab) {
@@ -38,10 +39,14 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
     }
   }
   for (final l in content.lettersEn) {
+    add('trace_prompt', {'letter': l.char}, UtteranceKind.trace);
+    // Tracing reuses letter_example, so it is required rather than optional.
+    add('letter_example', {'letter': l.char, 'word': l.exampleWord}, UtteranceKind.trace);
+  }
+  for (final l in content.lettersEn) {
     add('find_letter_prompt', {'letter': l.char}, UtteranceKind.letters);
     add('find_letter_prompt', {'letter': l.lower}, UtteranceKind.letters);
     add('find_letter_small_prompt', {'letter': l.lower}, UtteranceKind.letters);
-    add('letter_example', {'letter': l.char, 'word': l.exampleWord}, UtteranceKind.letters);
   }
   return out;
 }

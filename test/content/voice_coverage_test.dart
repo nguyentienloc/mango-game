@@ -7,12 +7,12 @@ import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
-/// Every fixed and vocabulary utterance must have a generated clip before release.
+/// Every fixed, vocabulary and trace utterance must have a generated clip before release.
 /// Clips bake in the default names from profile_defaults.json; if names ever become
 /// editable, regenerate the clips.
 /// Letter-game clips are optional while that game is hidden: only reported.
 void main() {
-  test('every fixed and vocabulary utterance has a generated clip', () async {
+  test('every fixed, vocabulary and trace utterance has a generated clip', () async {
     final content = await ContentRepository(FileContentSource('content')).load();
     final defaults = content.profileDefaults;
     final planned = enumerateUtterances(content, Names(en: defaults.nameEn, vi: defaults.nameVi));

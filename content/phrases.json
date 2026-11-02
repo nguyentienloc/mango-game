@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -13,6 +13,7 @@
     { "id": "find_letter_prompt", "lang": "en", "text": "Find the letter {letter}!", "group": "instruction" },
     { "id": "find_letter_small_prompt", "lang": "en", "text": "Find the small {letter}!", "group": "instruction" },
     { "id": "letter_example", "lang": "en", "text": "{letter}! {letter} is for {word}!", "group": "instruction" },
+    { "id": "trace_prompt", "lang": "en", "text": "Let's write {letter}!", "group": "instruction" },
     { "id": "game_find_letter", "lang": "vi", "text": "Tìm chữ cái", "group": "menu" },
     { "id": "game_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" },
     { "id": "game_talk", "lang": "vi", "text": "Nói chuyện với Elsa", "group": "menu" },

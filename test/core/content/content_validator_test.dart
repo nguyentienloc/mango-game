@@ -139,6 +139,32 @@ void main() {
     final snapshot = readContentDir('content');
     expect(validateContent(snapshot.json, assetPaths: snapshot.assets), isEmpty);
   });
+
+  test('letters need valid strokes', () {
+    final letters = readJson(validFiles(), 'packs/letters_en.json');
+    (letters['items'] as List)[0] = {
+      'char': 'A',
+      'example': {'word': 'Apple', 'emoji': '🍎'},
+      'strokes': [
+        [ {'line': [[0.5, 0.1]]} ],
+        [ {'arc': [0.5, 0.5, 0, 0.2, 0, 90]} ],
+        [ {'line': [[0.5, 1.5], [0.2, 0.2]]} ],
+      ],
+    };
+    final errors = validateContent(withJson(validFiles(), 'packs/letters_en.json', letters));
+    expect(errors, containsAll([
+      'packs/letters_en.json items[0] strokes[0][0]: "line" cần ít nhất 2 điểm',
+      'packs/letters_en.json items[0] strokes[1][0]: "arc" cần rx, ry > 0 và sweep khác 0',
+      'packs/letters_en.json items[0] strokes[2][0]: tọa độ phải trong khoảng 0–1',
+    ]));
+  });
+
+  test('letters without strokes are reported', () {
+    final letters = readJson(validFiles(), 'packs/letters_en.json');
+    ((letters['items'] as List)[0] as Map).remove('strokes');
+    final errors = validateContent(withJson(validFiles(), 'packs/letters_en.json', letters));
+    expect(errors, contains('packs/letters_en.json items[0]: thiếu "strokes"'));
+  });
 }
 
 const _vocabImages = {

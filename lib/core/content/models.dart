@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'strokes.dart';
+
 class LetterItem {
-  const LetterItem({required this.char, required this.exampleWord, this.exampleEmoji, this.exampleImage});
+  const LetterItem({required this.char, required this.exampleWord, this.exampleEmoji, this.exampleImage, this.strokes = const []});
 
   factory LetterItem.fromJson(Map<String, dynamic> json) {
     final example = json['example'] as Map<String, dynamic>;
@@ -10,6 +12,7 @@ class LetterItem {
       exampleWord: example['word'] as String,
       exampleEmoji: example['emoji'] as String?,
       exampleImage: example['image'] as String?,
+      strokes: [for (final s in (json['strokes'] as List? ?? const [])) Stroke.fromJson(s as List)],
     );
   }
 
@@ -17,6 +20,7 @@ class LetterItem {
   final String exampleWord;
   final String? exampleEmoji;
   final String? exampleImage;
+  final List<Stroke> strokes;
 
   String get lower => char.toLowerCase();
 }

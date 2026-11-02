@@ -7,6 +7,7 @@ import '../core/content/models.dart';
 import '../core/db/database.dart';
 import '../core/profile/profile_store.dart';
 import '../core/progress/item_stats_store.dart';
+import '../core/progress/progress_resetter.dart';
 import '../core/rewards/reward_store.dart';
 import '../core/session/session_store.dart';
 import '../core/updater/app_updater.dart';
@@ -28,6 +29,7 @@ final randomProvider = Provider<Random>((ref) => Random());
 final itemStatsStoreProvider = Provider<ItemStatsStore>((ref) => DriftItemStatsStore(ref.watch(databaseProvider)));
 final sessionStoreProvider = Provider<SessionStore>((ref) => DriftSessionStore(ref.watch(databaseProvider)));
 final profileStoreProvider = Provider<ProfileStore>((ref) => DriftProfileStore(ref.watch(databaseProvider)));
+final progressResetterProvider = Provider<ProgressResetter>((ref) => DriftProgressResetter(ref.watch(databaseProvider)));
 final rewardStoreProvider = Provider<RewardStore>((ref) => DriftRewardStore(ref.watch(databaseProvider)));
 
 final appUpdaterProvider = Provider<AppUpdater>((ref) {
