@@ -15,8 +15,12 @@ Game học tiếng Anh/tiếng Việt cho bé Xoài (Flutter, Android).
 
 Keystore nằm ở `~/.xoai-keystore/` (không commit). Mất keystore thì không cập nhật đè được app đã cài.
 
-## Giọng Leda (Gemini TTS)
+## Giọng Vbee (HN – Ngọc Huyền + Sophia)
 
 Sau khi sửa nội dung (`content/phrases.json`, `content/packs/*`): `dart run tool/gen_voice.dart`
-(key ở `~/.config/xoai/gemini_api_key`, không commit). Gói miễn phí: 3 câu/phút (và có thể giới hạn theo ngày); script tự đợi giới hạn theo phút và chạy tiếp được.
+(cần `ffmpeg` có libopus). Tiếng Việt dùng giọng **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), tiếng Anh dùng **Sophia** (`en-US-Neural2-G-Premium`), tốc độ 0.9.
+Khóa Vbee nằm ở `~/.config/xoai/vbee.env` (hai dòng `VBEE_APP_ID=…` và `VBEE_TOKEN=…`, hoặc biến môi trường cùng tên), không commit.
+Mỗi đoạn một ngôn ngữ được đọc riêng (lưu đệm ở `build/voice-parts/`), các đoạn của một câu nối nhau cách 0,25 s. Tối đa 3 câu chạy song song; script tự chờ khi bị giới hạn đồng thời (HTTP 429) và chạy tiếp được.
+**Chi phí:** Vbee tính credit theo số ký tự gửi đi; `--dry-run` in số ký tự cần đọc (bỏ qua phần đã lưu đệm). Hết credit/gói thì script dừng (mã thoát 2) và in số câu còn thiếu.
+Tùy chọn: `--limit N` (chỉ tạo N câu), `--only TEXT` (chỉ câu có khóa chứa TEXT), `--dry-run` (không gọi mạng). Đổi giọng/tốc độ thì `index.json` bị coi là hết hạn: mọi clip được tạo lại.
 `--prune` xóa clip không còn dùng. Test `test/content/voice_coverage_test.dart` báo đỏ nếu thiếu giọng.

@@ -1,4 +1,4 @@
-# Nhìn hình đoán từ + giọng Leda — Thiết kế
+# Nhìn hình đoán từ + giọng Vbee — Thiết kế
 
 **Ngày:** 2026-11-02
 **Bổ sung cho:** `2026-11-02-xoai-ice-castle-design.md` (giai đoạn 1 đã phát hành v0.1.0)
@@ -12,10 +12,10 @@ Kết quả: bản **v0.2.0**.
 - Trò mới 🐾 **Nhìn hình đoán từ** làm trò chính trên màn chính.
 - Ẩn trò 🎈 Tìm chữ cái; công tắc trong khu bố mẹ để hiện lại.
 - 4 chủ đề, 45 từ, ảnh **Microsoft Fluent Emoji 3D** (MIT) đóng gói trong APK.
-- **Giọng Leda** (Gemini TTS) tạo sẵn thành file âm thanh, đóng gói trong APK; giọng máy chỉ còn là dự phòng.
+- **Giọng Vbee** (tiếng Việt HN – Ngọc Huyền, tiếng Anh Sophia) tạo sẵn thành file âm thanh, đóng gói trong APK; giọng máy chỉ còn là dự phòng.
 - Lần nâng cấp schema DB đầu tiên (thêm công tắc) kèm `MigrationStrategy`.
 
-**Không có:** gọi Gemini lúc chạy app; chọn chủ đề; thu âm bố mẹ (giai đoạn sau); ảnh AI tự vẽ.
+**Không có:** gọi Vbee lúc chạy app; chọn chủ đề; thu âm bố mẹ (giai đoạn sau); ảnh AI tự vẽ.
 
 ## 2. Trò 🐾 Nhìn hình đoán từ
 
@@ -92,7 +92,7 @@ Mỗi chủ đề một gói trong `content/packs/`, khai báo trong `manifest.j
 - `THIRD_PARTY_NOTICES.md` ở gốc repo ghi nguồn + giấy phép MIT của Fluent Emoji.
 - `pubspec.yaml` thêm asset `content/images/vocab/`.
 
-## 4. Giọng Leda
+## 4. Giọng Vbee
 
 ### 4.1 Liệt kê mọi câu app có thể nói
 Một hàm Dart duy nhất `enumerateUtterances(ContentBundle, Names)` (trong `lib/core/voice/utterances.dart`) trả về mọi câu nói (đã thay biến) mà app có thể phát:
@@ -112,22 +112,27 @@ Một **câu nói** (`Utterance`) là danh sách đoạn `(lang, text)`. Phrase 
 { "id": "vocab_prompt", "lang": "en", "text": "Find the {word}!", "group": "vocab" }
 ```
 - Khóa của câu nói: các đoạn nối bằng `" || "`, mỗi đoạn dạng `lang|text`. Ví dụ `en|Lion! || vi|Con sư tử!`.
-- Gemini tạo **một file** cho cả câu song ngữ (đọc liền mạch).
+- Mỗi đoạn được đọc bằng giọng đúng ngôn ngữ của đoạn đó rồi nối thành **một file** cho cả câu song ngữ (cách nhau ~0,25 s).
 - Giọng máy dự phòng: đọc từng đoạn bằng đúng ngôn ngữ của đoạn đó.
 
 ### 4.3 Tạo file giọng — `tool/gen_voice.dart`
-- Đọc key từ `~/.config/xoai/gemini_api_key` (hoặc biến môi trường `GEMINI_API_KEY`); **không bao giờ** ghi key ra file trong repo hay in ra log.
-- Gọi `POST https://generativelanguage.googleapis.com/v1beta/interactions`, model `gemini-3.8-flash-tts`, giọng `Leda`, `speech_metadata.style` = *"a warm, cheerful young woman speaking slowly and clearly to a 5-year-old girl"*. Văn bản gửi đi: các đoạn của câu nói nối bằng dấu cách.
-- Nhận WAV 24 kHz → `ffmpeg` chuyển sang **Opus trong OGG**, mono, 32 kbps → `content/audio/<sha1(key)[:16]>.ogg`.
-- Ghi `content/audio/index.json`:
+- Đọc khóa từ `~/.config/xoai/vbee.env` (`VBEE_APP_ID=…`, `VBEE_TOKEN=…`, hoặc biến môi trường cùng tên); **không bao giờ** ghi khóa ra file trong repo, in ra log hay đặt trên dòng lệnh.
+- Giọng theo ngôn ngữ của từng đoạn: `vi` → **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), `en` → **Sophia** (`en-US-Neural2-G-Premium`); tốc độ 0.9.
+- Gói của tài khoản không có chế độ đồng bộ nên dùng **async**: `POST https://api.vbee.vn/v1/tts` (header `Authorization: Bearer …`, `App-Id: …`; body `text`, `voiceCode`, `mode: "async"`, `outputFormat: "mp3"`, `bitrate: 128`, `speed: 0.9`, `webhookUrl` trỏ tới tên miền `.invalid` vì API bắt buộc có webhook nhưng không được gọi tới server thật), rồi hỏi `GET /v1/tts/requests/<requestId>` mỗi ~2 s (tối đa ~120 s) đến khi `COMPLETED` → tải `audioLink` (URL ký sẵn, hết hạn sau 3 phút, chuyển hướng sang S3).
+- Mỗi **đoạn** được tạo riêng và lưu đệm ở `build/voice-parts/<sha1(lang|text|voice|speed)>.mp3` (đoạn dùng chung giữa nhiều câu chỉ tạo một lần). Câu nhiều đoạn: `ffmpeg` nối các đoạn, giữa các đoạn chèn ~0,25 s im lặng → **Opus trong OGG**, mono, 32 kbps → `content/audio/<sha1(key)[:16]>.ogg`.
+- Ghi `content/audio/index.json` sau mỗi clip (ghi nguyên tử bằng `*.tmp` + đổi tên):
   ```json
-  { "voice": "Leda", "model": "gemini-3.8-flash-tts", "style": "…",
+  { "provider": "vbee",
+    "voices": { "vi": "hn_female_ngochuyen_full_48k-fhg", "en": "en-US-Neural2-G-Premium" },
+    "speed": 0.9,
     "clips": { "vi|Chào Xoài! Hôm nay mình chơi gì nào?": "3f2a9c….ogg" } }
   ```
-- Bỏ qua câu đã có trong index và file tồn tại. Gặp giới hạn tốc độ (HTTP 429, "retry in Ns") → đợi rồi thử lại. Gặp giới hạn theo ngày → dừng, in số câu còn thiếu; chạy lại hôm sau sẽ tiếp tục.
+  Nếu nhà cung cấp/giọng/tốc độ trong index khác cấu hình hiện tại thì mọi clip cũ bị coi là hết hạn (tạo lại; file cũ thành mồ côi, `--prune` xóa).
+- Bỏ qua câu đã có trong index và file tồn tại. Tối đa 3 câu chạy song song. HTTP 429 (`TTS_CCR_MAX_LIMIT_REACHED`, quá số yêu cầu đồng thời) → chờ rồi thử lại. `BAD_REQUEST` nhắc tới credit/gói → dừng (mã thoát 2), in số câu còn thiếu; nạp thêm rồi chạy lại sẽ tiếp tục. Lỗi khác → câu đó thất bại, các câu khác vẫn chạy (mã thoát 1).
+- Chi phí: Vbee tính credit theo số ký tự; `--dry-run` in số ký tự cần đọc.
 - Thứ tự tạo: phrase cố định → từ vựng → chữ cái.
-- Tùy chọn `--prune`: xóa file không còn câu nào dùng.
-- Dùng `dart:io` `HttpClient`; key gửi qua header `x-goog-api-key`.
+- Tùy chọn: `--limit N`, `--only TEXT`, `--prune` (xóa file không còn câu nào dùng), `--dry-run`.
+- Dùng `dart:io` `HttpClient`.
 
 ### 4.4 Phát trong app
 - `VoiceService` nhận thêm một `ClipLibrary` (đọc `content/audio/index.json` khi khởi động) và một `ClipPlayer` (dựa trên `just_audio`, phát asset `content/audio/<file>`).
@@ -150,7 +155,7 @@ Một **câu nói** (`Utterance`) là danh sách đoạn `(lang, text)`. Phrase 
 | Thiếu `index.json` / không đọc được | Thư viện clip rỗng → toàn bộ dùng giọng máy |
 | Clip lỗi khi phát | Dự phòng giọng máy cho câu đó, ghi log |
 | Ảnh thiếu/lỗi | Hiện emoji của từ (đã có `errorBuilder`) |
-| Hết quota Gemini khi tạo giọng | Script dừng, in số câu thiếu; test coverage chặn phát hành bản thiếu giọng |
+| Hết credit Vbee khi tạo giọng | Script dừng, in số câu thiếu; test coverage chặn phát hành bản thiếu giọng |
 
 ## 7. Kiểm thử
 - Unit: render biến `{Word}/{Vi}`, `Utterance` + khóa, `enumerateUtterances` (đủ và không trùng), `ClipLibrary` tra cứu, `VoiceService` chọn clip trước rồi mới giọng máy, dự phòng khi clip lỗi, `stop` dừng clip; dựng lượt trò từ vựng (4 lựa chọn khác nhau, có đáp án, maxNew 3); session (dùng lại luật kết quả); validator gói từ vựng; migration DB.

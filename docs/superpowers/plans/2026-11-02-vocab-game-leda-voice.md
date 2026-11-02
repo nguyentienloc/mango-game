@@ -19,8 +19,8 @@
 - Câu nói: `vocab_prompt` = en "Find the {word}!"; `vocab_correct` = [en "{Word}!", vi "{Vi}!"]; `vocab_hint` = [vi "{Vi} ở đây nè!", en "{Word}!"]; `game_vocab` = vi "Nhìn hình đoán từ".
 - Biến từ vựng: `{word}` (viết thường), `{Word}` (viết hoa chữ đầu), `{vi}`, `{Vi}` (viết hoa chữ đầu).
 - Khóa câu nói: mỗi đoạn `lang|text`, các đoạn nối bằng `" || "`.
-- Giọng: model `gemini-3.8-flash-tts`, voice `Leda`, style `a warm, cheerful young woman speaking slowly and clearly to a 5-year-old girl`; file `content/audio/<sha1(key) 16 ký tự hex đầu>.ogg`, Opus mono 32 kbps; index `content/audio/index.json`.
-- Key Gemini đọc từ `~/.config/xoai/gemini_api_key` hoặc env `GEMINI_API_KEY`; **không bao giờ** in, log hay commit key.
+- Giọng: Vbee (async API), tiếng Việt `hn_female_ngochuyen_full_48k-fhg` (HN – Ngọc Huyền), tiếng Anh `en-US-Neural2-G-Premium` (Sophia), tốc độ 0.9; mỗi đoạn đọc riêng rồi nối (~0,25 s im lặng); file `content/audio/<sha1(key) 16 ký tự hex đầu>.ogg`, Opus mono 32 kbps; index `content/audio/index.json` (`provider`, `voices`, `speed`, `clips`).
+- Khóa Vbee đọc từ `~/.config/xoai/vbee.env` (`VBEE_APP_ID`, `VBEE_TOKEN`) hoặc biến môi trường cùng tên; **không bao giờ** in, log hay commit khóa.
 - Ảnh: Fluent Emoji 3D (MIT), repo `microsoft/fluentui-emoji` ghim theo commit SHA; lưu `content/images/vocab/<id>.png`; kèm `content/images/vocab/LICENSE-fluentui-emoji.txt` và `THIRD_PARTY_NOTICES.md`.
 - DB: `schemaVersion` 2, cột mới `profile.showFindLetter` bool mặc định false, có `MigrationStrategy`.
 - Màn chính: 🐾 → 🎈 (chỉ khi bật) → ✏️ → 🗣️ → 🇻🇳; bỏ nút 🐶. Mọi chạm điều hướng phải có tiếng.

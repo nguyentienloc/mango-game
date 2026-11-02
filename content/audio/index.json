@@ -1,9 +1,11 @@
 {
-  "voice": "Leda",
-  "model": "gemini-3.8-flash-tts",
-  "style": "a warm, cheerful young woman speaking slowly and clearly to a 5-year-old girl",
+  "provider": "vbee",
+  "voices": {
+    "vi": "hn_female_ngochuyen_full_48k-fhg",
+    "en": "en-US-Neural2-G-Premium"
+  },
+  "speed": 0.9,
   "clips": {
-    "en|Hi An! Let's play!": "b78b742bc5217ccb.ogg",
-    "vi|Chào Xoài! Hôm nay mình chơi gì nào?": "fd725940fbbed313.ogg"
+    "en|L! L is for Lion!": "5a1ce74ee57afa36.ogg"
   }
 }
