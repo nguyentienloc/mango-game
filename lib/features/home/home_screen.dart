@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -49,7 +51,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(voiceProvider).say('greet_vi'));
   }
 
+  /// True from the game tap until the game screen has been pushed; further
+  /// game/castle taps are ignored so they can't stack a second screen.
+  bool _opening = false;
+
   Future<void> _openGame(_GameEntry game) async {
+    if (_opening) return;
     final voice = ref.read(voiceProvider);
     final builder = game.builder;
     if (builder == null) {
@@ -57,13 +64,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       await voice.say('coming_soon');
       return;
     }
-    // Name the game first so the game's own first prompt doesn't cut it off.
-    await voice.say(game.phraseId);
-    if (!mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: builder));
+    _opening = true;
+    try {
+      // Name the game first so the game's own first prompt doesn't cut it off,
+      // but wait at most 3 s so a broken TTS can't stall the menu.
+      final cap = Completer<void>();
+      final timer = Timer(const Duration(seconds: 3), cap.complete);
+      try {
+        await Future.any([voice.say(game.phraseId), cap.future]);
+      } finally {
+        timer.cancel();
+      }
+      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: builder));
+    } finally {
+      _opening = false;
+    }
   }
 
   void _openCastle() {
+    if (_opening) return;
     ref.read(voiceProvider).say('game_castle');
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CastleScreen()));
   }

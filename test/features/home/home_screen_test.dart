@@ -75,6 +75,39 @@ void main() {
     expect(find.byType(FindLetterScreen), findsOneWidget);
   });
 
+  testWidgets('a second tap while the game name is being spoken does not stack another game', (tester) async {
+    final tts = GatedTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));
+    await tester.pump();
+    await tester.pump();
+    tts.release();
+    await tester.tap(find.text('🎈'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('🎈'), warnIfMissed: false);
+    await tester.tap(find.byKey(const Key('home-castle')), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 500));
+    for (var i = 0; i < 3; i++) {
+      tts.release();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    expect(find.byType(FindLetterScreen, skipOffstage: false), findsOneWidget);
+    expect(find.byType(CastleScreen, skipOffstage: false), findsNothing);
+  });
+
+  testWidgets('a speech that never ends delays the game by at most 3 s', (tester) async {
+    final tts = GatedTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));
+    await tester.pump();
+    await tester.pump();
+    tts.release();
+    await tester.tap(find.text('🎈'));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(FindLetterScreen), findsNothing);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(FindLetterScreen), findsOneWidget);
+  });
+
   testWidgets('the back gesture does not leave the app from home', (tester) async {
     await pumpHome(tester);
     final popped = await tester.binding.handlePopRoute();
