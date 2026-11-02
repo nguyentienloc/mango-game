@@ -144,7 +144,10 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
   Widget build(BuildContext context) {
     final session = _session;
     if (session == null || session.isFinished) {
-      return const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator())));
+      return PopScope(
+        canPop: _session == null,
+        child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
+      );
     }
     final q = session.current;
     return PopScope(
@@ -175,7 +178,9 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => _voice.say('vocab_prompt', vars: _vars),
+                onTap: () {
+                  if (!_busy) _voice.say('vocab_prompt', vars: _vars);
+                },
                 child: const CharacterView(id: 'elsa', size: 110),
               ),
               Expanded(

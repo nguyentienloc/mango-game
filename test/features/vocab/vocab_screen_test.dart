@@ -49,6 +49,7 @@ void main() {
     expect(find.byType(RewardScreen), findsOneWidget);
     expect(find.text('+13 ❄️'), findsOneWidget);
     expect(sessions.records.single.game, 'vocab');
+    expect(stats.stats, isNotEmpty);
     expect(stats.stats.keys.every((k) => k.startsWith('word:')), isTrue);
   });
 

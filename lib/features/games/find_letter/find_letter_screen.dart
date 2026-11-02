@@ -157,8 +157,11 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
   Widget build(BuildContext context) {
     final session = _session;
     if (session == null || session.isFinished) {
-      return const Scaffold(
-        body: IceBackground(child: Center(child: CircularProgressIndicator())),
+      return PopScope(
+        canPop: _session == null,
+        child: const Scaffold(
+          body: IceBackground(child: Center(child: CircularProgressIndicator())),
+        ),
       );
     }
     final q = session.current;
