@@ -21,22 +21,45 @@ class LetterItem {
   String get lower => char.toLowerCase();
 }
 
-class Phrase {
-  const Phrase({required this.id, required this.lang, required this.text, required this.group, this.priority = false});
+class PhrasePart {
+  const PhrasePart(this.lang, this.text);
 
-  factory Phrase.fromJson(Map<String, dynamic> json) => Phrase(
-        id: json['id'] as String,
-        lang: json['lang'] as String,
-        text: json['text'] as String,
-        group: json['group'] as String,
-        priority: json['priority'] as bool? ?? false,
-      );
-
-  final String id;
   final String lang;
   final String text;
+}
+
+class Phrase {
+  const Phrase({required this.id, required String lang, required String text, required this.group, this.priority = false})
+      : _lang = lang,
+        _text = text,
+        _parts = null;
+
+  const Phrase.multi({required this.id, required List<PhrasePart> parts, required this.group, this.priority = false})
+      : _lang = null,
+        _text = null,
+        _parts = parts;
+
+  factory Phrase.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String;
+    final group = json['group'] as String;
+    final priority = json['priority'] as bool? ?? false;
+    final parts = json['parts'] as List?;
+    if (parts != null) {
+      return Phrase.multi(id: id, group: group, priority: priority, parts: [
+        for (final p in parts) PhrasePart((p as Map<String, dynamic>)['lang'] as String, p['text'] as String),
+      ]);
+    }
+    return Phrase(id: id, lang: json['lang'] as String, text: json['text'] as String, group: group, priority: priority);
+  }
+
+  final String id;
   final String group;
   final bool priority;
+  final String? _lang;
+  final String? _text;
+  final List<PhrasePart>? _parts;
+
+  List<PhrasePart> get allParts => _parts ?? [PhrasePart(_lang!, _text!)];
 }
 
 class CastleLevel {

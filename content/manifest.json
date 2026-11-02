@@ -1,5 +1,5 @@
 {
   "schema": 1,
   "packs": { "letters_en": 1, "vocab_animals": 1, "vocab_fruits": 1, "vocab_vegetables": 1, "vocab_vehicles": 1 },
-  "files": { "phrases": 1, "castle": 1, "characters": 1, "profile_defaults": 1 }
+  "files": { "phrases": 2, "castle": 1, "characters": 1, "profile_defaults": 1 }
 }

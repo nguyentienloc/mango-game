@@ -15,6 +15,9 @@ const requiredPhraseIds = {
   'game_talk',
   'game_vi',
   'game_vocab',
+  'vocab_prompt',
+  'vocab_correct',
+  'vocab_hint',
   'game_castle',
   'go_home',
   'coming_soon',
@@ -203,10 +206,25 @@ void _checkPhrases(Map<String, dynamic> doc, List<String> errors) {
     } else if (!ids.add(id as String)) {
       errors.add('$where: id "$id" bị trùng');
     }
-    if (item['lang'] != 'en' && item['lang'] != 'vi') {
-      errors.add('$where: "lang" phải là "en" hoặc "vi"');
+    final parts = item['parts'];
+    if (parts != null) {
+      if (parts is! List || parts.isEmpty) {
+        errors.add('$where: "parts" phải là danh sách không rỗng');
+      } else {
+        for (final (j, part) in parts.indexed) {
+          final pw = '$where parts[$j]';
+          if (part is! Map<String, dynamic>) {
+            errors.add('$pw: phải là object');
+            continue;
+          }
+          if (part['lang'] != 'en' && part['lang'] != 'vi') errors.add('$pw: "lang" phải là "en" hoặc "vi"');
+          if (!_nonEmpty(part['text'])) errors.add('$pw: thiếu "text"');
+        }
+      }
+    } else {
+      if (item['lang'] != 'en' && item['lang'] != 'vi') errors.add('$where: "lang" phải là "en" hoặc "vi"');
+      if (!_nonEmpty(item['text'])) errors.add('$where: thiếu "text"');
     }
-    if (!_nonEmpty(item['text'])) errors.add('$where: thiếu "text"');
     final group = item['group'];
     if (!_nonEmpty(group)) {
       errors.add('$where: thiếu "group"');

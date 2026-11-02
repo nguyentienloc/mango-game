@@ -3,6 +3,7 @@ import 'dart:math';
 import '../content/models.dart';
 import '../profile/names.dart';
 import 'tts_engine.dart';
+import 'utterance.dart';
 
 /// Single entry point for everything the game says out loud.
 class VoiceService {
@@ -20,6 +21,7 @@ class VoiceService {
   final Map<String, Phrase> _phrases;
   final Names _names;
   final Random _random;
+  int _generation = 0;
 
   static final _placeholder = RegExp(r'\{(\w+)\}');
 
@@ -40,10 +42,30 @@ class VoiceService {
     return _speak(options[_random.nextInt(options.length)], vars);
   }
 
-  Future<void> stop() => _tts.stop();
+  /// What would be spoken for [phraseId], with names and [vars] filled in.
+  Utterance utterance(String phraseId, {Map<String, String> vars = const {}}) {
+    final phrase = _phrases[phraseId];
+    if (phrase == null) throw ArgumentError.value(phraseId, 'phraseId', 'Không có câu này');
+    return _build(phrase, vars);
+  }
 
-  Future<void> _speak(Phrase phrase, Map<String, String> vars) async {
+  /// Cuts the current phrase, including any parts not yet spoken.
+  Future<void> stop() {
+    _generation++;
+    return _tts.stop();
+  }
+
+  Utterance _build(Phrase phrase, Map<String, String> vars) =>
+      Utterance([for (final p in phrase.allParts) UtterancePart(p.lang, render(p.text, vars))]);
+
+  Future<void> _speak(Phrase phrase, Map<String, String> vars) => _play(_build(phrase, vars));
+
+  Future<void> _play(Utterance u) async {
+    final gen = ++_generation;
     await _tts.stop();
-    await _tts.speak(render(phrase.text, vars), lang: phrase.lang);
+    for (final part in u.parts) {
+      if (gen != _generation) return;
+      await _tts.speak(part.text, lang: part.lang);
+    }
   }
 }

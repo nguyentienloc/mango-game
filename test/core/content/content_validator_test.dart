@@ -110,6 +110,23 @@ void main() {
     expect(errors, contains('packs/vocab_animals.json items[1]: không tìm thấy ảnh "images/vocab/dog.png"'));
   });
 
+  test('multi-part phrases are validated', () {
+    final phrases = readJson(validFiles(), 'phrases.json');
+    (phrases['items'] as List).add({
+      'id': 'two',
+      'group': 'g',
+      'parts': [
+        {'lang': 'en', 'text': 'Hi!'},
+        {'lang': 'fr', 'text': ''},
+      ],
+    });
+    final errors = validateContent(withJson(validFiles(), 'phrases.json', phrases));
+    expect(errors, containsAll([
+      'phrases.json items[${(phrases['items'] as List).length - 1}] parts[1]: "lang" phải là "en" hoặc "vi"',
+      'phrases.json items[${(phrases['items'] as List).length - 1}] parts[1]: thiếu "text"',
+    ]));
+  });
+
   test('the shipped content/ directory is valid', () {
     final snapshot = readContentDir('content');
     expect(validateContent(snapshot.json, assetPaths: snapshot.assets), isEmpty);

@@ -54,4 +54,62 @@ void main() {
   test('sayGroup throws for unknown groups', () {
     expect(() => voice(FakeTts()).sayGroup('nope'), throwsArgumentError);
   });
+
+  test('multi-part phrases speak each part in its own language', () async {
+    final tts = FakeTts();
+    final v = VoiceService(
+      tts: tts,
+      phrases: const {
+        'correct': Phrase.multi(id: 'correct', group: 'vocab', parts: [
+          PhrasePart('en', '{Word}!'),
+          PhrasePart('vi', '{Vi}!'),
+        ]),
+      },
+      names: const Names(en: 'An', vi: 'Xoài'),
+    );
+    await v.say('correct', vars: {'Word': 'Lion', 'Vi': 'Con sư tử'});
+    expect(tts.spoken, [(text: 'Lion!', lang: 'en'), (text: 'Con sư tử!', lang: 'vi')]);
+  });
+
+  test('utterance renders names and vars into parts', () {
+    final v = voice(FakeTts());
+    expect(v.utterance('find', vars: {'letter': 'B'}).key, 'en|Find the letter B, An!');
+  });
+
+  test('utterance throws for unknown phrase ids', () {
+    expect(() => voice(FakeTts()).utterance('missing'), throwsArgumentError);
+  });
+
+  VoiceService twoParts(GatedTts tts) => VoiceService(
+        tts: tts,
+        phrases: const {
+          'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
+          'next': Phrase(id: 'next', lang: 'en', text: 'Next', group: 'h'),
+        },
+        names: const Names(en: 'An', vi: 'Xoài'),
+      );
+
+  test('stop while the first part is speaking skips the remaining parts', () async {
+    final tts = GatedTts();
+    final v = twoParts(tts);
+    final done = v.say('two');
+    await Future<void>.delayed(Duration.zero);
+    expect(tts.texts, ['One']);
+    await v.stop();
+    await done;
+    expect(tts.texts, ['One']);
+  });
+
+  test('a new phrase cuts the remaining parts of the previous one', () async {
+    final tts = GatedTts();
+    final v = twoParts(tts);
+    final first = v.say('two');
+    await Future<void>.delayed(Duration.zero);
+    final second = v.say('next');
+    await Future<void>.delayed(Duration.zero);
+    tts.release();
+    await first;
+    await second;
+    expect(tts.texts, ['One', 'Next']);
+  });
 }
