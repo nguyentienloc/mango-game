@@ -35,6 +35,14 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
 
   VoiceService get _voice => ref.read(voiceProvider);
 
+  /// Set when we pop ourselves (🏠 or error): those say their own phrase.
+  bool _leavingByUs = false;
+
+  /// A system back gesture: say go_home, which also cuts whatever is still being spoken.
+  void _onPopInvoked(bool didPop, Object? result) {
+    if (didPop && !_leavingByUs) _voice.say('go_home');
+  }
+
   bool get _finishing {
     final s = _session;
     return _burst != null && s != null && s.index == s.questions.length - 1;
@@ -53,6 +61,7 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
     } catch (e, st) {
       debugPrint('Vocab error: $e\n$st');
       if (!mounted) return;
+      _leavingByUs = true;
       await _voice.say('error_home');
       if (mounted) Navigator.of(context).pop();
     }
@@ -146,12 +155,14 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
     if (session == null || session.isFinished) {
       return PopScope(
         canPop: _session == null,
+        onPopInvokedWithResult: _onPopInvoked,
         child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
       );
     }
     final q = session.current;
     return PopScope(
       canPop: !_finishing,
+      onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
         body: IceBackground(
           child: Column(
@@ -165,6 +176,7 @@ class _VocabScreenState extends ConsumerState<VocabScreen> {
                       size: 64,
                       onTap: () {
                         if (_finishing) return;
+                        _leavingByUs = true;
                         _voice.say('go_home');
                         Navigator.of(context).pop();
                       },

@@ -15,23 +15,16 @@ class PlannedUtterance {
 const vocabPhraseIds = ['vocab_prompt', 'vocab_correct', 'vocab_hint'];
 const letterPhraseIds = ['find_letter_prompt', 'find_letter_small_prompt', 'letter_example'];
 
-final _placeholder = RegExp(r'\{(\w+)\}');
-
 /// Every utterance the app can say, with names and item variables filled in.
 /// Used by tool/gen_voice.dart to pre-generate audio and by the voice coverage test.
 List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   final out = <PlannedUtterance>[];
   final seen = <String>{};
 
-  String render(String template, Map<String, String> vars) {
-    final all = {'name_en': names.en, 'name_vi': names.vi, ...vars};
-    return template.replaceAllMapped(_placeholder, (m) => all[m[1]] ?? m[0]!);
-  }
-
   void add(String phraseId, Map<String, String> vars, UtteranceKind kind) {
     final phrase = content.phrases[phraseId];
     if (phrase == null) return;
-    final u = Utterance([for (final p in phrase.allParts) UtterancePart(p.lang, render(p.text, vars))]);
+    final u = buildUtterance(phrase, names, vars);
     if (seen.add(u.key)) out.add(PlannedUtterance(u, kind));
   }
 

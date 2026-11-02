@@ -33,12 +33,7 @@ class VoiceService {
   final Random _random;
   int _generation = 0;
 
-  static final _placeholder = RegExp(r'\{(\w+)\}');
-
-  String render(String template, [Map<String, String> vars = const {}]) {
-    final all = {'name_en': _names.en, 'name_vi': _names.vi, ...vars};
-    return template.replaceAllMapped(_placeholder, (m) => all[m[1]] ?? m[0]!);
-  }
+  String render(String template, [Map<String, String> vars = const {}]) => renderTemplate(template, _names, vars);
 
   Future<void> say(String phraseId, {Map<String, String> vars = const {}}) {
     final phrase = _phrases[phraseId];
@@ -66,12 +61,17 @@ class VoiceService {
     await _tts.stop();
   }
 
-  Utterance _build(Phrase phrase, Map<String, String> vars) =>
-      Utterance([for (final p in phrase.allParts) UtterancePart(p.lang, render(p.text, vars))]);
+  Utterance _build(Phrase phrase, Map<String, String> vars) => buildUtterance(phrase, _names, vars);
 
   Future<void> _speak(Phrase phrase, Map<String, String> vars) => _play(_build(phrase, vars));
 
-  static const _clipTimeout = Duration(seconds: 15);
+  /// The longest clip is ~3.5 s; anything slower than this is a stuck player.
+  static const _clipTimeout = Duration(seconds: 6);
+
+  /// After this many clip failures/timeouts in a row, clips are skipped for the
+  /// rest of the process (TTS only), so a broken player never delays speech again.
+  static const _maxClipFailures = 2;
+  int _clipFailures = 0;
 
   Future<void> _play(Utterance u) async {
     final gen = ++_generation;
@@ -81,13 +81,16 @@ class VoiceService {
     if (gen != _generation) return;
     final asset = _clips.assetFor(u);
     final player = _player;
-    if (asset != null && player != null) {
+    if (asset != null && player != null && _clipFailures < _maxClipFailures) {
       try {
         await player.play(asset).timeout(_clipTimeout);
+        _clipFailures = 0;
         return;
       } catch (e) {
         debugPrint('Clip failed ($asset): $e — using TTS');
+        // A clip cut short by stop()/a newer phrase is not a player fault.
         if (gen != _generation) return;
+        _clipFailures++;
         // A timed-out clip may still be playing; don't talk over it.
         await player.stop().catchError((Object _) {});
       }

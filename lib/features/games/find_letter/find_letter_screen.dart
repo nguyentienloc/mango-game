@@ -36,6 +36,14 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
 
   VoiceService get _voice => ref.read(voiceProvider);
 
+  /// Set when we pop ourselves (🏠 or error): those say their own phrase.
+  bool _leavingByUs = false;
+
+  /// A system back gesture: say go_home, which also cuts whatever is still being spoken.
+  void _onPopInvoked(bool didPop, Object? result) {
+    if (didPop && !_leavingByUs) _voice.say('go_home');
+  }
+
   /// Celebrating the last question: the round is fully answered and only
   /// _finish (save session, award snowflakes) is left. Leaving now would
   /// dispose the screen first and the round would earn nothing, so 🏠 and the
@@ -59,6 +67,7 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
     } catch (e, st) {
       debugPrint('FindLetter error: $e\n$st');
       if (!mounted) return;
+      _leavingByUs = true;
       await _voice.say('error_home');
       if (mounted) Navigator.of(context).pop();
     }
@@ -159,6 +168,7 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
     if (session == null || session.isFinished) {
       return PopScope(
         canPop: _session == null,
+        onPopInvokedWithResult: _onPopInvoked,
         child: const Scaffold(
           body: IceBackground(child: Center(child: CircularProgressIndicator())),
         ),
@@ -169,6 +179,7 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
     final celebrating = _celebrating;
     return PopScope(
       canPop: !_finishing,
+      onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
         body: IceBackground(
           child: Column(
@@ -182,6 +193,7 @@ class _FindLetterScreenState extends ConsumerState<FindLetterScreen> {
                       size: 64,
                       onTap: () {
                         if (_finishing) return;
+                        _leavingByUs = true;
                         _voice.say('go_home');
                         Navigator.of(context).pop();
                       },

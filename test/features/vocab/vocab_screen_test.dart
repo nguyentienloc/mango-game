@@ -95,4 +95,53 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('the system back gesture says go_home and leaves the game', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(
+      content: content,
+      tts: tts,
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const VocabScreen())),
+          child: const Text('go'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('go'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    expect(find.byType(VocabScreen), findsOneWidget);
+    expect(tts.texts, isNot(contains('Về lâu đài nào!')));
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(VocabScreen), findsNothing);
+    expect(tts.texts.where((t) => t == 'Về lâu đài nào!'), hasLength(1));
+  });
+
+  testWidgets('the home button says go_home only once', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(
+      content: content,
+      tts: tts,
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const VocabScreen())),
+          child: const Text('go'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('go'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    await tester.tap(find.text('🏠'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(VocabScreen), findsNothing);
+    expect(tts.texts.where((t) => t == 'Về lâu đài nào!'), hasLength(1));
+  });
 }

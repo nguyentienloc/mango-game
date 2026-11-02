@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/clip_library.dart';
+import 'package:xoai_castle/core/voice/clip_player.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
 
 import '../../support/fakes.dart';
@@ -115,6 +116,60 @@ void main() {
     expect(tts.texts, ['One', 'Next']);
   });
 
+  group('clip circuit breaker', () {
+    const phrases = {
+      'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet'),
+    };
+    final clips = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg"}}');
+
+    VoiceService build(FakeTts tts, ClipPlayer player) => VoiceService(
+        tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: clips, player: player);
+
+    test('after 2 consecutive failures clips are not tried again, TTS speaks', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer()..failWith = StateError('decoder');
+      final v = build(tts, player);
+      for (var i = 0; i < 4; i++) {
+        await v.say('hello');
+      }
+      expect(player.played, hasLength(2));
+      expect(tts.texts, ['Chào Xoài!', 'Chào Xoài!', 'Chào Xoài!', 'Chào Xoài!']);
+    });
+
+    test('a successful clip resets the failure count', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer();
+      final v = build(tts, player);
+      player.failWith = StateError('x');
+      await v.say('hello');
+      player.failWith = null;
+      await v.say('hello');
+      player.failWith = StateError('x');
+      await v.say('hello');
+      player.failWith = null;
+      await v.say('hello');
+      expect(player.played, hasLength(4));
+      expect(tts.texts, hasLength(2));
+    });
+
+    testWidgets('clips that never finish time out after 6 s and are given up after 2', (tester) async {
+      final tts = FakeTts();
+      final player = _NeverEndingClipPlayer();
+      final v = build(tts, player);
+      for (var i = 0; i < 2; i++) {
+        final done = v.say('hello');
+        await tester.pump(const Duration(seconds: 5));
+        expect(tts.spoken, hasLength(i), reason: 'still waiting for the clip at 5 s');
+        await tester.pump(const Duration(seconds: 2));
+        await done;
+        expect(tts.spoken, hasLength(i + 1), reason: 'timed out at 6 s, TTS spoke');
+      }
+      await v.say('hello');
+      expect(player.played, hasLength(2));
+      expect(tts.spoken, hasLength(3));
+    });
+  });
+
   group('pre-generated clips', () {
     const phrases = {
       'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet'),
@@ -220,5 +275,13 @@ class _SlowStopTts extends FakeTts {
   Future<void> stop() async {
     calls.add('stop');
     await _gate.future;
+  }
+}
+
+class _NeverEndingClipPlayer extends FakeClipPlayer {
+  @override
+  Future<void> play(String assetPath) {
+    played.add(assetPath);
+    return Completer<void>().future;
   }
 }

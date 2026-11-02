@@ -45,7 +45,7 @@ Kết quả: bản **v0.2.0**.
 │  └──────────┘  └──────────┘  │
 └──────────────────────────────┘
 ```
-- Thẻ vuông, nền trắng bo góc, bóng nhẹ; cạnh thẻ = min((rộng − lề) / 2, (cao còn lại) / 2), tối đa 200 dp (ảnh 256 px vẫn nét trên màn xxhdpi ở cỡ này).
+- Thẻ vuông, nền trắng bo góc, bóng nhẹ; cạnh thẻ = min((rộng − lề) / 2, (cao còn lại) / 2), tối đa 200 dp (ảnh 256 px bị phóng lên trên màn 3× (200 dp = 600 px nên hơi mềm, không còn nét tuyệt đối); chấp nhận vì Fluent 3D chỉ có bản 256 px).
 - Không có chữ trên thẻ (bé chưa đọc được).
 - Phải vừa màn 360×640 dp không tràn.
 

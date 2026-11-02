@@ -23,9 +23,10 @@ class JustAudioClipPlayer implements ClipPlayer {
   @override
   Future<void> play(String assetPath) async {
     final token = ++_token;
-    await _player.stop();
+    // No stop() first: setAsset already interrupts the current clip, and a
+    // second stop would rebuild ExoPlayer twice per phrase.
     await _player.setAsset(assetPath);
-    // stop() may have been called while the asset was loading.
+    // stop() (or a newer play) may have been called while the asset was loading.
     if (token != _token) return;
     // just_audio's play() completes when playback finishes, pauses or stops.
     await _player.play();

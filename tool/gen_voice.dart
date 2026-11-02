@@ -203,7 +203,7 @@ Future<void> main(List<String> args) async {
     final files = clips.values.toSet();
     for (final f in dir.listSync().whereType<File>()) {
       final name = f.uri.pathSegments.last;
-      if (name.endsWith('.ogg') && !files.contains(name)) f.deleteSync();
+      if (name.endsWith('.part') || (name.endsWith('.ogg') && !files.contains(name))) f.deleteSync();
     }
   }
 }
@@ -453,11 +453,11 @@ Future<void> _preflightFfmpeg() async {
 }
 
 /// Joins the part MP3s with a short silence between them and encodes Opus mono
-/// 32 kbps to `<name>.tmp.ogg`, then renames, so an interrupted run never leaves
-/// a half-written clip. The part MP3s stay cached in build/voice-parts/, so an
+/// 32 kbps to `<name>.ogg.part` (forced `-f ogg`), then renames, so a crash never leaves
+/// a half-written `.ogg` that could get bundled. The part MP3s stay cached in build/voice-parts/, so an
 /// ffmpeg failure never wastes credits.
 Future<void> _toOgg(List<File> parts, File out) async {
-  final tmpOgg = File('${out.path}.tmp.ogg');
+  final tmpOgg = File('${out.path}.part');
   final inputs = <String>[];
   var n = 0; // number of ffmpeg inputs so far
   for (var i = 0; i < parts.length; i++) {
@@ -498,6 +498,8 @@ Future<void> _toOgg(List<File> parts, File out) async {
       '32k',
       '-application',
       'voip',
+      '-f',
+      'ogg',
       tmpOgg.path,
     ]);
     if (r.exitCode != 0) {
