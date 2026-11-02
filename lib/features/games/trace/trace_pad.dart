@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
@@ -29,6 +30,9 @@ class TracePad extends StatefulWidget {
 /// Shortest path (in pad units) that counts as a stroke rather than a tap.
 const _kMinStrokeLength = 0.04;
 
+/// How long a finished stroke's ink takes to melt away.
+const _kFadeDuration = Duration(milliseconds: 300);
+
 /// Dashed guide paths only depend on the strokes and the pad size, so they are
 /// built once instead of on every pointer move.
 class _DashCache {
@@ -51,13 +55,26 @@ class _DashCache {
   }
 }
 
-class _TracePadState extends State<TracePad> {
-  List<TracePoint> _drawing = [];
+class _TracePadState extends State<TracePad> with SingleTickerProviderStateMixin {
+  /// Points of the stroke being drawn; only the ink layer listens to it.
+  final _drawing = ValueNotifier<List<TracePoint>>(const []);
+
+  /// The last finished stroke, fading out while [_fade] runs (1 -> 0).
+  final _fading = ValueNotifier<List<TracePoint>>(const []);
+  late final AnimationController _fade = AnimationController(vsync: this, duration: _kFadeDuration);
 
   /// The pointer currently drawing; other fingers are ignored until it lifts.
   int? _pointer;
 
   final _dashCache = _DashCache();
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    _drawing.dispose();
+    _fading.dispose();
+    super.dispose();
+  }
 
   TracePoint _point(Offset local, double side) => TracePoint(
     (local.dx / side).clamp(0.0, 1.0),
@@ -72,16 +89,28 @@ class _TracePadState extends State<TracePad> {
     return total;
   }
 
+  void _down(PointerDownEvent e, double side) {
+    if (!widget.enabled) return;
+    // A palm or thumb resting first must not own the pad: if the owner has
+    // barely moved, the new finger takes over.
+    if (_pointer != null && _length(_drawing.value) >= _kMinStrokeLength) return;
+    _pointer = e.pointer;
+    _drawing.value = [_point(e.localPosition, side)];
+  }
+
   void _end(PointerEvent e, {required bool cancelled}) {
     if (e.pointer != _pointer) return;
     _pointer = null;
-    final drawn = _drawing;
-    setState(() => _drawing = []);
+    final drawn = _drawing.value;
+    _drawing.value = const [];
     // A tap or a dab with a little jitter is not a stroke: say nothing.
     if (!cancelled &&
         widget.enabled &&
         drawn.length >= 2 &&
         _length(drawn) >= _kMinStrokeLength) {
+      // The ink melts away instead of vanishing; it never blocks a new touch.
+      _fading.value = drawn;
+      _fade.forward(from: 0);
       widget.onStrokeDrawn(List.of(drawn));
     }
   }
@@ -98,29 +127,32 @@ class _TracePadState extends State<TracePad> {
           dimension: side,
           child: Listener(
             behavior: HitTestBehavior.opaque,
-            onPointerDown: (e) {
-              if (!widget.enabled || _pointer != null) return;
-              _pointer = e.pointer;
-              setState(() => _drawing = [_point(e.localPosition, side)]);
-            },
+            onPointerDown: (e) => _down(e, side),
             onPointerMove: (e) {
               if (e.pointer != _pointer) return;
-              setState(
-                () => _drawing = [..._drawing, _point(e.localPosition, side)],
-              );
+              _drawing.value = [..._drawing.value, _point(e.localPosition, side)];
             },
             onPointerUp: (e) => _end(e, cancelled: false),
             onPointerCancel: (e) => _end(e, cancelled: true),
-            child: RepaintBoundary(
-              child: CustomPaint(
-                size: Size.square(side),
-                painter: _TracePainter(
-                  widget.strokes,
-                  widget.current,
-                  _drawing,
-                  _dashCache,
+            child: Stack(
+              children: [
+                // Static guide: repaints only when strokes / current / size change.
+                RepaintBoundary(
+                  key: const Key('trace-guide'),
+                  child: CustomPaint(
+                    size: Size.square(side),
+                    painter: _GuidePainter(widget.strokes, widget.current, _dashCache),
+                  ),
                 ),
-              ),
+                // Live ink: repaints on every pointer move and fade frame.
+                RepaintBoundary(
+                  key: const Key('trace-ink'),
+                  child: CustomPaint(
+                    size: Size.square(side),
+                    painter: TraceInkPainter(_drawing, _fading, _fade),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -129,23 +161,71 @@ class _TracePadState extends State<TracePad> {
   }
 }
 
-class _TracePainter extends CustomPainter {
-  _TracePainter(this.strokes, this.current, this.drawing, this.dashCache);
+Paint _strokePaint(Color color, double w, {bool dashed = false}) => Paint()
+  ..color = color
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = w
+  ..strokeCap = dashed ? StrokeCap.butt : StrokeCap.round
+  ..strokeJoin = StrokeJoin.round;
+
+Path _polyPath(List<TracePoint> pts, double side) {
+  final path = Path()..moveTo(pts.first.x * side, pts.first.y * side);
+  for (final p in pts.skip(1)) {
+    path.lineTo(p.x * side, p.y * side);
+  }
+  return path;
+}
+
+RRect _padShape(Size size) =>
+    RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(24));
+
+/// The finger's ink: the stroke being drawn at full strength plus the last
+/// finished one fading out.
+class TraceInkPainter extends CustomPainter {
+  TraceInkPainter(this.drawing, this.fading, this.fade)
+    : super(repaint: Listenable.merge([drawing, fading, fade]));
+
+  final ValueListenable<List<TracePoint>> drawing;
+  final ValueListenable<List<TracePoint>> fading;
+  final Animation<double> fade;
+
+  /// 1 right after a stroke ends, 0 once it has faded away (also when idle).
+  @visibleForTesting
+  double get fadeOpacity => fading.value.isEmpty ? 0.0 : 1.0 - fade.value;
+
+  void _ink(Canvas canvas, List<TracePoint> pts, double side, double opacity) {
+    if (pts.length < 2 || opacity <= 0) return;
+    final width = 0.07 * side;
+    final p = _polyPath(pts, side);
+    canvas.drawPath(
+      p,
+      _strokePaint(IceColors.ice.withValues(alpha: 0.7 * opacity), width * 1.8)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.6),
+    );
+    canvas.drawPath(p, _strokePaint(const Color(0xFFD6F0FF).withValues(alpha: opacity), width));
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final side = size.shortestSide;
+    canvas.clipRRect(_padShape(size));
+    _ink(canvas, fading.value, side, fadeOpacity);
+    _ink(canvas, drawing.value, side, 1);
+  }
+
+  @override
+  bool shouldRepaint(TraceInkPainter old) => true;
+}
+
+/// The white board, the letter's strokes, the number dot and the arrow.
+class _GuidePainter extends CustomPainter {
+  _GuidePainter(this.strokes, this.current, this.dashCache);
 
   final List<List<TracePoint>> strokes;
   final int current;
-  final List<TracePoint> drawing;
   final _DashCache dashCache;
 
   Offset _o(TracePoint p, double side) => Offset(p.x * side, p.y * side);
-
-  Path _path(List<TracePoint> pts, double side) {
-    final path = Path()..moveTo(pts.first.x * side, pts.first.y * side);
-    for (final p in pts.skip(1)) {
-      path.lineTo(p.x * side, p.y * side);
-    }
-    return path;
-  }
 
   /// Dashes measured along the path: [dash] drawn, [gap] skipped (in pad units).
   Path _dashed(
@@ -155,7 +235,7 @@ class _TracePainter extends CustomPainter {
     double gap = 0.04,
   }) {
     final out = Path();
-    for (final m in _path(pts, side).computeMetrics()) {
+    for (final m in _polyPath(pts, side).computeMetrics()) {
       var d = 0.0;
       while (d < m.length) {
         out.addPath(
@@ -171,26 +251,18 @@ class _TracePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final side = size.shortestSide;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(24),
-    );
+    final rrect = _padShape(size);
     canvas.clipRRect(rrect);
     canvas.drawRRect(rrect, Paint()..color = Colors.white);
     final width = 0.07 * side;
-    Paint stroke(Color color, double w, {bool dashed = false}) => Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w
-      ..strokeCap = dashed ? StrokeCap.butt : StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    final stroke = _strokePaint;
 
     for (var i = 0; i < strokes.length; i++) {
       final pts = strokes[i];
       if (pts.length < 2) continue;
       Path dashed() => dashCache.get(strokes, i, side, () => _dashed(pts, side));
       if (i < current) {
-        canvas.drawPath(_path(pts, side), stroke(IceColors.deep, width));
+        canvas.drawPath(_polyPath(pts, side), stroke(IceColors.deep, width));
       } else if (i == current) {
         canvas.drawPath(
           dashed(),
@@ -212,16 +284,6 @@ class _TracePainter extends CustomPainter {
           stroke(Colors.grey.shade300, width * 0.8, dashed: true),
         );
       }
-    }
-
-    if (drawing.length >= 2) {
-      final p = _path(drawing, side);
-      canvas.drawPath(
-        p,
-        stroke(IceColors.ice.withValues(alpha: 0.7), width * 1.8)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.6),
-      );
-      canvas.drawPath(p, stroke(const Color(0xFFD6F0FF), width));
     }
   }
 
@@ -267,8 +329,6 @@ class _TracePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_TracePainter old) =>
-      old.strokes != strokes ||
-      old.current != current ||
-      old.drawing != drawing;
+  bool shouldRepaint(_GuidePainter old) =>
+      !identical(old.strokes, strokes) || old.current != current;
 }

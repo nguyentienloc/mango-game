@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -207,7 +209,14 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
               Expanded(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    // Keep clear of Android's back-gesture zones so a stroke that
+                    // starts near an edge is not stolen by the system.
+                    padding: EdgeInsets.fromLTRB(
+                      max(16, MediaQuery.systemGestureInsetsOf(context).left + 8),
+                      16,
+                      max(16, MediaQuery.systemGestureInsetsOf(context).right + 8),
+                      16,
+                    ),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [

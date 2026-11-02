@@ -111,6 +111,48 @@ void main() {
 
   padTests();
 
+  testWidgets('keeps clear of the Android back-gesture zone at the screen edges', (tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      testApp(
+        content: content,
+        tts: FakeTts(),
+        home: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(systemGestureInsets: const EdgeInsets.symmetric(horizontal: 40)),
+            child: const TraceScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final pad = tester.getRect(find.byKey(const Key('trace-pad')));
+    expect(pad.left, greaterThanOrEqualTo(48));
+    expect(360 - pad.right, greaterThanOrEqualTo(48));
+  });
+
+  testWidgets('after five failures the next drawing completes the stroke without try again', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const TraceScreen()));
+    await tester.pump();
+    await tester.pump();
+    bool isTryAgain(String t) => t == 'Try again!' || t == 'Thử lại nha con!';
+    final wrong = [for (var i = 0; i <= 20; i++) TracePoint(0.02 + i * 0.0125, 0.98)];
+    for (var i = 0; i < 5; i++) {
+      await drawPoints(tester, wrong);
+      expect(tts.texts.where(isTryAgain), hasLength(i + 1));
+    }
+    await drawPoints(tester, wrong);
+    expect(tts.texts.where(isTryAgain), hasLength(5));
+    // The helped stroke counted: either the next stroke is current or the letter is done.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(tts.texts.where(isTryAgain), hasLength(5));
+  });
+
   testWidgets('fits a 360x640 phone', (tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 3;
@@ -125,6 +167,19 @@ void main() {
     expect(pad.width, greaterThanOrEqualTo(280));
   });
 }
+
+Future<void> pumpPad(WidgetTester tester, ValueChanged<List<TracePoint>> onStroke) => tester.pumpWidget(
+  MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: SizedBox.square(
+          dimension: 300,
+          child: TracePad(strokes: const [], current: 0, onStrokeDrawn: onStroke),
+        ),
+      ),
+    ),
+  ),
+);
 
 void padTests() {
   testWidgets(
@@ -185,6 +240,7 @@ void padTests() {
       rect.topLeft + const Offset(30, 30),
       pointer: 1,
     );
+    await g1.moveTo(rect.topLeft + const Offset(60, 30)); // clearly drawing
     final g2 = await tester.startGesture(
       rect.topLeft + const Offset(250, 250),
       pointer: 2,
@@ -196,6 +252,64 @@ void padTests() {
     await tester.pump();
     expect(strokes, hasLength(1));
     expect(strokes.single.last.x, closeTo(100 / 300, 0.005));
+  });
+
+  testWidgets('a resting palm that has barely moved hands the stroke to the next finger', (tester) async {
+    final strokes = <List<TracePoint>>[];
+    await pumpPad(tester, strokes.add);
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    final palm = await tester.startGesture(rect.topLeft + const Offset(250, 250), pointer: 1);
+    await palm.moveBy(const Offset(2, 1)); // well under 0.04 of the side
+    final finger = await tester.startGesture(rect.topLeft + const Offset(30, 30), pointer: 2);
+    await finger.moveTo(rect.topLeft + const Offset(150, 30));
+    await finger.up();
+    await palm.up();
+    await tester.pump();
+    expect(strokes, hasLength(1));
+    expect(strokes.single.first.x, closeTo(30 / 300, 0.005));
+    expect(strokes.single.last.x, closeTo(150 / 300, 0.005));
+  });
+
+  testWidgets('the guide layer does not repaint while the finger moves; the ink layer does', (tester) async {
+    await pumpPad(tester, (_) {});
+    await tester.pump();
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    final guide = tester.renderObject(find.byKey(const Key('trace-guide')));
+    final ink = tester.renderObject(find.byKey(const Key('trace-ink')));
+    expect(guide.debugNeedsPaint, isFalse);
+    expect(ink.debugNeedsPaint, isFalse);
+    final g = await tester.startGesture(rect.topLeft + const Offset(30, 30));
+    await g.moveTo(rect.topLeft + const Offset(80, 30));
+    expect(ink.debugNeedsPaint, isTrue);
+    expect(guide.debugNeedsPaint, isFalse);
+    await g.up();
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('a finished stroke fades out over about 300 ms and never blocks a new touch', (tester) async {
+    final strokes = <List<TracePoint>>[];
+    await pumpPad(tester, strokes.add);
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    TraceInkPainter painter() => tester
+        .widget<CustomPaint>(find.descendant(of: find.byKey(const Key('trace-ink')), matching: find.byType(CustomPaint)))
+        .painter! as TraceInkPainter;
+
+    final g = await tester.startGesture(rect.topLeft + const Offset(30, 30));
+    await g.moveTo(rect.topLeft + const Offset(150, 30));
+    await g.up();
+    await tester.pump();
+    expect(painter().fadeOpacity, 1.0);
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(painter().fadeOpacity, allOf(greaterThan(0.0), lessThan(1.0)));
+
+    // A new touch right now starts a new stroke immediately.
+    final g2 = await tester.startGesture(rect.topLeft + const Offset(30, 90));
+    await g2.moveTo(rect.topLeft + const Offset(150, 90));
+    await g2.up();
+    await tester.pump();
+    expect(strokes, hasLength(2));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(painter().fadeOpacity, 0.0);
   });
 
   testWidgets('a tap with a tiny jitter does not report a stroke', (tester) async {
