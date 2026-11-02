@@ -127,6 +127,14 @@ void main() {
     ]));
   });
 
+  test('audio index files must exist and no clip may be orphaned', () {
+    const index = '{"clips": {"vi|A": "a.ogg", "vi|B": "b.ogg"}}';
+    expect(validateAudioIndex(index, {'audio/a.ogg', 'audio/b.ogg'}), isEmpty);
+    expect(validateAudioIndex(index, {'audio/a.ogg'}), contains('audio/index.json: thiếu file "audio/b.ogg"'));
+    expect(validateAudioIndex(index, {'audio/a.ogg', 'audio/b.ogg', 'audio/c.ogg'}),
+        contains('audio/c.ogg: không có câu nào dùng file này'));
+  });
+
   test('the shipped content/ directory is valid', () {
     final snapshot = readContentDir('content');
     expect(validateContent(snapshot.json, assetPaths: snapshot.assets), isEmpty);

@@ -309,3 +309,24 @@ void _checkProfile(Map<String, dynamic> doc, List<String> errors) {
     errors.add('profile_defaults.json: "daily_limit_min" phải là số nguyên ≥ 0');
   }
 }
+
+/// Checks content/audio/index.json against the files present (paths relative to content/).
+List<String> validateAudioIndex(String indexJson, Set<String> assetPaths) {
+  final errors = <String>[];
+  final Map<String, dynamic> clips;
+  try {
+    clips = (jsonDecode(indexJson) as Map<String, dynamic>)['clips'] as Map<String, dynamic>;
+  } on Object catch (e) {
+    return ['audio/index.json: không đọc được ($e)'];
+  }
+  final used = <String>{};
+  for (final file in clips.values) {
+    final path = 'audio/$file';
+    used.add(path);
+    if (!assetPaths.contains(path)) errors.add('audio/index.json: thiếu file "$path"');
+  }
+  for (final path in assetPaths.where((p) => p.startsWith('audio/') && p.endsWith('.ogg'))) {
+    if (!used.contains(path)) errors.add('$path: không có câu nào dùng file này');
+  }
+  return errors;
+}

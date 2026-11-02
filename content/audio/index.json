@@ -1,1 +1,9 @@
-{ "voice": "Leda", "model": "gemini-3.8-flash-tts", "style": "", "clips": {} }
+{
+  "voice": "Leda",
+  "model": "gemini-3.8-flash-tts",
+  "style": "a warm, cheerful young woman speaking slowly and clearly to a 5-year-old girl",
+  "clips": {
+    "en|Hi An! Let's play!": "b78b742bc5217ccb.ogg",
+    "vi|Chào Xoài! Hôm nay mình chơi gì nào?": "fd725940fbbed313.ogg"
+  }
+}
