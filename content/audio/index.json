@@ -2,10 +2,11 @@
   "provider": "vbee",
   "voices": {
     "vi": "hn_female_ngochuyen_full_48k-fhg",
-    "en": "en-US-Neural2-G-Premium"
+    "en": "en-GB-Standard-N"
   },
   "speed": 0.9,
   "clips": {
-    "en|L! L is for Lion!": "5a1ce74ee57afa36.ogg"
+    "en|Lion! || vi|Con sư tử!": "145fd40a7dfb9deb.ogg",
+    "vi|Con sư tử ở đây nè! || en|Lion!": "0ac4f52919e6335d.ogg"
   }
 }

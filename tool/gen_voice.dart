@@ -12,7 +12,7 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 
 import 'src/voice_gen.dart';
 
-/// Pre-generates the Vbee voices (Vietnamese: HN - Ngọc Huyền, English: Heart)
+/// Pre-generates the Vbee voices (Vietnamese: HN - Ngọc Huyền, English: Clementine)
 /// for every utterance into content/audio/*.ogg + content/audio/index.json.
 /// Resumable: skips clips that already exist. Each single-language part is
 /// synthesised on its own (cached in build/voice-parts/) and the parts of an
@@ -31,14 +31,27 @@ const _concurrency = 3;
 const _gapSeconds = 0.25;
 const _pollEvery = Duration(seconds: 2);
 const _pollTimeout = Duration(seconds: 120);
+const _connectTimeout = Duration(seconds: 15);
+const _requestTimeout = Duration(seconds: 60);
+
+/// Secrets to mask in every stderr message (set once the credentials are read).
+var _secrets = <String>[];
+void _err(String message) => stderr.writeln(redactSecrets(message, _secrets));
 
 Future<void> main(List<String> args) async {
-  final limitIdx = args.indexOf('--limit');
-  final limit = limitIdx >= 0 ? int.parse(args[limitIdx + 1]) : null;
-  final prune = args.contains('--prune');
-  final dryRun = args.contains('--dry-run');
-  final onlyIdx = args.indexOf('--only');
-  final only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
+  final GenArgs opts;
+  try {
+    opts = parseGenArgs(args);
+  } on FormatException catch (e) {
+    _err(
+      '${e.message}\nDùng: dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run]',
+    );
+    exit(1);
+  }
+  final limit = opts.limit;
+  final prune = opts.prune;
+  final dryRun = opts.dryRun;
+  final only = opts.only;
 
   final content = await ContentRepository(FileContentSource('content')).load();
   final d = content.profileDefaults;
@@ -122,12 +135,14 @@ Future<void> main(List<String> args) async {
 
   await _preflightFfmpeg();
   final creds = _readCredentials();
-  final client = HttpClient();
-  final vbee = _Vbee(client, creds.appId, creds.token);
+  final client = HttpClient()..connectionTimeout = _connectTimeout;
+  final breaker = VoiceCircuitBreaker();
+  final vbee = _Vbee(client, creds.appId, creds.token, breaker);
   final queue = (limit == null ? todo : todo.take(limit)).toList();
   var next = 0;
   var done = 0;
   var stopped = false;
+  String? stopReason;
   final failures = <String>[];
 
   Future<void> worker() async {
@@ -146,14 +161,12 @@ Future<void> main(List<String> args) async {
         stdout.writeln(
           '✓ ${queue.length - done} left  [${p.kind.name}] ${p.utterance.spokenText}',
         );
-      } on _CreditExhausted catch (e) {
+      } on _StopRun catch (e) {
         stopped = true;
-        stderr.writeln('⏸ Hết credit/gói Vbee ($e).');
+        stopReason ??= e.message;
       } on Object catch (e) {
         failures.add(p.utterance.key);
-        stderr.writeln(
-          '✗ [${p.kind.name}] ${p.utterance.spokenText}: ${creds.redact('$e')}',
-        );
+        _err('✗ [${p.kind.name}] ${p.utterance.spokenText}: $e');
       }
     }
   }
@@ -165,15 +178,19 @@ Future<void> main(List<String> args) async {
     saveIndex();
   }
   final remaining = todo.length - done;
+  if (breaker.tally.isNotEmpty) {
+    _err(
+      'Lỗi theo giọng: ${breaker.tally.entries.map((e) => '${e.key}=${e.value}').join(', ')}',
+    );
+  }
   if (stopped) {
-    stderr.writeln(
-      'Đã tạo $done câu, còn $remaining câu. Nạp thêm credit rồi chạy lại để tiếp tục.',
+    _err('⏸ Dừng: $stopReason');
+    _err(
+      'Đã tạo $done câu, còn $remaining câu. Khắc phục rồi chạy lại để tiếp tục.',
     );
     exitCode = 2;
   } else if (failures.isNotEmpty) {
-    stderr.writeln(
-      'Đã tạo $done câu, ${failures.length} câu lỗi (chạy lại để thử lại).',
-    );
+    _err('Đã tạo $done câu, ${failures.length} câu lỗi (chạy lại để thử lại).');
     exitCode = 1;
   } else if (limit != null) {
     stdout.writeln('Đã tạo $done câu, còn $remaining câu.');
@@ -195,9 +212,6 @@ class _Credentials {
   _Credentials(this.appId, this.token);
   final String appId;
   final String token;
-
-  /// Defensive: never let the token appear in a printed message.
-  String redact(String s) => token.isEmpty ? s : s.replaceAll(token, '***');
 }
 
 _Credentials _readCredentials() {
@@ -205,16 +219,8 @@ _Credentials _readCredentials() {
   final file = File('${Platform.environment['HOME']}/.config/xoai/vbee.env');
   if (file.existsSync()) {
     for (final line in file.readAsLinesSync()) {
-      final t = line.trim();
-      final eq = t.indexOf('=');
-      if (t.startsWith('#') || eq < 1) continue;
-      var v = t.substring(eq + 1).trim();
-      if (v.length >= 2 &&
-          (v.startsWith('"') && v.endsWith('"') ||
-              v.startsWith("'") && v.endsWith("'"))) {
-        v = v.substring(1, v.length - 1);
-      }
-      values[t.substring(0, eq).trim()] = v;
+      final e = parseEnvLine(line);
+      if (e != null) values[e.key] = e.value;
     }
   }
   for (final k in ['VBEE_APP_ID', 'VBEE_TOKEN']) {
@@ -224,16 +230,18 @@ _Credentials _readCredentials() {
   final appId = values['VBEE_APP_ID'] ?? '';
   final token = values['VBEE_TOKEN'] ?? '';
   if (appId.isEmpty || token.isEmpty) {
-    stderr.writeln(
+    _err(
       'Thiếu khóa Vbee: tạo ~/.config/xoai/vbee.env (VBEE_APP_ID=…, VBEE_TOKEN=…) hoặc đặt biến môi trường cùng tên.',
     );
     exit(1);
   }
+  _secrets = [token, appId];
   return _Credentials(appId, token);
 }
 
-class _CreditExhausted implements Exception {
-  _CreditExhausted(this.message);
+/// Nothing more can succeed (auth/credit problem, or a voice keeps failing).
+class _StopRun implements Exception {
+  _StopRun(this.message);
   final String message;
   @override
   String toString() => message;
@@ -246,11 +254,20 @@ class _VbeeFailure implements Exception {
   String toString() => message;
 }
 
+/// One part failed; the message already names its lang, voice and text.
+class _PartFailure implements Exception {
+  _PartFailure(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 File _partFile(String cacheKey) => File('build/voice-parts/$cacheKey.mp3');
 
 class _Vbee {
-  _Vbee(this._client, this._appId, this._token);
+  _Vbee(this._client, this._appId, this._token, this._breaker);
 
+  final VoiceCircuitBreaker _breaker;
   final HttpClient _client;
   final String _appId;
   final String _token;
@@ -264,11 +281,36 @@ class _Vbee {
     final key = partCacheKey(p.lang, p.text, voice, voiceSpeed);
     final file = _partFile(key);
     if (file.existsSync()) return Future.value(file);
-    return _inFlight[key] ??= _synthesise(p.text, voice, file).whenComplete(() {
-      // Block body on purpose: returning the removed future from whenComplete
-      // would make it wait on itself forever.
-      _inFlight.remove(key);
-    });
+    return _inFlight[key] ??= _synthesiseTracked(p, voice, file).whenComplete(
+      () {
+        // Block body on purpose: returning the removed future from whenComplete
+        // would make it wait on itself forever.
+        _inFlight.remove(key);
+      },
+    );
+  }
+
+  /// Synthesises one part, feeding the circuit breaker and naming the part in errors.
+  Future<File> _synthesiseTracked(
+    UtterancePart p,
+    String voice,
+    File out,
+  ) async {
+    try {
+      final f = await _synthesise(p.text, voice, out);
+      _breaker.recordSuccess(voice);
+      return f;
+    } on _StopRun catch (e) {
+      throw _StopRun(formatPartFailure(p.lang, voice, p.text, e.message));
+    } on Object catch (e) {
+      final msg = formatPartFailure(p.lang, voice, p.text, '$e');
+      if (_breaker.recordFailure(voice)) {
+        throw _StopRun(
+          'giọng $voice bị Vbee từ chối liên tục — có thể gói không hỗ trợ (lần cuối: $msg)',
+        );
+      }
+      throw _PartFailure(msg);
+    }
   }
 
   Future<File> _synthesise(String text, String voice, File out) async {
@@ -316,14 +358,18 @@ class _Vbee {
     Object? body,
   ]) async {
     for (var attempt = 0; attempt < 8; attempt++) {
-      final req = await _client.openUrl(method, url);
-      req.headers
-        ..set('Authorization', 'Bearer $_token')
-        ..set('App-Id', _appId)
-        ..contentType = ContentType.json;
-      if (body != null) req.add(utf8.encode(jsonEncode(body)));
-      final res = await req.close();
-      final text = await res.transform(utf8.decoder).join();
+      late final HttpClientResponse res;
+      late final String text;
+      await (() async {
+        final req = await _client.openUrl(method, url);
+        req.headers
+          ..set('Authorization', 'Bearer $_token')
+          ..set('App-Id', _appId)
+          ..contentType = ContentType.json;
+        if (body != null) req.add(utf8.encode(jsonEncode(body)));
+        res = await req.close();
+        text = await res.transform(utf8.decoder).join();
+      })().timeout(_requestTimeout);
       Map<String, dynamic>? json;
       try {
         final decoded = jsonDecode(text);
@@ -349,8 +395,10 @@ class _Vbee {
           );
           await Future<void>.delayed(wait);
         case VbeeErrorAction.stopRun:
-          throw _CreditExhausted(
-            '${code ?? res.statusCode}: ${message ?? _short(text)}',
+          final auth = res.statusCode == 401 || res.statusCode == 403;
+          throw _StopRun(
+            '${auth ? 'Vbee từ chối khóa (kiểm tra VBEE_APP_ID/VBEE_TOKEN)' : 'Hết credit/gói Vbee'}: '
+            'HTTP ${res.statusCode} ${code ?? ''} ${message ?? _short(text)}',
           );
         case VbeeErrorAction.fail:
           throw _VbeeFailure(
@@ -362,7 +410,10 @@ class _Vbee {
   }
 
   /// The audioLink is a signed URL that redirects to S3: no auth headers, follow redirects.
-  Future<File> _download(String link, File out) async {
+  Future<File> _download(String link, File out) =>
+      _downloadOnce(link, out).timeout(_requestTimeout);
+
+  Future<File> _downloadOnce(String link, File out) async {
     out.parent.createSync(recursive: true);
     final req = await _client.getUrl(Uri.parse(link));
     req.followRedirects = true;
@@ -382,16 +433,19 @@ class _Vbee {
   }
 }
 
-String _short(String s) => s.length > 300 ? s.substring(0, 300) : s;
+String _short(String s) {
+  final flat = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return flat.length > 300 ? flat.substring(0, 300) : flat;
+}
 
 /// Fails fast (before spending credits) when ffmpeg or libopus is missing.
 Future<void> _preflightFfmpeg() async {
   try {
     final r = await Process.run('ffmpeg', ['-hide_banner', '-encoders']);
     if (r.exitCode == 0 && '${r.stdout}'.contains('libopus')) return;
-    stderr.writeln('ffmpeg có nhưng thiếu bộ mã hóa libopus.');
+    _err('ffmpeg có nhưng thiếu bộ mã hóa libopus.');
   } on ProcessException {
-    stderr.writeln(
+    _err(
       'Không tìm thấy ffmpeg (cần ffmpeg có libopus, ví dụ: brew install ffmpeg).',
     );
   }
