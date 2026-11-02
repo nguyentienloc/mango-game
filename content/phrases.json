@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "items": [
+    { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
+    { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
+    { "id": "praise_en_1", "lang": "en", "text": "Great job!", "group": "praise" },
+    { "id": "praise_en_2", "lang": "en", "text": "Wonderful, {name_en}!", "group": "praise" },
+    { "id": "praise_en_3", "lang": "en", "text": "You did it!", "group": "praise" },
+    { "id": "praise_vi_1", "lang": "vi", "text": "Giỏi quá {name_vi} ơi!", "group": "praise", "priority": true },
+    { "id": "praise_vi_2", "lang": "vi", "text": "{name_vi} làm đúng rồi!", "group": "praise" },
+    { "id": "try_again_en_1", "lang": "en", "text": "Try again!", "group": "try_again" },
+    { "id": "try_again_vi_1", "lang": "vi", "text": "Thử lại nha con!", "group": "try_again", "priority": true },
+    { "id": "find_letter_prompt", "lang": "en", "text": "Find the letter {letter}!", "group": "instruction" },
+    { "id": "find_letter_small_prompt", "lang": "en", "text": "Find the small {letter}!", "group": "instruction" },
+    { "id": "letter_example", "lang": "en", "text": "{letter}! {letter} is for {word}!", "group": "instruction" },
+    { "id": "game_find_letter", "lang": "vi", "text": "Tìm chữ cái", "group": "menu" },
+    { "id": "game_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" },
+    { "id": "game_talk", "lang": "vi", "text": "Nói chuyện với Elsa", "group": "menu" },
+    { "id": "game_vi", "lang": "vi", "text": "Chữ cái tiếng Việt", "group": "menu" },
+    { "id": "game_vocab", "lang": "vi", "text": "Học từ mới", "group": "menu" },
+    { "id": "game_castle", "lang": "vi", "text": "Lâu đài của {name_vi}", "group": "menu" },
+    { "id": "go_home", "lang": "vi", "text": "Về lâu đài nào!", "group": "menu" },
+    { "id": "coming_soon", "lang": "vi", "text": "Trò này sắp có rồi nha!", "group": "system" },
+    { "id": "round_done", "lang": "vi", "text": "Hoàn thành rồi! {name_vi} giỏi quá!", "group": "reward", "priority": true },
+    { "id": "quest_done", "lang": "vi", "text": "Xong nhiệm vụ hôm nay rồi! Mở quà nào!", "group": "reward" },
+    { "id": "castle_level_up", "lang": "vi", "text": "Lâu đài lớn thêm rồi nè!", "group": "reward" },
+    { "id": "friend_unlocked", "lang": "vi", "text": "Có bạn mới đến chơi với {name_vi} nè!", "group": "reward" },
+    { "id": "error_home", "lang": "vi", "text": "Mình về lâu đài nha!", "group": "system" }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "items": [
+    { "level": 1, "snowflakes": 0 },
+    { "level": 2, "snowflakes": 20, "friend": "olaf" },
+    { "level": 3, "snowflakes": 50 },
+    { "level": 4, "snowflakes": 100, "friend": "anna" },
+    { "level": 5, "snowflakes": 170 },
+    { "level": 6, "snowflakes": 260, "friend": "sven" },
+    { "level": 7, "snowflakes": 380 },
+    { "level": 8, "snowflakes": 530, "friend": "kristoff" }
+  ]
+}
