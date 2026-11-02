@@ -10,6 +10,7 @@ const requiredPhraseIds = {
   'find_letter_prompt',
   'find_letter_small_prompt',
   'letter_example',
+  'trace_prompt',
   'game_find_letter',
   'game_trace',
   'game_talk',
