@@ -16,7 +16,7 @@ import '../../support/fakes.dart';
 /// the same keys: every call the screens make has to find its pre-generated clip.
 /// Clips bake in the default names from profile_defaults.json.
 void main() {
-  test('every utterance the screens ask for plays a pre-generated clip, never TTS', () async {
+  test('every part of every utterance the screens ask for plays a pre-generated clip, never TTS', () async {
     final content = await ContentRepository(FileContentSource('content')).load();
     final defaults = content.profileDefaults;
     final clips = ClipLibrary.parse(File('content/audio/index.json').readAsStringSync());
@@ -33,7 +33,8 @@ void main() {
     final missing = <String>[];
     var expected = 0;
     Future<void> check(String label, String phraseId, [Map<String, String> vars = const {}]) async {
-      expected++;
+      final parts = voice.utterance(phraseId, vars: vars).parts.length;
+      expected += parts;
       final spokenBefore = tts.spoken.length;
       await voice.say(phraseId, vars: vars);
       if (player.played.length != expected || tts.spoken.length != spokenBefore) {

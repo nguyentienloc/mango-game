@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:xoai_castle/core/voice/utterance.dart';
 
 /// Pure helpers for tool/gen_voice.dart (Vbee TTS), kept free of I/O so they
 /// can be unit-tested.
@@ -24,18 +25,37 @@ String voiceFor(String lang) {
 String partCacheKey(String lang, String text, String voice, double speed) =>
     sha1.convert(utf8.encode('$lang|$text|$voice|$speed')).toString();
 
+/// File name of a part's clip in content/audio/: sha1 of `lang|text`, 16 hex chars.
+String partFileName(String partKey) =>
+    '${sha1.convert(utf8.encode(partKey)).toString().substring(0, 16)}.ogg';
+
+/// Every distinct part (by `lang|text`) of [utterances], in first-seen order.
+Map<String, UtterancePart> distinctParts(Iterable<Utterance> utterances) {
+  final parts = <String, UtterancePart>{};
+  for (final u in utterances) {
+    for (final p in u.parts) {
+      parts.putIfAbsent(p.key, () => p);
+    }
+  }
+  return parts;
+}
+
 /// Generator settings recorded in content/audio/index.json (next to `clips`).
 Map<String, Object> indexMeta() => {
   'provider': provider,
   'voices': {for (final e in _voices.entries) e.key: e.value},
   'speed': voiceSpeed,
+  'granularity': 'part',
 };
 
-/// True when the index was made with another provider/voices/speed, so all of
-/// its clips must be regenerated.
+/// True when the index was made with another provider/voices/speed, or holds
+/// per-utterance clips (no `granularity: part`), so all of its clips must be
+/// regenerated.
 bool indexIsStale(Map<String, dynamic> index) {
   final cur = indexMeta();
-  if (index['provider'] != cur['provider'] || index['speed'] != cur['speed']) {
+  if (index['provider'] != cur['provider'] ||
+      index['speed'] != cur['speed'] ||
+      index['granularity'] != cur['granularity']) {
     return true;
   }
   final voices = index['voices'];
@@ -132,12 +152,16 @@ class GenArgs {
     this.only,
     this.prune = false,
     this.dryRun = false,
+    this.allowApi = false,
   });
 
   final int? limit;
   final String? only;
   final bool prune;
   final bool dryRun;
+
+  /// Without it, parts missing from the local cache are only reported (no Vbee call).
+  final bool allowApi;
 }
 
 /// Parses the generator's command line; throws [FormatException] on bad input.
@@ -146,6 +170,7 @@ GenArgs parseGenArgs(List<String> args) {
   String? only;
   var prune = false;
   var dryRun = false;
+  var allowApi = false;
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
     switch (a) {
@@ -153,6 +178,8 @@ GenArgs parseGenArgs(List<String> args) {
         prune = true;
       case '--dry-run':
         dryRun = true;
+      case '--allow-api':
+        allowApi = true;
       case '--limit':
         final v = i + 1 < args.length ? int.tryParse(args[++i]) : null;
         if (v == null || v < 0) {
@@ -169,5 +196,11 @@ GenArgs parseGenArgs(List<String> args) {
         throw FormatException('Tùy chọn không hợp lệ: $a');
     }
   }
-  return GenArgs(limit: limit, only: only, prune: prune, dryRun: dryRun);
+  return GenArgs(
+    limit: limit,
+    only: only,
+    prune: prune,
+    dryRun: dryRun,
+    allowApi: allowApi,
+  );
 }

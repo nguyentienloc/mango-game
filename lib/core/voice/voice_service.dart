@@ -73,31 +73,47 @@ class VoiceService {
   static const _maxClipFailures = 2;
   int _clipFailures = 0;
 
+  /// Silence between two parts of one utterance.
+  static const _partGap = Duration(milliseconds: 200);
+
   Future<void> _play(Utterance u) async {
     final gen = ++_generation;
     await _tts.stop();
     await _player?.stop();
-    // A stop() or newer say() may have arrived while the engines were being cut.
-    if (gen != _generation) return;
-    final asset = _clips.assetFor(u);
+    for (var i = 0; i < u.parts.length; i++) {
+      // A stop() or newer say() may have arrived while the engines were being
+      // cut, or while the previous part was playing.
+      if (gen != _generation) return;
+      if (i > 0) {
+        await Future<void>.delayed(_partGap);
+        if (gen != _generation) return;
+      }
+      if (!await _playPart(u.parts[i], gen)) return;
+    }
+  }
+
+  /// Plays one part: its clip when there is one (and clips are not given up),
+  /// else (or if the clip fails) the device voice. False when [gen] was
+  /// superseded, so the remaining parts must not play.
+  Future<bool> _playPart(UtterancePart part, int gen) async {
+    final asset = _clips.assetFor(part);
     final player = _player;
     if (asset != null && player != null && _clipFailures < _maxClipFailures) {
       try {
         await player.play(asset).timeout(_clipTimeout);
         _clipFailures = 0;
-        return;
+        return gen == _generation;
       } catch (e) {
         debugPrint('Clip failed ($asset): $e — using TTS');
         // A clip cut short by stop()/a newer phrase is not a player fault.
-        if (gen != _generation) return;
+        if (gen != _generation) return false;
         _clipFailures++;
         // A timed-out clip may still be playing; don't talk over it.
         await player.stop().catchError((Object _) {});
+        if (gen != _generation) return false;
       }
     }
-    for (final part in u.parts) {
-      if (gen != _generation) return;
-      await _tts.speak(part.text, lang: part.lang);
-    }
+    await _tts.speak(part.text, lang: part.lang);
+    return gen == _generation;
   }
 }
