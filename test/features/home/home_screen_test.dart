@@ -6,7 +6,7 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/castle/castle_screen.dart';
-import 'package:xoai_castle/features/games/find_letter/find_letter_screen.dart';
+import 'package:xoai_castle/features/games/vocab/vocab_screen.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
 
 import '../../support/fakes.dart';
@@ -49,13 +49,28 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
   });
 
-  testWidgets('the balloon button opens the find-letter game', (tester) async {
+  testWidgets('the paw button opens the vocabulary game', (tester) async {
     final tts = await pumpHome(tester);
-    await tester.tap(find.text('🎈'));
+    await tester.tap(find.text('🐾'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    expect(tts.texts, contains('Tìm chữ cái'));
-    expect(find.byType(FindLetterScreen), findsOneWidget);
+    expect(tts.texts, contains('Nhìn hình đoán từ'));
+    expect(find.byType(VocabScreen), findsOneWidget);
+  });
+
+  testWidgets('the balloon game is hidden by default and the dog button is gone', (tester) async {
+    await pumpHome(tester);
+    expect(find.text('🎈'), findsNothing);
+    expect(find.text('🐶'), findsNothing);
+  });
+
+  testWidgets('the balloon game shows when the parent switch is on', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(
+        content: content, tts: tts, home: const HomeScreen(), profile: MemoryProfileStore(show: true)));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('🎈'), findsOneWidget);
   });
 
   testWidgets('the game opens only after its name has been spoken', (tester) async {
@@ -64,15 +79,15 @@ void main() {
     await tester.pump();
     await tester.pump();
     tts.release();
-    await tester.tap(find.text('🎈'));
+    await tester.tap(find.text('🐾'));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(tts.texts.last, 'Tìm chữ cái');
-    expect(find.byType(FindLetterScreen), findsNothing);
+    expect(tts.texts.last, 'Nhìn hình đoán từ');
+    expect(find.byType(VocabScreen), findsNothing);
 
     tts.release();
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byType(FindLetterScreen), findsOneWidget);
+    expect(find.byType(VocabScreen), findsOneWidget);
   });
 
   testWidgets('a second tap while the game name is being spoken does not stack another game', (tester) async {
@@ -81,16 +96,16 @@ void main() {
     await tester.pump();
     await tester.pump();
     tts.release();
-    await tester.tap(find.text('🎈'));
+    await tester.tap(find.text('🐾'));
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.text('🎈'), warnIfMissed: false);
+    await tester.tap(find.text('🐾'), warnIfMissed: false);
     await tester.tap(find.byKey(const Key('home-castle')), warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 500));
     for (var i = 0; i < 3; i++) {
       tts.release();
       await tester.pump(const Duration(milliseconds: 500));
     }
-    expect(find.byType(FindLetterScreen, skipOffstage: false), findsOneWidget);
+    expect(find.byType(VocabScreen, skipOffstage: false), findsOneWidget);
     expect(find.byType(CastleScreen, skipOffstage: false), findsNothing);
   });
 
@@ -100,12 +115,12 @@ void main() {
     await tester.pump();
     await tester.pump();
     tts.release();
-    await tester.tap(find.text('🎈'));
+    await tester.tap(find.text('🐾'));
     await tester.pump(const Duration(seconds: 2));
-    expect(find.byType(FindLetterScreen), findsNothing);
+    expect(find.byType(VocabScreen), findsNothing);
     await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byType(FindLetterScreen), findsOneWidget);
+    expect(find.byType(VocabScreen), findsOneWidget);
   });
 
   testWidgets('the back gesture does not leave the app from home', (tester) async {
