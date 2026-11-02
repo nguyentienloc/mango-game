@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/profile/names.dart';
@@ -12,23 +11,22 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 
 import 'src/voice_gen.dart';
 
-/// Pre-generates the Vbee voices (Vietnamese: HN - Ngọc Huyền, English: Clementine)
-/// for every utterance into content/audio/*.ogg + content/audio/index.json.
-/// Resumable: skips clips that already exist. Each single-language part is
-/// synthesised on its own (cached in build/voice-parts/) and the parts of an
-/// utterance are joined with a short silence. Vbee credentials come from
+/// Builds one Opus clip per distinct utterance PART (`lang|text`) into
+/// content/audio/`sha1(partKey)`.ogg + content/audio/index.json. The clips come
+/// from the local MP3 part cache (build/voice-parts/); a part missing from the
+/// cache is only synthesised through Vbee with --allow-api, otherwise it is
+/// reported and the run exits with code 2. Vbee credentials come from
 /// ~/.config/xoai/vbee.env (VBEE_APP_ID, VBEE_TOKEN) or the same environment
 /// variables, and are never written or printed.
 ///
-///   dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run]
+///   dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api]
 ///
-/// --only restricts generation to utterances whose key contains TEXT.
+/// --only restricts the run to parts whose key (`lang|text`) contains TEXT.
 const _api = 'https://api.vbee.vn/v1/tts';
 // The API requires a webhook in async mode; .invalid is a reserved TLD, so the
 // callback can never reach a real server (we poll instead).
 const _webhook = 'https://xoai-callback.invalid/vbee';
 const _concurrency = 3;
-const _gapSeconds = 0.25;
 const _pollEvery = Duration(seconds: 2);
 const _pollTimeout = Duration(seconds: 120);
 const _connectTimeout = Duration(seconds: 15);
@@ -44,7 +42,7 @@ Future<void> main(List<String> args) async {
     opts = parseGenArgs(args);
   } on FormatException catch (e) {
     _err(
-      '${e.message}\nDùng: dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run]',
+      '${e.message}\nDùng: dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api]',
     );
     exit(1);
   }
@@ -52,6 +50,7 @@ Future<void> main(List<String> args) async {
   final prune = opts.prune;
   final dryRun = opts.dryRun;
   final only = opts.only;
+  final allowApi = opts.allowApi;
 
   final content = await ContentRepository(FileContentSource('content')).load();
   final d = content.profileDefaults;
@@ -59,6 +58,7 @@ Future<void> main(List<String> args) async {
     content,
     Names(en: d.nameEn, vi: d.nameVi),
   );
+  final allParts = distinctParts([for (final p in planned) p.utterance]);
 
   final dir = Directory('content/audio')..createSync(recursive: true);
   final indexFile = File('${dir.path}/index.json');
@@ -68,7 +68,7 @@ Future<void> main(List<String> args) async {
         jsonDecode(indexFile.readAsStringSync()) as Map<String, dynamic>;
     if (indexIsStale(index)) {
       stdout.writeln(
-        'Index tạo bằng giọng/cấu hình khác: coi mọi clip cũ là hết hạn (dùng --prune để xóa file cũ).',
+        'Index tạo bằng giọng/cấu hình khác (hoặc clip theo câu): coi mọi clip cũ là hết hạn (dùng --prune để xóa file cũ).',
       );
     } else {
       clips = (index['clips'] as Map<String, dynamic>).cast<String, String>();
@@ -89,14 +89,23 @@ Future<void> main(List<String> args) async {
     tmp.renameSync(indexFile.path);
   }
 
+  File mp3Of(UtterancePart p) => _partFile(
+    partCacheKey(p.lang, p.text, voiceFor(p.lang), voiceSpeed),
+  );
+
   final todo = [
-    for (final p in planned)
-      if ((only == null || p.utterance.key.contains(only)) &&
-          !(clips.containsKey(p.utterance.key) &&
-              File('${dir.path}/${clips[p.utterance.key]}').existsSync()))
-        p,
+    for (final e in allParts.entries)
+      if ((only == null || e.key.contains(only)) &&
+          !(clips.containsKey(e.key) &&
+              File('${dir.path}/${clips[e.key]}').existsSync()))
+        e.value,
   ];
-  stdout.writeln('${planned.length} utterances, ${todo.length} to generate.');
+  final uncached = todo.where((p) => !mp3Of(p).existsSync()).toList();
+  final plannedUtterances = planned.length;
+  stdout.writeln(
+    '$plannedUtterances utterances, ${allParts.length} distinct parts, '
+    '${todo.length} to encode (${uncached.length} not in the MP3 cache).',
+  );
   if (dryRun) {
     final byKind = <UtteranceKind, int>{};
     for (final p in planned) {
@@ -105,68 +114,60 @@ Future<void> main(List<String> args) async {
     stdout.writeln(
       'By kind (all): ${byKind.entries.map((e) => '${e.key.name}=${e.value}').join(', ')}',
     );
-    final parts = <String, UtterancePart>{};
-    for (final p in todo) {
-      for (final part in p.utterance.parts) {
-        parts[partCacheKey(
-              part.lang,
-              part.text,
-              voiceFor(part.lang),
-              voiceSpeed,
-            )] =
-            part;
-      }
-    }
-    final uncached = parts.entries
-        .where((e) => !_partFile(e.key).existsSync())
-        .toList();
-    final chars = uncached.fold<int>(
-      0,
-      (n, e) => n + e.value.text.runes.length,
-    );
+    final chars = uncached.fold<int>(0, (n, p) => n + p.text.runes.length);
     stdout.writeln(
-      'Unique parts for these: ${parts.length} (${uncached.length} not cached, ~$chars characters to synthesise).',
+      'Not cached: ${uncached.length} parts (~$chars characters to synthesise with --allow-api).',
     );
     for (final p in todo) {
-      stdout.writeln('  [${p.kind.name}] ${p.utterance.key}');
+      stdout.writeln('  ${p.key}${mp3Of(p).existsSync() ? '' : '  (no MP3)'}');
     }
     return;
   }
 
-  await _preflightFfmpeg();
-  final creds = _readCredentials();
-  final client = HttpClient()..connectionTimeout = _connectTimeout;
-  final breaker = VoiceCircuitBreaker();
-  final vbee = _Vbee(client, creds.appId, creds.token, breaker);
   final queue = (limit == null ? todo : todo.take(limit)).toList();
+  final needsApi = allowApi && queue.any((p) => !mp3Of(p).existsSync());
+  if (queue.isNotEmpty) await _preflightFfmpeg();
+  _Vbee? vbee;
+  HttpClient? client;
+  final breaker = VoiceCircuitBreaker();
+  if (needsApi) {
+    final creds = _readCredentials();
+    client = HttpClient()..connectionTimeout = _connectTimeout;
+    vbee = _Vbee(client, creds.appId, creds.token, breaker);
+  }
   var next = 0;
   var done = 0;
   var stopped = false;
   String? stopReason;
   final failures = <String>[];
+  final missing = <String>[];
 
   Future<void> worker() async {
     while (!stopped && next < queue.length) {
       final p = queue[next++];
       try {
-        final parts = [
-          for (final part in p.utterance.parts) await vbee.part(part),
-        ];
-        final file =
-            '${sha1.convert(utf8.encode(p.utterance.key)).toString().substring(0, 16)}.ogg';
-        await _toOgg(parts, File('${dir.path}/$file'));
-        clips[p.utterance.key] = file;
+        final cached = mp3Of(p);
+        final File mp3;
+        if (cached.existsSync()) {
+          mp3 = cached;
+        } else if (vbee != null) {
+          mp3 = await vbee.part(p);
+        } else {
+          missing.add(p.key);
+          continue;
+        }
+        final file = partFileName(p.key);
+        await _toOgg(mp3, File('${dir.path}/$file'));
+        clips[p.key] = file;
         saveIndex();
         done++;
-        stdout.writeln(
-          '✓ ${queue.length - done} left  [${p.kind.name}] ${p.utterance.spokenText}',
-        );
+        stdout.writeln('✓ ${queue.length - done} left  ${p.key}');
       } on _StopRun catch (e) {
         stopped = true;
         stopReason ??= e.message;
       } on Object catch (e) {
-        failures.add(p.utterance.key);
-        _err('✗ [${p.kind.name}] ${p.utterance.spokenText}: $e');
+        failures.add(p.key);
+        _err('✗ ${p.key}: $e');
       }
     }
   }
@@ -174,7 +175,7 @@ Future<void> main(List<String> args) async {
   try {
     await Future.wait([for (var i = 0; i < _concurrency; i++) worker()]);
   } finally {
-    client.close();
+    client?.close();
     saveIndex();
   }
   final remaining = todo.length - done;
@@ -183,21 +184,30 @@ Future<void> main(List<String> args) async {
       'Lỗi theo giọng: ${breaker.tally.entries.map((e) => '${e.key}=${e.value}').join(', ')}',
     );
   }
+  if (missing.isNotEmpty) {
+    for (final k in missing) {
+      _err('Thiếu MP3 trong build/voice-parts/: $k');
+    }
+    _err(
+      '${missing.length} đoạn chưa có trong cache. Chạy lại với --allow-api để tạo bằng Vbee.',
+    );
+    exitCode = 2;
+  }
   if (stopped) {
     _err('⏸ Dừng: $stopReason');
     _err(
-      'Đã tạo $done câu, còn $remaining câu. Khắc phục rồi chạy lại để tiếp tục.',
+      'Đã tạo $done đoạn, còn $remaining đoạn. Khắc phục rồi chạy lại để tiếp tục.',
     );
     exitCode = 2;
   } else if (failures.isNotEmpty) {
-    _err('Đã tạo $done câu, ${failures.length} câu lỗi (chạy lại để thử lại).');
-    exitCode = 1;
+    _err('Đã tạo $done đoạn, ${failures.length} đoạn lỗi (chạy lại để thử lại).');
+    if (exitCode == 0) exitCode = 1;
   } else if (limit != null) {
-    stdout.writeln('Đã tạo $done câu, còn $remaining câu.');
+    stdout.writeln('Đã tạo $done đoạn, còn $remaining đoạn.');
   }
 
   if (prune) {
-    final keep = {for (final p in planned) p.utterance.key};
+    final keep = allParts.keys.toSet();
     clips.removeWhere((k, _) => !keep.contains(k));
     saveIndex(); // index first, so a crash never leaves it pointing at deleted files
     final files = clips.values.toSet();
@@ -452,46 +462,23 @@ Future<void> _preflightFfmpeg() async {
   exit(1);
 }
 
-/// Joins the part MP3s with a short silence between them and encodes Opus mono
-/// 32 kbps to `<name>.ogg.part` (forced `-f ogg`), then renames, so a crash never leaves
-/// a half-written `.ogg` that could get bundled. The part MP3s stay cached in build/voice-parts/, so an
+/// Encodes one part MP3 to Opus mono 32 kbps at `<name>.ogg.part` (forced
+/// `-f ogg`), then renames, so a crash never leaves a half-written `.ogg` that
+/// could get bundled. The part MP3 stays cached in build/voice-parts/, so an
 /// ffmpeg failure never wastes credits.
-Future<void> _toOgg(List<File> parts, File out) async {
+Future<void> _toOgg(File mp3, File out) async {
   final tmpOgg = File('${out.path}.part');
-  final inputs = <String>[];
-  var n = 0; // number of ffmpeg inputs so far
-  for (var i = 0; i < parts.length; i++) {
-    if (i > 0) {
-      inputs.addAll([
-        '-f',
-        'lavfi',
-        '-t',
-        '$_gapSeconds',
-        '-i',
-        'anullsrc=r=48000:cl=mono',
-      ]);
-      n++;
-    }
-    inputs.addAll(['-i', parts[i].path]);
-    n++;
-  }
-  final filter = [
-    for (var i = 0; i < n; i++)
-      '[$i:a]aformat=sample_rates=48000:channel_layouts=mono[n$i]',
-    '${[for (var i = 0; i < n; i++) '[n$i]'].join()}concat=n=$n:v=0:a=1[out]',
-  ].join(';');
   try {
     final r = await Process.run('ffmpeg', [
       '-y',
       '-loglevel',
       'error',
-      ...inputs,
-      '-filter_complex',
-      filter,
-      '-map',
-      '[out]',
+      '-i',
+      mp3.path,
       '-ac',
       '1',
+      '-ar',
+      '48000',
       '-c:a',
       'libopus',
       '-b:a',

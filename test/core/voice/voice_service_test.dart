@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/clip_player.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
@@ -17,8 +18,12 @@ const phrases = {
   'try_b': Phrase(id: 'try_b', lang: 'vi', text: 'Thử lại nha!', group: 'try_again'),
 };
 
-VoiceService voice(FakeTts tts, [int seed = 1]) =>
-    VoiceService(tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), random: Random(seed));
+VoiceService voice(FakeTts tts, [int seed = 1]) => VoiceService(
+  tts: tts,
+  phrases: phrases,
+  names: const Names(en: 'An', vi: 'Xoài'),
+  random: Random(seed),
+);
 
 void main() {
   test('render fills names and vars and keeps unknown placeholders', () {
@@ -63,10 +68,11 @@ void main() {
     final v = VoiceService(
       tts: tts,
       phrases: const {
-        'correct': Phrase.multi(id: 'correct', group: 'vocab', parts: [
-          PhrasePart('en', '{Word}!'),
-          PhrasePart('vi', '{Vi}!'),
-        ]),
+        'correct': Phrase.multi(
+          id: 'correct',
+          group: 'vocab',
+          parts: [PhrasePart('en', '{Word}!'), PhrasePart('vi', '{Vi}!')],
+        ),
       },
       names: const Names(en: 'An', vi: 'Xoài'),
     );
@@ -84,13 +90,13 @@ void main() {
   });
 
   VoiceService twoParts(GatedTts tts) => VoiceService(
-        tts: tts,
-        phrases: const {
-          'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
-          'next': Phrase(id: 'next', lang: 'en', text: 'Next', group: 'h'),
-        },
-        names: const Names(en: 'An', vi: 'Xoài'),
-      );
+    tts: tts,
+    phrases: const {
+      'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
+      'next': Phrase(id: 'next', lang: 'en', text: 'Next', group: 'h'),
+    },
+    names: const Names(en: 'An', vi: 'Xoài'),
+  );
 
   test('stop while the first part is speaking skips the remaining parts', () async {
     final tts = GatedTts();
@@ -116,14 +122,116 @@ void main() {
     expect(tts.texts, ['One', 'Next']);
   });
 
-  group('clip circuit breaker', () {
+  group('per-part playback', () {
     const phrases = {
-      'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet'),
+      'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
+      'next': Phrase(id: 'next', lang: 'en', text: 'Next', group: 'h'),
     };
+
+    VoiceService build(FakeTts tts, FakeClipPlayer player, String clipsJson) => VoiceService(
+      tts: tts,
+      phrases: phrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: ClipLibrary.parse(clipsJson),
+      player: player,
+    );
+
+    test('plays a clip per part, in order', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer();
+      await build(tts, player, '{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}').say('two');
+      expect(player.played, ['content/audio/one.ogg', 'content/audio/hai.ogg']);
+      expect(tts.spoken, isEmpty);
+    });
+
+    test('a part with a clip plays it, the other part is spoken by TTS, in order', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer();
+      await build(tts, player, '{"clips": {"vi|Hai": "hai.ogg"}}').say('two');
+      expect(tts.spoken, [(text: 'One', lang: 'en')]);
+      expect(player.played, ['content/audio/hai.ogg']);
+
+      final order = <String>[];
+      final tts2 = _LogTts(order);
+      final player2 = _LogPlayer(order);
+      await build(tts2, player2, '{"clips": {"en|One": "one.ogg"}}').say('two');
+      expect(order, ['clip:content/audio/one.ogg', 'tts:Hai']);
+    });
+
+    test('a failing clip falls back to TTS for that part only', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer()..failWith = StateError('decoder');
+      final v = build(tts, player, '{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
+      await v.say('two');
+      // The first failure falls back for part 1; the second part still tries its clip.
+      expect(tts.texts, ['One', 'Hai']);
+      expect(player.played, hasLength(2));
+      // Both failures were in a row: the breaker is open, so a later phrase uses TTS only.
+      await v.say('two');
+      expect(player.played, hasLength(2));
+      expect(tts.texts, ['One', 'Hai', 'One', 'Hai']);
+    });
+
+    testWidgets('stop during the silence between two parts: the second part never plays', (tester) async {
+      final tts = FakeTts();
+      final player = _GatedClipPlayer();
+      final v = build(tts, player, '{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
+      final done = v.say('two');
+      await tester.pump();
+      expect(player.played, ['content/audio/one.ogg']);
+      player.release();
+      await tester.pump(const Duration(milliseconds: 30)); // inside the 60 ms gap
+      await v.stop();
+      await tester.pump(const Duration(milliseconds: 300));
+      await done;
+      expect(player.played, ['content/audio/one.ogg']);
+      expect(tts.spoken, isEmpty);
+    });
+
+    testWidgets('a newer phrase during the silence cuts the remaining part', (tester) async {
+      final tts = FakeTts();
+      final player = _GatedClipPlayer();
+      final v = build(tts, player, '{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
+      final first = v.say('two');
+      await tester.pump();
+      player.release();
+      await tester.pump(const Duration(milliseconds: 30));
+      final second = v.say('next');
+      await tester.pump(const Duration(milliseconds: 300));
+      await first;
+      await second;
+      expect(player.played, ['content/audio/one.ogg']);
+      expect(tts.texts, ['Next']);
+    });
+
+    testWidgets('parts are separated by a 60 ms silence', (tester) async {
+      final tts = FakeTts();
+      final player = _GatedClipPlayer();
+      final v = build(tts, player, '{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
+      final done = v.say('two');
+      await tester.pump();
+      player.release();
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(player.played, hasLength(1));
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(player.played, hasLength(2));
+      player.release();
+      await tester.pump();
+      await done;
+    });
+  });
+
+  group('clip circuit breaker', () {
+    const phrases = {'hello': Phrase(id: 'hello', lang: 'vi', text: 'Chào {name_vi}!', group: 'greet')};
     final clips = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg"}}');
 
     VoiceService build(FakeTts tts, ClipPlayer player) => VoiceService(
-        tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: clips, player: player);
+      tts: tts,
+      phrases: phrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: clips,
+      player: player,
+    );
 
     test('after 2 consecutive failures clips are not tried again, TTS speaks', () async {
       final tts = FakeTts();
@@ -152,6 +260,27 @@ void main() {
       expect(tts.texts, hasLength(2));
     });
 
+    testWidgets('the clip timeout scales with speed: a 6.5 s clip at 0.6 is not timed out', (tester) async {
+      final tts = FakeTts();
+      final player = _GatedClipPlayer();
+      final v = build(tts, player)..speeds = const VoiceSpeeds(vi: 0.6);
+      final done = v.say('hello');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 6500));
+      expect(tts.spoken, isEmpty, reason: 'timeout at 0.6 is 2 s + 6.67 s');
+      player.release();
+      await tester.pump();
+      await done;
+      expect(tts.spoken, isEmpty);
+      expect(player.played, hasLength(1));
+      // A genuinely stuck clip is still given up after that long.
+      final stuck = v.say('hello');
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 9));
+      await stuck;
+      expect(tts.spoken, hasLength(1));
+    });
+
     testWidgets('clips that never finish time out after 6 s and are given up after 2', (tester) async {
       final tts = FakeTts();
       final player = _NeverEndingClipPlayer();
@@ -178,7 +307,12 @@ void main() {
     final clips = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg"}}');
 
     VoiceService withClips(FakeTts tts, FakeClipPlayer player) => VoiceService(
-        tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: clips, player: player);
+      tts: tts,
+      phrases: phrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: clips,
+      player: player,
+    );
 
     test('plays the clip instead of TTS when one exists', () async {
       final tts = FakeTts();
@@ -241,7 +375,12 @@ void main() {
       final player = FakeClipPlayer();
       final both = ClipLibrary.parse('{"clips": {"vi|Chào Xoài!": "hello.ogg", "en|Bye!": "bye.ogg"}}');
       final v = VoiceService(
-          tts: tts, phrases: phrases, names: const Names(en: 'An', vi: 'Xoài'), clips: both, player: player);
+        tts: tts,
+        phrases: phrases,
+        names: const Names(en: 'An', vi: 'Xoài'),
+        clips: both,
+        player: player,
+      );
       final first = v.say('hello');
       await Future<void>.delayed(Duration.zero);
       final second = v.say('bye');
@@ -252,6 +391,89 @@ void main() {
       expect(player.played, ['content/audio/bye.ogg']);
     });
   });
+  group('speech speed', () {
+    const mixed = {
+      'two': Phrase.multi(id: 'two', group: 'g', parts: [PhrasePart('en', 'One'), PhrasePart('vi', 'Hai')]),
+    };
+    final clips = ClipLibrary.parse('{"clips": {"en|One": "one.ogg", "vi|Hai": "hai.ogg"}}');
+    const names = Names(en: 'An', vi: 'Xoài');
+
+    test('default speeds are en 0.85 and vi 1.0', () {
+      const s = VoiceSpeeds();
+      expect([s.en, s.vi], [0.85, 1.0]);
+      expect([s.forLang('en'), s.forLang('vi')], [0.85, 1.0]);
+    });
+
+    test('each part of a bilingual phrase plays its clip at its own language speed', () async {
+      final player = FakeClipPlayer();
+      final v = VoiceService(
+        tts: FakeTts(),
+        phrases: mixed,
+        names: names,
+        clips: clips,
+        player: player,
+        speeds: const VoiceSpeeds(en: 0.7, vi: 1.2),
+      );
+      await v.say('two');
+      expect(player.played, ['content/audio/one.ogg', 'content/audio/hai.ogg']);
+      expect(player.speeds, [0.7, 1.2]);
+    });
+
+    test('device voice parts get the same per-language speeds', () async {
+      final tts = FakeTts();
+      final v = VoiceService(tts: tts, phrases: mixed, names: names, speeds: const VoiceSpeeds(en: 0.6, vi: 1.3));
+      await v.say('two');
+      expect(tts.speeds, [0.6, 1.3]);
+    });
+
+    test('a clip that fails falls back to TTS at the same speed', () async {
+      final tts = FakeTts();
+      final player = FakeClipPlayer()..failWith = StateError('decoder');
+      final v = VoiceService(
+        tts: tts,
+        phrases: mixed,
+        names: names,
+        clips: clips,
+        player: player,
+        speeds: const VoiceSpeeds(en: 0.75, vi: 1.1),
+      );
+      await v.say('two');
+      expect(tts.speeds, [0.75, 1.1]);
+    });
+
+    test('speeds can be changed at runtime and apply to the next phrase', () async {
+      final tts = FakeTts();
+      final v = VoiceService(tts: tts, phrases: mixed, names: names);
+      await v.say('two');
+      v.speeds = const VoiceSpeeds(en: 1.0, vi: 0.9);
+      await v.say('two');
+      expect(tts.speeds, [0.85, 1.0, 1.0, 0.9]);
+    });
+
+    test('out-of-range values are clamped to 0.6 - 1.3', () {
+      final s = const VoiceSpeeds(en: 0.1, vi: 5).clamped();
+      expect([s.en, s.vi], [0.6, 1.3]);
+      expect(const VoiceSpeeds(en: 0.9, vi: 1.0).clamped(), const VoiceSpeeds(en: 0.9, vi: 1.0));
+    });
+  });
+}
+
+class _GatedClipPlayer extends FakeClipPlayer {
+  final _pending = <Completer<void>>[];
+
+  void release() {
+    for (final c in _pending) {
+      if (!c.isCompleted) c.complete();
+    }
+  }
+
+  @override
+  Future<void> play(String assetPath, {double speed = 1.0}) {
+    played.add(assetPath);
+    final c = Completer<void>();
+    _pending.add(c);
+    return c.future;
+  }
 }
 
 class _HangingClipPlayer extends FakeClipPlayer {
@@ -259,7 +481,7 @@ class _HangingClipPlayer extends FakeClipPlayer {
   final Future<void> _result;
 
   @override
-  Future<void> play(String assetPath) {
+  Future<void> play(String assetPath, {double speed = 1.0}) {
     played.add(assetPath);
     return _result;
   }
@@ -280,8 +502,26 @@ class _SlowStopTts extends FakeTts {
 
 class _NeverEndingClipPlayer extends FakeClipPlayer {
   @override
-  Future<void> play(String assetPath) {
+  Future<void> play(String assetPath, {double speed = 1.0}) {
     played.add(assetPath);
     return Completer<void>().future;
+  }
+}
+
+class _LogTts extends FakeTts {
+  _LogTts(this.log);
+  final List<String> log;
+  @override
+  Future<void> speak(String text, {required String lang, double speed = 1.0}) async {
+    log.add('tts:$text');
+  }
+}
+
+class _LogPlayer extends FakeClipPlayer {
+  _LogPlayer(this.log);
+  final List<String> log;
+  @override
+  Future<void> play(String assetPath, {double speed = 1.0}) async {
+    log.add('clip:$assetPath');
   }
 }

@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../content/content_repository.dart';
 import 'utterance.dart';
 
-/// Pre-generated audio clips (content/audio/index.json), keyed by Utterance.key.
+/// Pre-generated audio clips (content/audio/index.json), keyed by UtterancePart.key (`lang|text`).
 class ClipLibrary {
   const ClipLibrary(this._clips);
 
@@ -27,8 +27,8 @@ class ClipLibrary {
     }
   }
 
-  String? assetFor(Utterance u) {
-    final file = _clips[u.key];
+  String? assetFor(UtterancePart part) {
+    final file = _clips[part.key];
     return file == null ? null : 'content/audio/$file';
   }
 }

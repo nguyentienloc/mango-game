@@ -6,6 +6,9 @@ class UtterancePart {
 
   final String lang;
   final String text;
+
+  /// Lookup key of this part's pre-generated clip, e.g. `en|Lion!`.
+  String get key => '$lang|$text';
 }
 
 /// Everything spoken for one phrase: one or more parts, each in one language.
@@ -15,7 +18,7 @@ class Utterance {
   final List<UtterancePart> parts;
 
   /// Stable lookup key for pre-generated audio, e.g. `en|Lion! || vi|Con sư tử!`.
-  String get key => parts.map((p) => '${p.lang}|${p.text}').join(' || ');
+  String get key => parts.map((p) => p.key).join(' || ');
 
   String get spokenText => parts.map((p) => p.text).join(' ');
 }

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:xoai_castle/core/voice/utterance.dart';
+
 import '../../tool/src/voice_gen.dart';
 
 void main() {
@@ -29,13 +31,37 @@ void main() {
     });
   });
 
+  group('part clips', () {
+    test('partFileName is sha1(partKey) first 16 hex + .ogg', () {
+      final n = partFileName('en|Lion!');
+      expect(n, matches(RegExp(r'^[0-9a-f]{16}\.ogg$')));
+      expect(n, partFileName('en|Lion!'));
+      expect(partFileName('vi|Lion!'), isNot(n));
+    });
+
+    test('distinctParts de-duplicates parts across utterances by lang|text', () {
+      const a = Utterance([UtterancePart('en', 'Lion!'), UtterancePart('vi', 'Sư tử!')]);
+      const b = Utterance([UtterancePart('en', 'Lion!'), UtterancePart('vi', 'Con sư tử!')]);
+      const c = Utterance([UtterancePart('vi', 'Lion!')]);
+      final parts = distinctParts([a, b, c]);
+      expect(parts.keys, ['en|Lion!', 'vi|Sư tử!', 'vi|Con sư tử!', 'vi|Lion!']);
+      expect(parts['en|Lion!']!.lang, 'en');
+    });
+  });
+
   group('index config', () {
-    test('indexMeta lists provider, voices and speed', () {
+    test('indexMeta lists provider, voices, speed and granularity', () {
       expect(indexMeta(), {
         'provider': 'vbee',
         'voices': {'vi': voiceFor('vi'), 'en': voiceFor('en')},
         'speed': 0.9,
+        'granularity': 'part',
       });
+    });
+    test('an index without granularity part (per-utterance clips) is stale', () {
+      final old = {...indexMeta(), 'clips': <String, String>{}}..remove('granularity');
+      expect(indexIsStale(old), isTrue);
+      expect(indexIsStale({...old, 'granularity': 'utterance'}), isTrue);
     });
     test('matching index is not stale', () {
       expect(
@@ -213,6 +239,7 @@ void main() {
       expect(a.only, isNull);
       expect(a.prune, isFalse);
       expect(a.dryRun, isFalse);
+      expect(a.allowApi, isFalse, reason: 'never calls Vbee unless asked');
     });
     test('parses all options', () {
       final a = parseGenArgs([
@@ -222,11 +249,13 @@ void main() {
         'Lion',
         '--prune',
         '--dry-run',
+        '--allow-api',
       ]);
       expect(a.limit, 2);
       expect(a.only, 'Lion');
       expect(a.prune, isTrue);
       expect(a.dryRun, isTrue);
+      expect(a.allowApi, isTrue);
     });
     test('rejects bad values', () {
       expect(() => parseGenArgs(['--limit']), throwsFormatException);

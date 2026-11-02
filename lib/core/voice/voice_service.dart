@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../content/models.dart';
 import '../profile/names.dart';
+import '../profile/profile_store.dart';
 import 'clip_library.dart';
 import 'clip_player.dart';
 import 'tts_engine.dart';
@@ -17,13 +18,14 @@ class VoiceService {
     required Names names,
     ClipLibrary clips = ClipLibrary.empty,
     ClipPlayer? player,
+    this.speeds = const VoiceSpeeds(),
     Random? random,
-  })  : _tts = tts,
-        _clips = clips,
-        _player = player,
-        _phrases = phrases,
-        _names = names,
-        _random = random ?? Random();
+  }) : _tts = tts,
+       _clips = clips,
+       _player = player,
+       _phrases = phrases,
+       _names = names,
+       _random = random ?? Random();
 
   final TtsEngine _tts;
   final Map<String, Phrase> _phrases;
@@ -32,6 +34,9 @@ class VoiceService {
   final ClipPlayer? _player;
   final Random _random;
   int _generation = 0;
+
+  /// Speech speed per language; can be changed at any time, applies from the next part.
+  VoiceSpeeds speeds;
 
   String render(String template, [Map<String, String> vars = const {}]) => renderTemplate(template, _names, vars);
 
@@ -65,39 +70,58 @@ class VoiceService {
 
   Future<void> _speak(Phrase phrase, Map<String, String> vars) => _play(_build(phrase, vars));
 
-  /// The longest clip is ~3.5 s; anything slower than this is a stuck player.
-  static const _clipTimeout = Duration(seconds: 6);
+  /// The longest clip is ~3.5 s at speed 1.0 and takes 1/speed times as long
+  /// when slowed (0.6 -> ~5.8 s); anything beyond that plus 2 s is a stuck player.
+  static Duration _clipTimeout(double speed) =>
+      const Duration(seconds: 2) + Duration(milliseconds: (4000 / speed).round());
 
   /// After this many clip failures/timeouts in a row, clips are skipped for the
   /// rest of the process (TTS only), so a broken player never delays speech again.
   static const _maxClipFailures = 2;
   int _clipFailures = 0;
 
+  /// Silence between two parts of one utterance.
+  static const _partGap = Duration(milliseconds: 60);
+
   Future<void> _play(Utterance u) async {
     final gen = ++_generation;
     await _tts.stop();
     await _player?.stop();
-    // A stop() or newer say() may have arrived while the engines were being cut.
-    if (gen != _generation) return;
-    final asset = _clips.assetFor(u);
+    for (var i = 0; i < u.parts.length; i++) {
+      // A stop() or newer say() may have arrived while the engines were being
+      // cut, or while the previous part was playing.
+      if (gen != _generation) return;
+      if (i > 0) {
+        await Future<void>.delayed(_partGap);
+        if (gen != _generation) return;
+      }
+      if (!await _playPart(u.parts[i], gen)) return;
+    }
+  }
+
+  /// Plays one part: its clip when there is one (and clips are not given up),
+  /// else (or if the clip fails) the device voice. False when [gen] was
+  /// superseded, so the remaining parts must not play.
+  Future<bool> _playPart(UtterancePart part, int gen) async {
+    final asset = _clips.assetFor(part);
+    final speed = speeds.forLang(part.lang);
     final player = _player;
     if (asset != null && player != null && _clipFailures < _maxClipFailures) {
       try {
-        await player.play(asset).timeout(_clipTimeout);
+        await player.play(asset, speed: speed).timeout(_clipTimeout(speed));
         _clipFailures = 0;
-        return;
+        return gen == _generation;
       } catch (e) {
         debugPrint('Clip failed ($asset): $e — using TTS');
         // A clip cut short by stop()/a newer phrase is not a player fault.
-        if (gen != _generation) return;
+        if (gen != _generation) return false;
         _clipFailures++;
         // A timed-out clip may still be playing; don't talk over it.
         await player.stop().catchError((Object _) {});
+        if (gen != _generation) return false;
       }
     }
-    for (final part in u.parts) {
-      if (gen != _generation) return;
-      await _tts.speak(part.text, lang: part.lang);
-    }
+    await _tts.speak(part.text, lang: part.lang, speed: speed);
+    return gen == _generation;
   }
 }

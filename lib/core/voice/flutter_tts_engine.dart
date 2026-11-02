@@ -16,6 +16,9 @@ import 'tts_engine.dart';
 class FlutterTtsEngine implements TtsEngine {
   FlutterTtsEngine._(this._tts);
 
+  /// Engine speech rate at speed 1.0.
+  static const _baseRate = 0.42;
+
   static const _safetyTimeout = Duration(seconds: 15);
 
   final FlutterTts _tts;
@@ -25,6 +28,8 @@ class FlutterTtsEngine implements TtsEngine {
   Completer<void>? _current;
   bool _started = false;
   String? _locale;
+  double _speed = 1.0;
+  int _stopToken = 0;
 
   static Future<FlutterTtsEngine> create() => createWith(FlutterTts());
 
@@ -32,7 +37,7 @@ class FlutterTtsEngine implements TtsEngine {
   static Future<FlutterTtsEngine> createWith(FlutterTts tts) async {
     final engine = FlutterTtsEngine._(tts);
     await tts.awaitSpeakCompletion(false);
-    await tts.setSpeechRate(0.42);
+    await tts.setSpeechRate(_baseRate);
     await tts.setPitch(1.15);
     tts.setStartHandler(engine._onStart);
     tts.setCompletionHandler(engine._onEnd);
@@ -71,13 +76,21 @@ class FlutterTtsEngine implements TtsEngine {
   }
 
   @override
-  Future<void> speak(String text, {required String lang}) async {
+  Future<void> speak(String text, {required String lang, double speed = 1.0}) async {
     _finish();
+    final token = _stopToken;
+    if (speed != _speed) {
+      await _tts.setSpeechRate(_baseRate * speed);
+      _speed = speed;
+    }
+    // stop() during the awaits below must not be followed by speech.
+    if (token != _stopToken) return;
     final locale = lang == 'vi' ? 'vi-VN' : 'en-US';
     if (_locale != locale) {
       // Only remember the locale once the engine accepted it (1 / true).
       final r = await _tts.setLanguage(locale);
       if (r == true || r == 1) _locale = locale;
+      if (token != _stopToken) return;
     }
     final c = Completer<void>();
     _current = c;
@@ -101,6 +114,7 @@ class FlutterTtsEngine implements TtsEngine {
 
   @override
   Future<void> stop() async {
+    _stopToken++;
     await _tts.stop();
     _finish();
   }

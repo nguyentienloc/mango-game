@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/profile/names.dart';
+import 'package:xoai_castle/core/voice/utterance.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
 /// Every fixed, vocabulary and trace utterance must have a generated clip before release.
@@ -12,18 +13,25 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 /// editable, regenerate the clips.
 /// Letter-game clips are optional while that game is hidden: only reported.
 void main() {
-  test('every fixed, vocabulary and trace utterance has a generated clip', () async {
+  test('every part of every fixed, vocabulary and trace utterance has a generated clip', () async {
     final content = await ContentRepository(FileContentSource('content')).load();
     final defaults = content.profileDefaults;
     final planned = enumerateUtterances(content, Names(en: defaults.nameEn, vi: defaults.nameVi));
     final clips = (jsonDecode(File('content/audio/index.json').readAsStringSync())['clips'] as Map).cast<String, String>();
 
-    bool has(PlannedUtterance p) {
-      final file = clips[p.utterance.key];
+    bool hasPart(UtterancePart part) {
+      final file = clips[part.key];
       return file != null && File('content/audio/$file').existsSync();
     }
 
-    final missing = [for (final p in planned) if (p.kind != UtteranceKind.letters && !has(p)) p.utterance.key];
+    bool has(PlannedUtterance p) => p.utterance.parts.every(hasPart);
+
+    final missing = {
+      for (final p in planned)
+        if (p.kind != UtteranceKind.letters)
+          for (final part in p.utterance.parts)
+            if (!hasPart(part)) part.key,
+    };
     final missingLetters = planned.where((p) => p.kind == UtteranceKind.letters && !has(p)).length;
     if (missingLetters > 0) {
       // ignore: avoid_print
@@ -32,3 +40,4 @@ void main() {
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
   });
 }
+

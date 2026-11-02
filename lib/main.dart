@@ -22,7 +22,9 @@ Future<void> main() async {
 
   final content = await ContentRepository(AssetContentSource()).load();
   final db = AppDatabase(driftDatabase(name: 'xoai'));
-  final names = await DriftProfileStore(db).loadNames(content.profileDefaults);
+  final profileStore = DriftProfileStore(db);
+  final names = await profileStore.loadNames(content.profileDefaults);
+  final speeds = await profileStore.voiceSpeeds();
   final clips = await ClipLibrary.load(AssetContentSource());
   ClipPlayer? player;
   try {
@@ -33,15 +35,18 @@ Future<void> main() async {
   final tts = await FlutterTtsEngine.create();
   final info = await PackageInfo.fromPlatform();
 
-  runApp(ProviderScope(
-    overrides: [
-      contentProvider.overrideWithValue(content),
-      databaseProvider.overrideWithValue(db),
-      voiceProvider.overrideWithValue(
-          VoiceService(tts: tts, phrases: content.phrases, names: names, clips: clips, player: player)),
-      appVersionProvider.overrideWithValue(info.version),
-      missingVoicesProvider.overrideWithValue(tts.missingLocales),
-    ],
-    child: const XoaiApp(),
-  ));
+  runApp(
+    ProviderScope(
+      overrides: [
+        contentProvider.overrideWithValue(content),
+        databaseProvider.overrideWithValue(db),
+        voiceProvider.overrideWithValue(
+          VoiceService(tts: tts, phrases: content.phrases, names: names, clips: clips, player: player, speeds: speeds),
+        ),
+        appVersionProvider.overrideWithValue(info.version),
+        missingVoicesProvider.overrideWithValue(tts.missingLocales),
+      ],
+      child: const XoaiApp(),
+    ),
+  );
 }

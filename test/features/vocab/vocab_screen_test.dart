@@ -62,6 +62,7 @@ void main() {
     final item = content.vocab.firstWhere((w) => w.word == word);
     await tester.tap(find.byKey(Key('card-${item.id}')));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300)); // 200 ms silence between the two parts
     final capital = word[0].toUpperCase() + word.substring(1);
     final vi = item.vi[0].toUpperCase() + item.vi.substring(1);
     expect(tts.spoken, containsAllInOrder([(text: '$capital!', lang: 'en'), (text: '$vi!', lang: 'vi')]));

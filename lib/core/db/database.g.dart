@@ -1372,6 +1372,30 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _enSpeedMeta = const VerificationMeta(
+    'enSpeed',
+  );
+  @override
+  late final GeneratedColumn<double> enSpeed = GeneratedColumn<double>(
+    'en_speed',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.85),
+  );
+  static const VerificationMeta _viSpeedMeta = const VerificationMeta(
+    'viSpeed',
+  );
+  @override
+  late final GeneratedColumn<double> viSpeed = GeneratedColumn<double>(
+    'vi_speed',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1381,6 +1405,8 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
     musicOn,
     testMode,
     showFindLetter,
+    enSpeed,
+    viSpeed,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1445,6 +1471,18 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
         ),
       );
     }
+    if (data.containsKey('en_speed')) {
+      context.handle(
+        _enSpeedMeta,
+        enSpeed.isAcceptableOrUnknown(data['en_speed']!, _enSpeedMeta),
+      );
+    }
+    if (data.containsKey('vi_speed')) {
+      context.handle(
+        _viSpeedMeta,
+        viSpeed.isAcceptableOrUnknown(data['vi_speed']!, _viSpeedMeta),
+      );
+    }
     return context;
   }
 
@@ -1482,6 +1520,14 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}show_find_letter'],
       )!,
+      enSpeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}en_speed'],
+      )!,
+      viSpeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}vi_speed'],
+      )!,
     );
   }
 
@@ -1499,6 +1545,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final bool musicOn;
   final bool testMode;
   final bool showFindLetter;
+  final double enSpeed;
+  final double viSpeed;
   const ProfileRow({
     required this.id,
     required this.nameEn,
@@ -1507,6 +1555,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     required this.musicOn,
     required this.testMode,
     required this.showFindLetter,
+    required this.enSpeed,
+    required this.viSpeed,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1518,6 +1568,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     map['music_on'] = Variable<bool>(musicOn);
     map['test_mode'] = Variable<bool>(testMode);
     map['show_find_letter'] = Variable<bool>(showFindLetter);
+    map['en_speed'] = Variable<double>(enSpeed);
+    map['vi_speed'] = Variable<double>(viSpeed);
     return map;
   }
 
@@ -1530,6 +1582,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       musicOn: Value(musicOn),
       testMode: Value(testMode),
       showFindLetter: Value(showFindLetter),
+      enSpeed: Value(enSpeed),
+      viSpeed: Value(viSpeed),
     );
   }
 
@@ -1546,6 +1600,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       musicOn: serializer.fromJson<bool>(json['musicOn']),
       testMode: serializer.fromJson<bool>(json['testMode']),
       showFindLetter: serializer.fromJson<bool>(json['showFindLetter']),
+      enSpeed: serializer.fromJson<double>(json['enSpeed']),
+      viSpeed: serializer.fromJson<double>(json['viSpeed']),
     );
   }
   @override
@@ -1559,6 +1615,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'musicOn': serializer.toJson<bool>(musicOn),
       'testMode': serializer.toJson<bool>(testMode),
       'showFindLetter': serializer.toJson<bool>(showFindLetter),
+      'enSpeed': serializer.toJson<double>(enSpeed),
+      'viSpeed': serializer.toJson<double>(viSpeed),
     };
   }
 
@@ -1570,6 +1628,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     bool? musicOn,
     bool? testMode,
     bool? showFindLetter,
+    double? enSpeed,
+    double? viSpeed,
   }) => ProfileRow(
     id: id ?? this.id,
     nameEn: nameEn ?? this.nameEn,
@@ -1578,6 +1638,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     musicOn: musicOn ?? this.musicOn,
     testMode: testMode ?? this.testMode,
     showFindLetter: showFindLetter ?? this.showFindLetter,
+    enSpeed: enSpeed ?? this.enSpeed,
+    viSpeed: viSpeed ?? this.viSpeed,
   );
   ProfileRow copyWithCompanion(ProfileCompanion data) {
     return ProfileRow(
@@ -1592,6 +1654,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       showFindLetter: data.showFindLetter.present
           ? data.showFindLetter.value
           : this.showFindLetter,
+      enSpeed: data.enSpeed.present ? data.enSpeed.value : this.enSpeed,
+      viSpeed: data.viSpeed.present ? data.viSpeed.value : this.viSpeed,
     );
   }
 
@@ -1604,7 +1668,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('dailyLimitMin: $dailyLimitMin, ')
           ..write('musicOn: $musicOn, ')
           ..write('testMode: $testMode, ')
-          ..write('showFindLetter: $showFindLetter')
+          ..write('showFindLetter: $showFindLetter, ')
+          ..write('enSpeed: $enSpeed, ')
+          ..write('viSpeed: $viSpeed')
           ..write(')'))
         .toString();
   }
@@ -1618,6 +1684,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     musicOn,
     testMode,
     showFindLetter,
+    enSpeed,
+    viSpeed,
   );
   @override
   bool operator ==(Object other) =>
@@ -1629,7 +1697,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.dailyLimitMin == this.dailyLimitMin &&
           other.musicOn == this.musicOn &&
           other.testMode == this.testMode &&
-          other.showFindLetter == this.showFindLetter);
+          other.showFindLetter == this.showFindLetter &&
+          other.enSpeed == this.enSpeed &&
+          other.viSpeed == this.viSpeed);
 }
 
 class ProfileCompanion extends UpdateCompanion<ProfileRow> {
@@ -1640,6 +1710,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
   final Value<bool> musicOn;
   final Value<bool> testMode;
   final Value<bool> showFindLetter;
+  final Value<double> enSpeed;
+  final Value<double> viSpeed;
   const ProfileCompanion({
     this.id = const Value.absent(),
     this.nameEn = const Value.absent(),
@@ -1648,6 +1720,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     this.musicOn = const Value.absent(),
     this.testMode = const Value.absent(),
     this.showFindLetter = const Value.absent(),
+    this.enSpeed = const Value.absent(),
+    this.viSpeed = const Value.absent(),
   });
   ProfileCompanion.insert({
     this.id = const Value.absent(),
@@ -1657,6 +1731,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     this.musicOn = const Value.absent(),
     this.testMode = const Value.absent(),
     this.showFindLetter = const Value.absent(),
+    this.enSpeed = const Value.absent(),
+    this.viSpeed = const Value.absent(),
   }) : nameEn = Value(nameEn),
        nameVi = Value(nameVi),
        dailyLimitMin = Value(dailyLimitMin);
@@ -1668,6 +1744,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     Expression<bool>? musicOn,
     Expression<bool>? testMode,
     Expression<bool>? showFindLetter,
+    Expression<double>? enSpeed,
+    Expression<double>? viSpeed,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1677,6 +1755,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
       if (musicOn != null) 'music_on': musicOn,
       if (testMode != null) 'test_mode': testMode,
       if (showFindLetter != null) 'show_find_letter': showFindLetter,
+      if (enSpeed != null) 'en_speed': enSpeed,
+      if (viSpeed != null) 'vi_speed': viSpeed,
     });
   }
 
@@ -1688,6 +1768,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     Value<bool>? musicOn,
     Value<bool>? testMode,
     Value<bool>? showFindLetter,
+    Value<double>? enSpeed,
+    Value<double>? viSpeed,
   }) {
     return ProfileCompanion(
       id: id ?? this.id,
@@ -1697,6 +1779,8 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
       musicOn: musicOn ?? this.musicOn,
       testMode: testMode ?? this.testMode,
       showFindLetter: showFindLetter ?? this.showFindLetter,
+      enSpeed: enSpeed ?? this.enSpeed,
+      viSpeed: viSpeed ?? this.viSpeed,
     );
   }
 
@@ -1724,6 +1808,12 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     if (showFindLetter.present) {
       map['show_find_letter'] = Variable<bool>(showFindLetter.value);
     }
+    if (enSpeed.present) {
+      map['en_speed'] = Variable<double>(enSpeed.value);
+    }
+    if (viSpeed.present) {
+      map['vi_speed'] = Variable<double>(viSpeed.value);
+    }
     return map;
   }
 
@@ -1736,7 +1826,9 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
           ..write('dailyLimitMin: $dailyLimitMin, ')
           ..write('musicOn: $musicOn, ')
           ..write('testMode: $testMode, ')
-          ..write('showFindLetter: $showFindLetter')
+          ..write('showFindLetter: $showFindLetter, ')
+          ..write('enSpeed: $enSpeed, ')
+          ..write('viSpeed: $viSpeed')
           ..write(')'))
         .toString();
   }
@@ -2459,6 +2551,8 @@ typedef $$ProfileTableCreateCompanionBuilder = ProfileCompanion Function({
   Value<bool> musicOn,
   Value<bool> testMode,
   Value<bool> showFindLetter,
+  Value<double> enSpeed,
+  Value<double> viSpeed,
 });
 typedef $$ProfileTableUpdateCompanionBuilder = ProfileCompanion Function({
   Value<int> id,
@@ -2468,6 +2562,8 @@ typedef $$ProfileTableUpdateCompanionBuilder = ProfileCompanion Function({
   Value<bool> musicOn,
   Value<bool> testMode,
   Value<bool> showFindLetter,
+  Value<double> enSpeed,
+  Value<double> viSpeed,
 });
 
 class $$ProfileTableFilterComposer
@@ -2511,6 +2607,16 @@ class $$ProfileTableFilterComposer
 
   ColumnFilters<bool> get showFindLetter => $composableBuilder(
     column: $table.showFindLetter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get enSpeed => $composableBuilder(
+    column: $table.enSpeed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get viSpeed => $composableBuilder(
+    column: $table.viSpeed,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2558,6 +2664,16 @@ class $$ProfileTableOrderingComposer
     column: $table.showFindLetter,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get enSpeed => $composableBuilder(
+    column: $table.enSpeed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get viSpeed => $composableBuilder(
+    column: $table.viSpeed,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProfileTableAnnotationComposer
@@ -2593,6 +2709,12 @@ class $$ProfileTableAnnotationComposer
     column: $table.showFindLetter,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get enSpeed =>
+      $composableBuilder(column: $table.enSpeed, builder: (column) => column);
+
+  GeneratedColumn<double> get viSpeed =>
+      $composableBuilder(column: $table.viSpeed, builder: (column) => column);
 }
 
 class $$ProfileTableTableManager
@@ -2633,6 +2755,8 @@ class $$ProfileTableTableManager
                 Value<bool> musicOn = const Value.absent(),
                 Value<bool> testMode = const Value.absent(),
                 Value<bool> showFindLetter = const Value.absent(),
+                Value<double> enSpeed = const Value.absent(),
+                Value<double> viSpeed = const Value.absent(),
               }) => ProfileCompanion(
                 id: id,
                 nameEn: nameEn,
@@ -2641,6 +2765,8 @@ class $$ProfileTableTableManager
                 musicOn: musicOn,
                 testMode: testMode,
                 showFindLetter: showFindLetter,
+                enSpeed: enSpeed,
+                viSpeed: viSpeed,
               ),
           createCompanionCallback:
               ({
@@ -2651,6 +2777,8 @@ class $$ProfileTableTableManager
                 Value<bool> musicOn = const Value.absent(),
                 Value<bool> testMode = const Value.absent(),
                 Value<bool> showFindLetter = const Value.absent(),
+                Value<double> enSpeed = const Value.absent(),
+                Value<double> viSpeed = const Value.absent(),
               }) => ProfileCompanion.insert(
                 id: id,
                 nameEn: nameEn,
@@ -2659,6 +2787,8 @@ class $$ProfileTableTableManager
                 musicOn: musicOn,
                 testMode: testMode,
                 showFindLetter: showFindLetter,
+                enSpeed: enSpeed,
+                viSpeed: viSpeed,
               ),
           withReferenceMapper: (p0) => p0
               .map(

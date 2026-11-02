@@ -15,13 +15,15 @@ import 'package:xoai_castle/core/voice/tts_engine.dart';
 class FakeTts implements TtsEngine {
   final calls = <String>[];
   final spoken = <({String text, String lang})>[];
+  final speeds = <double>[];
 
   List<String> get texts => [for (final s in spoken) s.text];
 
   @override
-  Future<void> speak(String text, {required String lang}) async {
+  Future<void> speak(String text, {required String lang, double speed = 1.0}) async {
     calls.add('speak');
     spoken.add((text: text, lang: lang));
+    speeds.add(speed);
   }
 
   @override
@@ -30,12 +32,14 @@ class FakeTts implements TtsEngine {
 
 class FakeClipPlayer implements ClipPlayer {
   final played = <String>[];
+  final speeds = <double>[];
   int stops = 0;
   Object? failWith;
 
   @override
-  Future<void> play(String assetPath) async {
+  Future<void> play(String assetPath, {double speed = 1.0}) async {
     played.add(assetPath);
+    speeds.add(speed);
     final error = failWith;
     if (error != null) throw error;
   }
@@ -49,8 +53,9 @@ class GatedTts extends FakeTts {
   final _pending = <Completer<void>>[];
 
   @override
-  Future<void> speak(String text, {required String lang}) {
+  Future<void> speak(String text, {required String lang, double speed = 1.0}) {
     spoken.add((text: text, lang: lang));
+    speeds.add(speed);
     final c = Completer<void>();
     _pending.add(c);
     return c.future;
@@ -74,8 +79,10 @@ class MemoryItemStatsStore implements ItemStatsStore {
   final stats = <String, ItemStat>{};
 
   @override
-  Future<Map<String, ItemStat>> loadByPrefix(String prefix) async =>
-      {for (final e in stats.entries) if (e.key.startsWith(prefix)) e.key: e.value};
+  Future<Map<String, ItemStat>> loadByPrefix(String prefix) async => {
+    for (final e in stats.entries)
+      if (e.key.startsWith(prefix)) e.key: e.value,
+  };
 
   @override
   Future<void> save(ItemStat stat) async => stats[stat.key] = stat;
@@ -109,9 +116,10 @@ class MemoryRewardStore implements RewardStore {
 }
 
 class MemoryProfileStore implements ProfileStore {
-  MemoryProfileStore({this.show = false});
+  MemoryProfileStore({this.show = false, this.speeds = const VoiceSpeeds()});
 
   bool show;
+  VoiceSpeeds speeds;
 
   @override
   Future<Names> loadNames(ProfileDefaults defaults) async => const Names(en: 'An', vi: 'Xoài');
@@ -121,6 +129,12 @@ class MemoryProfileStore implements ProfileStore {
 
   @override
   Future<void> setShowFindLetter(bool value) async => show = value;
+
+  @override
+  Future<VoiceSpeeds> voiceSpeeds() async => speeds;
+
+  @override
+  Future<void> setVoiceSpeeds(VoiceSpeeds value) async => speeds = value.clamped();
 }
 
 class FakeProgressResetter implements ProgressResetter {

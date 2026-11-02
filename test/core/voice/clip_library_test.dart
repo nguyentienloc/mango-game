@@ -11,13 +11,18 @@ class _Source implements ContentSource {
 }
 
 void main() {
-  const lion = Utterance([UtterancePart('en', 'Lion!'), UtterancePart('vi', 'Con sư tử!')]);
+  test('finds the asset for a known part by lang|text', () {
+    final lib = ClipLibrary.parse('{"clips": {"en|Lion!": "abc.ogg", "vi|Con sư tử!": "def.ogg"}}');
+    expect(lib.assetFor(const UtterancePart('en', 'Lion!')), 'content/audio/abc.ogg');
+    expect(lib.assetFor(const UtterancePart('vi', 'Con sư tử!')), 'content/audio/def.ogg');
+    expect(lib.assetFor(const UtterancePart('en', 'Cat!')), isNull);
+    expect(lib.assetFor(const UtterancePart('vi', 'Lion!')), isNull, reason: 'language is part of the key');
+    expect(lib.length, 2);
+  });
 
-  test('finds the asset for a known utterance', () {
-    final lib = ClipLibrary.parse('{"clips": {"en|Lion! || vi|Con sư tử!": "abc.ogg"}}');
-    expect(lib.assetFor(lion), 'content/audio/abc.ogg');
-    expect(lib.assetFor(const Utterance([UtterancePart('en', 'Cat!')])), isNull);
-    expect(lib.length, 1);
+  test('part key is lang|text and joins into the utterance key', () {
+    expect(const UtterancePart('en', 'Lion!').key, 'en|Lion!');
+    expect(const Utterance([UtterancePart('en', 'Lion!'), UtterancePart('vi', 'Sư tử!')]).key, 'en|Lion! || vi|Sư tử!');
   });
 
   test('a missing or broken index gives an empty library', () async {
