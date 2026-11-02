@@ -66,6 +66,22 @@ void main() {
     expect(find.byType(CastleScreen), findsOneWidget);
   });
 
+  testWidgets('castle tap is spoken, and its home button speaks and returns home', (tester) async {
+    final tts = await pumpHome(tester);
+    await tester.tap(find.byKey(const Key('home-castle')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('Lâu đài của Xoài'));
+    expect(find.byType(CastleScreen), findsOneWidget);
+
+    await tester.tap(find.text('🏠'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('Về lâu đài nào!'));
+    expect(find.byType(CastleScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
   testWidgets('shows a red dot on the lock when an update is available', (tester) async {
     await pumpHome(
       tester,

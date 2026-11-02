@@ -16,6 +16,7 @@ const requiredPhraseIds = {
   'game_vi',
   'game_vocab',
   'game_castle',
+  'go_home',
   'coming_soon',
   'round_done',
   'quest_done',

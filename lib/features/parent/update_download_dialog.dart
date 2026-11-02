@@ -28,6 +28,12 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
     _run();
   }
 
+  @override
+  void dispose() {
+    if (!_cancel.isCancelled) _cancel.cancel();
+    super.dispose();
+  }
+
   Future<void> _run() async {
     try {
       final dir = await getTemporaryDirectory();
@@ -39,6 +45,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
           if (mounted && total > 0) setState(() => _progress = received / total);
         },
       );
+      if (!mounted || _cancel.isCancelled) return;
       final result = await OpenFilex.open(path, type: 'application/vnd.android.package-archive');
       if (!mounted) return;
       if (result.type == ResultType.done) {

@@ -34,7 +34,14 @@ class CastleScreen extends ConsumerWidget {
               alignment: Alignment.topLeft,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: BigButton(emoji: '🏠', size: 64, onTap: () => Navigator.of(context).pop()),
+                child: BigButton(
+                  emoji: '🏠',
+                  size: 64,
+                  onTap: () {
+                    ref.read(voiceProvider).say('go_home');
+                    Navigator.of(context).pop();
+                  },
+                ),
               ),
             ),
             Expanded(child: Center(child: CastleView(level: rewards.castleLevel, width: 320))),

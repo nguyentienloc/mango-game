@@ -19,6 +19,7 @@
     { "id": "game_vi", "lang": "vi", "text": "Chữ cái tiếng Việt", "group": "menu" },
     { "id": "game_vocab", "lang": "vi", "text": "Học từ mới", "group": "menu" },
     { "id": "game_castle", "lang": "vi", "text": "Lâu đài của {name_vi}", "group": "menu" },
+    { "id": "go_home", "lang": "vi", "text": "Về lâu đài nào!", "group": "menu" },
     { "id": "coming_soon", "lang": "vi", "text": "Trò này sắp có rồi nha!", "group": "system" },
     { "id": "round_done", "lang": "vi", "text": "Hoàn thành rồi! {name_vi} giỏi quá!", "group": "reward", "priority": true },
     { "id": "quest_done", "lang": "vi", "text": "Xong nhiệm vụ hôm nay rồi! Mở quà nào!", "group": "reward" },
