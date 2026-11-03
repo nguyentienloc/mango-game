@@ -9,7 +9,7 @@
 ## Global Constraints
 - Phát hành chung `0.4.0+5`, tag `v0.4.0` (nhánh `feat/small-fixes-032`, sau các commit sửa nhỏ).
 - 5 chữ/lượt; khóa `balloon_en_upper:<CHAR>`; `maxNew: 3`; phiên `game: 'balloon'`.
-- Trên màn hình: 5–6 bóng (6 nếu rộng ≥ 360 dp); mỗi bóng bay hết chiều cao trong 7–9 s (ngẫu nhiên), lắc ngang ±12 dp hình sin; đường kính ≈ 84–96 dp; không bao giờ 2 bóng cùng chữ; chữ đích luôn có ít nhất 1 bóng đang bay hoặc sắp xuất hiện (≤ 1,5 s); bóng ra khỏi mép trên → thay bóng mới từ dưới.
+- Trên màn hình: 5–6 bóng (6 nếu rộng ≥ 360 dp); mỗi bóng bay hết chiều cao trong 11–14 s (từ v0.4.1; trước đó 7–9 s) (ngẫu nhiên), lắc ngang ±12 dp hình sin; đường kính ≈ 84–96 dp; không bao giờ 2 bóng cùng chữ; chữ đích luôn có ít nhất 1 bóng đang bay hoặc sắp xuất hiện (≤ 1,5 s); bóng ra khỏi mép trên → thay bóng mới từ dưới.
 - Bấm bất kỳ bóng nào → nổ. Đúng → `balloon_correct`, sang chữ sau (bóng còn lại tiếp tục bay). Sai → `balloon_wrong` (đọc tên chữ vừa bấm + nhắc chữ đích); sai ≥ 2 lần → bóng đích phát sáng. Kết quả: `firstTry`/`retry`/`hinted` như `PickSession`. +1 ❄️/firstTry, +5/lượt, nhiệm vụ ngày.
 - Câu nói (tất cả `group: "balloon"`):
   - `balloon_prompt`: [vi "{name_vi} tìm chữ"], [en "{letter}"], [vi "nào!"]

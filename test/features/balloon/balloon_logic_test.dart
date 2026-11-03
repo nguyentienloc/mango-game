@@ -96,7 +96,7 @@ void main() {
         final b = Balloon.random(id: i, letter: 'A', startTime: 1.5, random: random);
         expect(b.colorIndex, inInclusiveRange(0, kBalloonColors - 1));
         expect(b.x, inInclusiveRange(0.0, 1.0));
-        expect(b.duration, inInclusiveRange(7.0, 9.0));
+        expect(b.duration, inInclusiveRange(11.0, 14.0));
         expect(b.wobblePhase, inInclusiveRange(0.0, 2 * pi));
         expect(b.popped, isFalse);
         expect(b.startTime, 1.5);

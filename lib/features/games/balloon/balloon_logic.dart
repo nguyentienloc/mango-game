@@ -94,7 +94,7 @@ class Balloon {
         colorIndex: random.nextInt(kBalloonColors),
         x: 0.1 + random.nextDouble() * 0.8,
         startTime: startTime,
-        duration: 7 + random.nextDouble() * 2,
+        duration: 11 + random.nextDouble() * 3, // 11–14 s to rise (slowed for a 5-year-old)
         wobblePhase: random.nextDouble() * 2 * pi,
       );
 
