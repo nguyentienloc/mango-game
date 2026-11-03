@@ -161,6 +161,73 @@ void main() {
     });
   });
 
+  group('stories pack', () {
+    const path = 'packs/stories.json';
+    List<String> check(void Function(List items) edit) {
+      final pack = readJson(validFiles(), path);
+      edit(pack['items'] as List);
+      return validateContent(withJson(validFiles(), path, pack));
+    }
+
+    test('the pack is required', () {
+      final manifest = readJson(validFiles(), 'manifest.json');
+      (manifest['packs'] as Map).remove('stories');
+      final files = withJson(validFiles(), 'manifest.json', manifest)..remove(path);
+      expect(validateContent(files), contains('manifest.json: thiếu gói "stories"'));
+    });
+
+    test('an empty pack is valid', () {
+      expect(check((items) => items.clear()), isEmpty);
+    });
+
+    test('a bad videoId is reported', () {
+      for (final bad in ['short', 'aaaaaaaaaaaa', 'aaaaaaaaaa!', '']) {
+        final errors = check((items) => (items[0] as Map)['videoId'] = bad);
+        expect(errors, contains('$path items[0]: "videoId" phải gồm 11 ký tự (chữ, số, - hoặc _)'), reason: bad);
+      }
+      expect(check((items) => (items[0] as Map).remove('videoId')),
+          contains('$path items[0]: "videoId" phải gồm 11 ký tự (chữ, số, - hoặc _)'));
+    });
+
+    test('id must be yt: plus the videoId', () {
+      final errors = check((items) => (items[0] as Map)['id'] = 'yt:zzzzzzzzzzz');
+      expect(errors, contains('$path items[0]: id phải là "yt:aaaaaaaaaaa"'));
+      expect(check((items) => (items[0] as Map).remove('id')), contains('$path items[0]: id phải là "yt:aaaaaaaaaaa"'));
+    });
+
+    test('duplicate ids are reported', () {
+      final errors = check((items) => items[1] = {...(items[0] as Map), 'title': 'Khác'});
+      expect(errors, contains('$path items[1]: id "yt:aaaaaaaaaaa" bị trùng'));
+    });
+
+    test('an empty title is reported', () {
+      expect(check((items) => (items[0] as Map)['title'] = '  '), contains('$path items[0]: thiếu "title"'));
+      expect(check((items) => (items[0] as Map).remove('title')), contains('$path items[0]: thiếu "title"'));
+    });
+
+    test('topic must be one of the four ids', () {
+      expect(check((items) => (items[0] as Map)['topic'] = 'cartoons'),
+          contains('$path items[0]: topic "cartoons" không hợp lệ'));
+      expect(check((items) => (items[0] as Map).remove('topic')), contains('$path items[0]: topic "null" không hợp lệ'));
+    });
+
+    test('durationSec must be a positive integer', () {
+      for (final bad in [0, -5, 1.5, '600', null]) {
+        final errors = check((items) => (items[0] as Map)['durationSec'] = bad);
+        expect(errors, contains('$path items[0]: "durationSec" phải là số nguyên dương'), reason: '$bad');
+      }
+    });
+
+    test('an item must be an object', () {
+      expect(check((items) => items[0] = 'x'), contains('$path items[0]: phải là object'));
+    });
+
+    test('items must be a list', () {
+      final pack = readJson(validFiles(), path)..['items'] = {};
+      expect(validateContent(withJson(validFiles(), path, pack)), contains('$path: "items" phải là danh sách'));
+    });
+  });
+
   test('multi-part phrases are validated', () {
     final phrases = readJson(validFiles(), 'phrases.json');
     (phrases['items'] as List).add({

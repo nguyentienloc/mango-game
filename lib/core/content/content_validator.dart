@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-const requiredPacks = ['letters_en', 'letters_vi', 'conversation'];
+const requiredPacks = ['letters_en', 'letters_vi', 'conversation', 'stories'];
 
 /// The 29 Vietnamese capitals, in teaching order.
 const viLetters = ['A', 'Ă', 'Â', 'B', 'C', 'D', 'Đ', 'E', 'Ê', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'Ô', 'Ơ', 'P', 'Q', 'R', 'S', 'T', 'U', 'Ư', 'V', 'X', 'Y'];
@@ -103,6 +103,7 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
   _checkLetters('letters_en', docs['packs/letters_en.json']!, errors, checkImage);
   _checkLetters('letters_vi', docs['packs/letters_vi.json']!, errors, checkImage);
   _checkConversation(docs['packs/conversation.json']!, errors);
+  _checkStories(docs['packs/stories.json']!, errors);
   _checkVocab(packs.keys, docs, errors, checkImage);
   _checkPhrases(docs['phrases.json']!, errors);
   final friends = _checkCastle(docs['castle.json']!, errors);
@@ -303,6 +304,37 @@ void _checkConversation(Map<String, dynamic> doc, List<String> errors) {
         errors.add('$where aliases.${e.key}: phải là danh sách từ không rỗng');
       }
     }
+  }
+}
+
+final _videoIdPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
+const _storyTopicIds = {'fairy_vi', 'princess', 'english', 'other'};
+
+/// The stories pack may be empty, but every item it has must be playable.
+void _checkStories(Map<String, dynamic> doc, List<String> errors) {
+  const path = 'packs/stories.json';
+  final items = doc['items'];
+  if (items is! List) {
+    errors.add('$path: "items" phải là danh sách');
+    return;
+  }
+  final seen = <String>{};
+  for (final (i, item) in items.indexed) {
+    final where = '$path items[$i]';
+    if (item is! Map<String, dynamic>) {
+      errors.add('$where: phải là object');
+      continue;
+    }
+    final videoId = item['videoId'];
+    final validVideoId = videoId is String && _videoIdPattern.hasMatch(videoId);
+    if (!validVideoId) errors.add('$where: "videoId" phải gồm 11 ký tự (chữ, số, - hoặc _)');
+    final id = item['id'];
+    if (validVideoId && id != 'yt:$videoId') errors.add('$where: id phải là "yt:$videoId"');
+    if (id is String && !seen.add(id)) errors.add('$where: id "$id" bị trùng');
+    if (!_nonEmpty(item['title'])) errors.add('$where: thiếu "title"');
+    if (!_storyTopicIds.contains(item['topic'])) errors.add('$where: topic "${item['topic']}" không hợp lệ');
+    final duration = item['durationSec'];
+    if (duration is! int || duration <= 0) errors.add('$where: "durationSec" phải là số nguyên dương');
   }
 }
 

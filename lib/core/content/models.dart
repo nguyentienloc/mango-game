@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../features/story/story_models.dart';
 import 'strokes.dart';
 
 class LetterItem {
@@ -190,6 +191,7 @@ class ContentBundle {
     required this.profileDefaults,
     required this.vocab,
     this.conversation = const [],
+    this.stories = const [],
   });
 
   /// Builds a bundle from already-validated files (paths relative to content/).
@@ -225,6 +227,9 @@ class ContentBundle {
       conversation: [
         for (final j in read('packs/conversation.json')['items'] as List) ConversationItem.fromJson(j as Map<String, dynamic>),
       ],
+      stories: [
+        for (final j in read('packs/stories.json')['items'] as List) Story.fromJson(j as Map<String, dynamic>),
+      ],
     );
   }
 
@@ -236,4 +241,7 @@ class ContentBundle {
   final ProfileDefaults profileDefaults;
   final List<VocabItem> vocab;
   final List<ConversationItem> conversation;
+
+  /// The bundled YouTube stories; may be empty.
+  final List<Story> stories;
 }
