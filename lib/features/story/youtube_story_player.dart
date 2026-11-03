@@ -6,12 +6,14 @@ import 'package:youtube_player_iframe/webview.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import 'story_player.dart';
+import 'youtube_state_mapping.dart';
 
 /// [StoryPlayerController] over the YouTube IFrame player in a WebView.
 ///
-/// A thin mapping layer (it cannot be unit-tested): YouTube states → [StoryPlayerState],
-/// any YouTube error (including 101/150/152 "embedding blocked") → `error`, and a
-/// load that has not started playing within [loadTimeout] → `error`.
+/// A thin layer (it cannot be unit-tested; the decisions live in
+/// youtube_state_mapping.dart): YouTube states → [StoryPlayerState], any YouTube
+/// error (including 101/150/152 "embedding blocked") → `error`, and a load that
+/// has not started playing within [loadTimeout] of being wanted → `error`.
 ///
 /// The WebView is shown with a plain [WebViewWidget] rather than the package's
 /// `YoutubePlayer`, which on Android/iOS draws the video in an OverlayPortal above
@@ -29,6 +31,8 @@ class YoutubeStoryPlayer implements StoryPlayerController {
           showVideoAnnotations: false,
           interfaceLanguage: 'vi',
           pointerEvents: controls ? PointerEvents.auto : PointerEvents.none,
+          // Position updates for the progress bar; once a second is plenty.
+          videoStateUpdateInterval: 1000,
         ),
       ) {
     // Replaces the package's delegate, which opens the YouTube app / browser for
@@ -62,8 +66,31 @@ class YoutubeStoryPlayer implements StoryPlayerController {
   bool _failed = false;
   bool _disposed = false;
 
+  /// A video was loaded and not paused by us since.
+  bool _wanted = false;
+
+  /// The video got past loading at least once.
+  bool _started = false;
+
   @override
   Stream<StoryPlayerState> get states => _states.stream;
+
+  @override
+  Stream<Duration> get positions => _controller.videoStateStream.map((v) => v.position);
+
+  /// Starts or stops the load timeout to match [loadTimeoutRunning].
+  void _syncLoadTimer() {
+    final run = loadTimeoutRunning(started: _started, wanted: _wanted, failed: _failed);
+    if (!run) {
+      _loadTimer?.cancel();
+      _loadTimer = null;
+    } else {
+      _loadTimer ??= Timer(loadTimeout, () {
+        debugPrint('Story player: no playback within $loadTimeout');
+        _fail();
+      });
+    }
+  }
 
   void _emit(StoryPlayerState s) {
     if (_disposed || s == _last) return;
@@ -74,25 +101,20 @@ class YoutubeStoryPlayer implements StoryPlayerController {
   void _fail() {
     if (_failed) return;
     _failed = true;
-    _loadTimer?.cancel();
+    _syncLoadTimer();
     _emit(StoryPlayerState.error);
   }
 
   void _onValue(YoutubePlayerValue v) {
     if (_failed) return;
-    if (v.hasError) {
+    final s = mapYoutubeState(v.playerState, v.error);
+    if (s == StoryPlayerState.error) {
       debugPrint('Story player error: ${v.error}');
       _fail();
       return;
     }
-    final s = switch (v.playerState) {
-      PlayerState.playing => StoryPlayerState.playing,
-      PlayerState.paused => StoryPlayerState.paused,
-      PlayerState.ended => StoryPlayerState.ended,
-      // unknown, unStarted, buffering, cued
-      _ => StoryPlayerState.loading,
-    };
-    if (s != StoryPlayerState.loading) _loadTimer?.cancel();
+    if (startsPlayback(s)) _started = true;
+    _syncLoadTimer();
     _emit(s);
   }
 
@@ -117,8 +139,11 @@ class YoutubeStoryPlayer implements StoryPlayerController {
 
   @override
   Future<void> load(String videoId) async {
+    _wanted = true;
+    _started = false;
     _loadTimer?.cancel();
-    _loadTimer = Timer(loadTimeout, _fail);
+    _loadTimer = null;
+    _syncLoadTimer();
     _emit(StoryPlayerState.loading);
     try {
       await _ready;
@@ -130,10 +155,19 @@ class YoutubeStoryPlayer implements StoryPlayerController {
   }
 
   @override
-  Future<void> play() => _safely('play', _controller.playVideo);
+  Future<void> play() {
+    _wanted = true;
+    _syncLoadTimer();
+    return _safely('play', _controller.playVideo);
+  }
 
+  /// Also stops the load timeout: a video paused while the app is hidden must not "fail".
   @override
-  Future<void> pause() => _safely('pause', _controller.pauseVideo);
+  Future<void> pause() {
+    _wanted = false;
+    _syncLoadTimer();
+    return _safely('pause', _controller.pauseVideo);
+  }
 
   @override
   Future<void> setVolume(int percent) => _safely('setVolume', () => _controller.setVolume(percent.clamp(0, 100)));

@@ -104,8 +104,16 @@ void main() {
     expect(find.byType(StoryPlayerScreen), findsOneWidget);
   }
 
+  /// Stream events arrive after the frame they were emitted in: two frames to see the result.
   Future<void> emit(WidgetTester tester, _Env env, StoryPlayerState s) async {
     env.player.emit(s);
+    await tester.pump();
+    await tester.pump();
+  }
+
+  Future<void> emitPosition(WidgetTester tester, _Env env, Duration d) async {
+    env.player.emitPosition(d);
+    await tester.pump();
     await tester.pump();
   }
 
@@ -334,6 +342,141 @@ void main() {
     await tester.pump();
     expect(find.byType(StoryPlayerScreen), findsOneWidget);
     expect(env.player.pauses, 0);
+  });
+
+  testWidgets('picking the next story during the pop animation keeps the screen awake', (tester) async {
+    final env = await pumpGrid(tester, setup: const StorySetup(limit: CountLimit(3)));
+    await openStory(tester, env, 'aaaaaaaaaaa');
+    await emit(tester, env, StoryPlayerState.playing);
+    await emit(tester, env, StoryPlayerState.ended);
+    // The old player route is still animating out (and not yet disposed).
+    tester.widget<GestureDetector>(_card('bbbbbbbbbbb')).onTap!();
+    await settle(tester);
+    expect(env.players.players, hasLength(2));
+    expect(env.players.players.first.disposed, isTrue);
+    expect(find.byType(StoryPlayerScreen), findsOneWidget);
+    expect(env.awake.on, isTrue);
+  });
+
+  testWidgets('🏠 in the player pauses the video before going back', (tester) async {
+    final env = await pumpGrid(tester);
+    await openStory(tester, env, 'aaaaaaaaaaa');
+    await emit(tester, env, StoryPlayerState.playing);
+    await tester.tap(_home);
+    expect(env.player.pauses, 1);
+    await settle(tester);
+    expect(env.awake.on, isFalse);
+  });
+
+  group('progress bar', () {
+    final progress = find.byKey(const Key('story-progress'));
+
+    double value(WidgetTester tester) => tester.widget<LinearProgressIndicator>(progress).value!;
+
+    for (final mode in StoryViewMode.values) {
+      testWidgets('shows position / duration in ${mode.name} mode and takes no touches', (tester) async {
+        final env = await pumpGrid(tester, setup: StorySetup(mode: mode));
+        await openStory(tester, env, 'aaaaaaaaaaa');
+        env.player.knownDuration = const Duration(minutes: 10);
+        await emit(tester, env, StoryPlayerState.playing);
+        await tester.pump();
+        await emitPosition(tester, env, const Duration(minutes: 5));
+        expect(value(tester), closeTo(0.5, 0.001));
+        await emitPosition(tester, env, const Duration(minutes: 7, seconds: 30));
+        expect(value(tester), closeTo(0.75, 0.001));
+        expect(progress.hitTestable(), findsNothing);
+      });
+    }
+
+    testWidgets('hidden while the length is unknown', (tester) async {
+      final env = await pumpGrid(tester);
+      await openStory(tester, env, 'ccccccccccc');
+      await emit(tester, env, StoryPlayerState.playing);
+      await tester.pump();
+      await emitPosition(tester, env, const Duration(minutes: 1));
+      expect(progress, findsNothing);
+    });
+  });
+
+  group('time + finish, paused after the limit', () {
+    const setup = StorySetup(limit: TimeLimit(Duration(minutes: 10), StoryOverrun.finish));
+
+    testWidgets('paused for 30 s after the limit: the story ends and good night', (tester) async {
+      final env = await pumpGrid(tester, setup: setup);
+      await openStory(tester, env, 'aaaaaaaaaaa');
+      await emit(tester, env, StoryPlayerState.playing);
+      await tester.pump(const Duration(minutes: 10, seconds: 5));
+      await tester.tap(_playPause);
+      await tester.pump();
+      expect(env.player.pauses, 1);
+      await tester.pump(const Duration(seconds: 25));
+      expect(find.byType(StoryPlayerScreen), findsOneWidget);
+      await tester.pump(const Duration(seconds: 6));
+      await settle(tester);
+      expect(find.byType(StoryPlayerScreen), findsNothing);
+      await expectEndThenHome(tester, env, _bye);
+    });
+
+    testWidgets('paused before the limit, the 30 s count only starts at the limit', (tester) async {
+      final env = await pumpGrid(tester, setup: setup);
+      await openStory(tester, env, 'aaaaaaaaaaa');
+      await emit(tester, env, StoryPlayerState.playing);
+      await tester.pump(const Duration(minutes: 9, seconds: 50));
+      await tester.tap(_playPause);
+      await tester.pump(const Duration(seconds: 30));
+      expect(find.byType(StoryPlayerScreen), findsOneWidget);
+      await tester.pump(const Duration(seconds: 15));
+      await settle(tester);
+      await expectEndThenHome(tester, env, _bye);
+    });
+
+    testWidgets('playing again within 30 s goes on', (tester) async {
+      final env = await pumpGrid(tester, setup: setup);
+      await openStory(tester, env, 'aaaaaaaaaaa');
+      await emit(tester, env, StoryPlayerState.playing);
+      await tester.pump(const Duration(minutes: 10, seconds: 5));
+      await tester.tap(_playPause);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.tap(_playPause);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.tap(_playPause);
+      await tester.pump(const Duration(seconds: 20));
+      expect(find.byType(StoryPlayerScreen), findsOneWidget, reason: 'each pause is under 30 s');
+      expect(env.player.plays, 1);
+      await tester.tap(_playPause);
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byType(StoryPlayerScreen), findsOneWidget);
+    });
+
+    testWidgets('the +10 min cap also cuts a paused story', (tester) async {
+      final env = await pumpGrid(tester, setup: setup);
+      await openStory(tester, env, 'ccccccccccc');
+      await emit(tester, env, StoryPlayerState.playing);
+      await tester.pump(const Duration(minutes: 19, seconds: 50));
+      await tester.tap(_playPause);
+      await tester.pump(const Duration(seconds: 15));
+      await settle(tester);
+      expect(find.byType(StoryEndScreen), findsOneWidget, reason: 'cut at the cap after only ~10 s paused');
+      await expectEndThenHome(tester, env, _bye);
+    });
+  });
+
+  testWidgets('a video that starts playing while the app is hidden is paused again', (tester) async {
+    final env = await pumpGrid(tester);
+    await openStory(tester, env, 'aaaaaaaaaaa');
+    for (final s in [AppLifecycleState.inactive, AppLifecycleState.hidden, AppLifecycleState.paused]) {
+      tester.binding.handleAppLifecycleStateChanged(s);
+    }
+    await tester.pump();
+    expect(env.player.pauses, 1);
+    await emit(tester, env, StoryPlayerState.playing);
+    expect(env.player.pauses, 2);
+    expect(env.run.isPlaying, isFalse);
+    for (final s in [AppLifecycleState.hidden, AppLifecycleState.inactive, AppLifecycleState.resumed]) {
+      tester.binding.handleAppLifecycleStateChanged(s);
+    }
+    await tester.pump();
+    expect(env.player.plays, 0);
   });
 
   testWidgets('fits a 360x640 phone: grid, player (both modes) and end screen', (tester) async {

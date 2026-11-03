@@ -8,6 +8,9 @@ abstract interface class StoryPlayerController {
   /// Distinct states as they change; `error` covers blocked embeds and a load that never finishes.
   Stream<StoryPlayerState> get states;
 
+  /// Playback position updates while a video is loaded.
+  Stream<Duration> get positions;
+
   /// The video length; null until the player knows it.
   Future<Duration?> duration();
 

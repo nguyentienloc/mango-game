@@ -231,6 +231,7 @@ class FakeStoryPlayer implements StoryPlayerController {
 
   final bool controls;
   final _states = StreamController<StoryPlayerState>.broadcast();
+  final _positions = StreamController<Duration>.broadcast();
   final loaded = <String>[];
   final volumes = <int>[];
   int plays = 0;
@@ -246,8 +247,13 @@ class FakeStoryPlayer implements StoryPlayerController {
     _states.add(s);
   }
 
+  void emitPosition(Duration d) => _positions.add(d);
+
   @override
   Stream<StoryPlayerState> get states => _states.stream;
+
+  @override
+  Stream<Duration> get positions => _positions.stream;
 
   @override
   Future<Duration?> duration() async => knownDuration;
@@ -280,6 +286,7 @@ class FakeStoryPlayer implements StoryPlayerController {
   void dispose() {
     disposed = true;
     _states.close();
+    _positions.close();
   }
 }
 
