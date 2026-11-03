@@ -7,6 +7,7 @@ import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/castle/castle_screen.dart';
 import 'package:xoai_castle/features/games/balloon/balloon_screen.dart';
+import 'package:xoai_castle/features/games/talk/talk_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
 import 'package:xoai_castle/features/games/vocab/vocab_screen.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
@@ -66,13 +67,14 @@ void main() {
     expect(tts.texts, ['Xoài đã kiếm được', '12', 'bông tuyết rồi, giỏi quá nè!']);
   });
 
-  testWidgets('a coming-soon game says its name and stays on home', (tester) async {
+  testWidgets('the speech button opens the talk game', (tester) async {
     final tts = await pumpHome(tester);
     await tester.tap(find.text('🗣️'));
     await tester.pump();
-    await tester.pump();
-    expect(tts.texts, containsAllInOrder(['Nói chuyện với Elsa', 'Trò này sắp có rồi nha!']));
-    expect(find.byType(HomeScreen), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('Nói chuyện với Elsa'));
+    expect(find.byType(TalkScreen), findsOneWidget);
   });
 
   testWidgets('the pencil button opens the tracing game', (tester) async {

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/content/models.dart';
 import '../core/db/database.dart';
 import '../core/profile/profile_store.dart';
+import '../core/profile/names.dart';
 import '../core/progress/item_stats_store.dart';
 import '../core/progress/progress_resetter.dart';
 import '../core/rewards/reward_store.dart';
@@ -21,6 +22,8 @@ final contentProvider = Provider<ContentBundle>((ref) => throw UnimplementedErro
 final databaseProvider = Provider<AppDatabase>((ref) => throw UnimplementedError('databaseProvider'));
 final appVersionProvider = Provider<String>((ref) => throw UnimplementedError('appVersionProvider'));
 final voiceProvider = Provider<VoiceService>((ref) => throw UnimplementedError('voiceProvider'));
+/// The child's names (what VoiceService speaks with); the talk game needs the English one.
+final namesProvider = Provider<Names>((ref) => throw UnimplementedError('namesProvider'));
 
 /// Created on first use and NOT initialised until a screen calls init(), so the
 /// microphone permission is asked when the child enters the talk game, not at launch.

@@ -31,13 +31,15 @@ Widget testApp({
   int voiceSeed = 1,
   SpeechRecognizer? speech,
 }) {
+  const names = Names(en: 'An', vi: 'Xoài');
   return ProviderScope(
     overrides: [
       contentProvider.overrideWithValue(content),
+      namesProvider.overrideWithValue(names),
       voiceProvider.overrideWithValue(VoiceService(
         tts: tts,
         phrases: content.phrases,
-        names: const Names(en: 'An', vi: 'Xoài'),
+        names: names,
         random: Random(voiceSeed),
       )),
       itemStatsStoreProvider.overrideWithValue(itemStats ?? MemoryItemStatsStore()),
