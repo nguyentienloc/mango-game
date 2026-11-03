@@ -33,9 +33,13 @@ const _kMinStrokeLength = 0.04;
 /// How long a finished stroke's ink takes to melt away.
 const _kFadeDuration = Duration(milliseconds: 300);
 
-/// The ink under the child's finger: saturated blue so it reads on the white
-/// board, yet lighter than the navy ([IceColors.deep]) of completed strokes.
+/// The ink under the child's finger: a saturated mid blue that reads on the
+/// white board and stays visibly lighter than the dark navy of completed strokes.
 const _kLiveInk = Color(0xFF1565C0);
+
+/// Completed strokes: a darker navy than [_kLiveInk], so a stroke that was just
+/// finished visibly "settles" from the live ink into the letter.
+const _kDoneInk = Color(0xFF0D2B5C);
 
 /// Live ink width as a fraction of the pad's side.
 const _kInkWidth = 0.075;
@@ -269,7 +273,7 @@ class _GuidePainter extends CustomPainter {
       if (pts.length < 2) continue;
       Path dashed() => dashCache.get(strokes, i, side, () => _dashed(pts, side));
       if (i < current) {
-        canvas.drawPath(_polyPath(pts, side), stroke(IceColors.deep, width));
+        canvas.drawPath(_polyPath(pts, side), stroke(_kDoneInk, width));
       } else if (i == current) {
         canvas.drawPath(
           dashed(),

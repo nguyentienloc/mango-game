@@ -51,6 +51,37 @@ void main() {
     expect(find.text('Đang dùng bản mới nhất'), findsOneWidget);
   });
 
+  testWidgets('sliding the finger off the lock cancels the hold', (tester) async {
+    await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const HomeScreen()));
+    await tester.pump();
+    final lock = find.byKey(const Key('parent-lock'));
+    final gesture = await tester.startGesture(tester.getCenter(lock));
+    await tester.pump(Duration.zero);
+    await tester.pump(const Duration(milliseconds: 1000));
+    await gesture.moveBy(const Offset(0, 120)); // well outside the 56 dp lock
+    await tester.pump(const Duration(milliseconds: 100));
+    double ring() => tester.widget<CircularProgressIndicator>(find.descendant(of: lock, matching: find.byType(CircularProgressIndicator))).value!;
+    expect(ring(), 0.0);
+    await tester.pump(const Duration(milliseconds: 3000));
+    await gesture.up();
+    await settle(tester);
+    expect(find.byType(ParentScreen), findsNothing);
+  });
+
+  testWidgets('a small wobble inside the lock does not cancel the hold', (tester) async {
+    await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const HomeScreen()));
+    await tester.pump();
+    final lock = find.byKey(const Key('parent-lock'));
+    final gesture = await tester.startGesture(tester.getCenter(lock));
+    await tester.pump(Duration.zero);
+    await tester.pump(const Duration(milliseconds: 1000));
+    await gesture.moveBy(const Offset(6, 4));
+    await tester.pump(const Duration(milliseconds: 2100));
+    await gesture.up();
+    await settle(tester);
+    expect(find.byType(ParentScreen), findsOneWidget);
+  });
+
   testWidgets('releasing resets the progress ring', (tester) async {
     await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const HomeScreen()));
     await tester.pump();

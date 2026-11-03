@@ -331,6 +331,32 @@ void padTests() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('completed strokes are drawn in a navy darker than the live ink', (tester) async {
+    const doneInk = Color(0xFF0D2B5C);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox.square(
+              dimension: 300,
+              child: TracePad(
+                strokes: const [
+                  [TracePoint(0.2, 0.2), TracePoint(0.2, 0.8)],
+                  [TracePoint(0.5, 0.2), TracePoint(0.8, 0.8)],
+                ],
+                current: 1,
+                onStrokeDrawn: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final guide = find.byWidgetPredicate((w) => w is CustomPaint && w.painter.runtimeType.toString() == '_GuidePainter');
+    expect(tester.renderObject(guide), paints..path(color: doneInk));
+    expect(doneInk.computeLuminance(), lessThan(const Color(0xFF1565C0).computeLuminance()));
+  });
+
   testWidgets('the fading ink keeps the live colour, which differs from the navy of completed strokes', (tester) async {
     await pumpPad(tester, (_) {});
     final rect = tester.getRect(find.byKey(const Key('trace-pad')));
