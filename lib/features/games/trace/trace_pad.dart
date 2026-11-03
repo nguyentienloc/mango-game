@@ -33,6 +33,13 @@ const _kMinStrokeLength = 0.04;
 /// How long a finished stroke's ink takes to melt away.
 const _kFadeDuration = Duration(milliseconds: 300);
 
+/// The ink under the child's finger: saturated blue so it reads on the white
+/// board, yet lighter than the navy ([IceColors.deep]) of completed strokes.
+const _kLiveInk = Color(0xFF1565C0);
+
+/// Live ink width as a fraction of the pad's side.
+const _kInkWidth = 0.075;
+
 /// Dashed guide paths only depend on the strokes and the pad size, so they are
 /// built once instead of on every pointer move.
 class _DashCache {
@@ -195,14 +202,14 @@ class TraceInkPainter extends CustomPainter {
 
   void _ink(Canvas canvas, List<TracePoint> pts, double side, double opacity) {
     if (pts.length < 2 || opacity <= 0) return;
-    final width = 0.07 * side;
+    final width = _kInkWidth * side;
     final p = _polyPath(pts, side);
     canvas.drawPath(
       p,
       _strokePaint(IceColors.ice.withValues(alpha: 0.7 * opacity), width * 1.8)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.6),
     );
-    canvas.drawPath(p, _strokePaint(const Color(0xFFD6F0FF).withValues(alpha: opacity), width));
+    canvas.drawPath(p, _strokePaint(_kLiveInk.withValues(alpha: opacity), width));
   }
 
   @override
