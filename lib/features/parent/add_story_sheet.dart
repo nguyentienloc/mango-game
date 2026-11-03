@@ -188,12 +188,23 @@ class _AddStorySheetState extends ConsumerState<AddStorySheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Thêm truyện', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: Text('Thêm truyện', style: Theme.of(context).textTheme.titleLarge)),
+                // The sheet cannot be dragged away (the preview takes drags): close it here.
+                IconButton(
+                  key: const Key('add-story-close'),
+                  tooltip: 'Đóng',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             TextField(
               key: const Key('story-link'),
               controller: _link,

@@ -238,6 +238,20 @@ void main() {
     expect((await env.store.userStories()).map((s) => s.videoId), [_mine.videoId]);
   });
 
+  testWidgets('add: ✕ closes the sheet, disposes the preview and adds nothing', (tester) async {
+    final env = await pumpManage(tester);
+    await openSheet(tester);
+    await checkLink(tester, _newId);
+    final close = find.byKey(const Key('add-story-close'));
+    expect(tester.widget<IconButton>(close).tooltip, 'Đóng');
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    expect(find.byType(AddStorySheet), findsNothing);
+    expect(env.players.last.disposed, isTrue);
+    expect((await env.store.userStories()).map((s) => s.videoId), [_mine.videoId]);
+    expect(_row(_newId), findsNothing);
+  });
+
   testWidgets('add: the list reloads whenever the sheet closes, saved or not', (tester) async {
     final env = await pumpManage(tester);
     await openSheet(tester);
