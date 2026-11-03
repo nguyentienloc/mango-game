@@ -13,7 +13,7 @@
 
 ### Phạm vi
 
-**Có:** 5 trò chơi (Tìm chữ cái EN, Tô chữ, Nói chuyện với Elsa, Chữ cái tiếng Việt, Từ vựng), hệ thống phần thưởng (bông tuyết, lâu đài, sticker, chuỗi ngày), khu bố mẹ (tiến độ, thu âm, cập nhật, cài đặt, sao lưu), cập nhật nội dung qua JSON từ GitHub, cập nhật APK qua GitHub Releases.
+**Có:** 5 trò chơi (Đập bong bóng chữ cái EN, Tô chữ, Nói chuyện với Elsa, Chữ cái tiếng Việt, Từ vựng), hệ thống phần thưởng (bông tuyết, lâu đài, sticker, chuỗi ngày), khu bố mẹ (tiến độ, thu âm, cập nhật, cài đặt, sao lưu), cập nhật nội dung qua JSON từ GitHub, cập nhật APK qua GitHub Releases.
 
 **Không có:** iOS, nhiều hồ sơ trẻ, đồng bộ cloud, tài khoản đăng nhập, analytics, Play Store.
 
@@ -30,7 +30,7 @@
 
 ```
 Màn chính (Lâu đài băng)
- ├─ 🎈 Tìm chữ cái (EN)
+ ├─ 🎈 Đập bong bóng (chữ cái EN; từ v0.4.0, thay trò Tìm chữ cái cũ)
  ├─ ✏️ Tô chữ (EN)
  ├─ 🗣️ Nói chuyện với Elsa
  ├─ 🇻🇳 Chữ cái tiếng Việt → chọn [Tìm chữ] / [Tô chữ]
@@ -93,17 +93,17 @@ Bạn đã mở khóa xuất hiện ở lâu đài và được chọn ngẫu nh
 
 ## 5. Các trò chơi
 
-### 5.1 🎈 Tìm chữ cái (tiếng Anh)
+### 5.1 🎈 Đập bong bóng (chữ cái tiếng Anh)
 
-- **Một lượt:** 8 câu.
-- **Câu hỏi:** Elsa nói "Find the letter B!". 3 bông tuyết (mức 1–2) hoặc 4 (mức 3) mang chữ rơi chậm từ trên xuống, lặp lại khi chạm đáy.
-- **Đúng:** bông tuyết vỡ lấp lánh, hiện hình ví dụ, Elsa nói "B! B is for Ball!".
-- **Sai:** bông tuyết lắc nhẹ, Elsa nói "Try again!". Sai lần 2 → bông đúng phát sáng.
-- **Ba chế độ:**
-  1. Chữ hoa — khóa `letter_en_upper:X`.
-  2. Chữ thường — mở khi ≥ 20/26 chữ hoa đạt mức ≥ 2. Khóa `letter_en_lower:x`.
-  3. Ghép hoa–thường ("Find the small b!" khi hiển thị chữ B lớn) — mở khi ≥ 20/26 chữ thường đạt mức ≥ 2. Khóa `letter_en_match:B`.
-- Mỗi lượt dùng chế độ cao nhất đã mở, xen 2 câu ôn từ chế độ thấp hơn.
+Từ v0.4.0 trò này thay trò "Tìm chữ cái" cũ (bông tuyết mang chữ rơi từ trên xuống; trò cũ và công tắc ẩn/hiện của nó đã bỏ).
+
+- **Một lượt:** 5 chữ HOA A–Z (chọn bằng `QuestionPicker`, tối đa 3 chữ chưa gặp). Khóa `balloon_en_upper:X`.
+- **Sân chơi:** 5–6 bóng nhiều màu (6 nếu màn rộng ≥ 360 dp) bay từ dưới lên trong 7–9 giây, lắc ngang nhẹ, mỗi bóng một chữ, không bao giờ hai bóng cùng chữ; chữ cần tìm luôn có bóng trên sân.
+- **Câu hỏi:** Elsa nói "Xoài tìm chữ B nào!" (chạm vào Elsa để nghe lại).
+- **Chạm:** vùng chạm là thân bóng cộng 12 dp; nếu nhiều bóng chồng nhau thì quả có tâm gần ngón tay nhất nổ. Trong lúc Elsa đang nói, chạm vào bóng chỉ làm bóng lắc, chưa nổ.
+- **Đúng:** bóng nổ kèm pháo giấy, Elsa nói "Đúng rồi! B!", sang chữ sau (các bóng khác vẫn bay).
+- **Sai:** bóng bị chạm nổ, Elsa nói "Chưa đúng rồi, đây là chữ C" (khóa chạm đến hết đoạn này), rồi "Tìm chữ B nha!" (bé chạm tiếp được ngay). Sai lần 2 → bóng đúng phát sáng.
+- **Kết quả:** `firstTry` / `retry` / `hinted` như các trò chọn khác; +1 ❄️ cho mỗi chữ đúng ngay lần đầu, +5 ❄️ mỗi lượt, tính vào nhiệm vụ ngày.
 
 ### 5.2 ✏️ Tô chữ (tiếng Anh)
 
@@ -129,7 +129,7 @@ Bạn đã mở khóa xuất hiện ở lâu đài và được chọn ngẫu nh
 ### 5.4 🇻🇳 Chữ cái tiếng Việt
 
 - Vào trò → chọn **[Tìm chữ]** hoặc **[Tô chữ]**.
-- Dùng lại nguyên cơ chế 5.1 và 5.2, với 29 chữ: a ă â b c d đ e ê g h i k l m n o ô ơ p q r s t u ư v x y.
+- Dùng lại cơ chế chọn chữ (bản đầu: Tìm chữ cái; từ v0.4.0 trò Tìm chữ không còn) và 5.2, với 29 chữ: a ă â b c d đ e ê g h i k l m n o ô ơ p q r s t u ư v x y.
 - **Chữ thường trước** (trường ở VN dạy chữ thường trước). Chữ hoa mở khi ≥ 20/29 chữ thường đạt mức ≥ 2. Không có chế độ ghép hoa–thường.
 - Câu nhắc tiếng Việt: "Xoài tìm chữ bờ nào!" — cách đọc mỗi chữ lấy từ trường `spoken` trong `letters_vi.json` (ví dụ `b` → "bờ") vì TTS đọc chữ đơn lẻ tiếng Việt không đúng cách đọc ở trường.
 - Nét tô chữ có dấu (ă â đ ê ô ơ ư) = nét của chữ gốc + nét dấu.
@@ -288,8 +288,7 @@ Thời gian chơi trong ngày = tổng `duration_sec` của các phiên có `dat
 
 ## 9. Khu bố mẹ
 
-- **Cửa vào:** giữ ổ khóa 2 giây → câu đố phép cộng hai số có hai chữ số ngẫu nhiên → nhập đúng mới vào.
-- Từ v0.3.2: giữ ổ khóa 3 giây là vào (bỏ phép cộng theo yêu cầu bố mẹ).
+- **Cửa vào:** giữ ổ khóa 3 giây là vào, không còn câu đố (bản đầu: giữ 2 giây rồi giải phép cộng hai số có hai chữ số; bỏ từ v0.3.2). Nhấc tay hoặc trượt ngón ra khỏi ổ khóa thì hủy.
 - **Tiến độ:** biểu đồ phút chơi 7 ngày; danh sách "Đã thuộc" (mức ≥ 3) và "Cần ôn" (mức ≤ 1 và đã gặp ≥ 3 lần) theo từng trò.
 - **Thu âm:** mục 7.4.
 - **Cập nhật:** trạng thái nội dung (phiên bản từng gói, nút "Kiểm tra ngay"); cập nhật app (mục 10).
@@ -327,7 +326,7 @@ lib/
 │   └── db/         drift database
 ├── features/
 │   ├── home/  castle/  reward/
-│   ├── games/  find_letter/  trace_letter/  talk/  vocab/  vi_letters/
+│   ├── games/  balloon/  trace_letter/  talk/  vocab/  vi_letters/
 │   └── parent/  gate/  progress/  recordings/  update/  settings/  backup/
 └── shared/  BigButton, CharacterView, SnowflakeView, theme
 tool/
@@ -364,7 +363,7 @@ Mỗi giai đoạn kết thúc bằng một bản APK bé chơi được.
 
 | # | Nội dung |
 |---|---|
-| 1 | Khung dự án, DB, ContentRepository (chỉ nội dung đóng gói), VoiceService (TTS), màn chính, 🎈 Tìm chữ cái EN, bông tuyết + lâu đài + nhiệm vụ ngày + màn thưởng (chưa có sticker nên quà nhiệm vụ = +20 ❄️ theo luật mục 4.2), cửa khu bố mẹ + màn cập nhật APK, CI build/ký/release. Từ đây các bản sau cài qua tự cập nhật. |
+| 1 | Khung dự án, DB, ContentRepository (chỉ nội dung đóng gói), VoiceService (TTS), màn chính, trò Tìm chữ cái EN (từ v0.4.0 là 🎈 Đập bong bóng), bông tuyết + lâu đài + nhiệm vụ ngày + màn thưởng (chưa có sticker nên quà nhiệm vụ = +20 ❄️ theo luật mục 4.2), cửa khu bố mẹ + màn cập nhật APK, CI build/ký/release. Từ đây các bản sau cài qua tự cập nhật. |
 | 2 | TraceScorer + ✏️ Tô chữ EN, 🇻🇳 Chữ cái tiếng Việt (tìm + tô), nét tô cho toàn bộ chữ cái. |
 | 3 | 🐶 Từ vựng: 3 dạng câu hỏi, 4 chủ đề ban đầu, ảnh OpenMoji. |
 | 4 | 🗣️ Nói chuyện với Elsa: STT, AnswerMatcher, chế độ nói theo. |
