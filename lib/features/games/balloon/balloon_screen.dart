@@ -51,7 +51,14 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
 
   /// A system back gesture: say go_home, which also cuts whatever is still being spoken.
   void _onPopInvoked(bool didPop, Object? result) {
-    if (didPop && !_leavingByUs) _voice.say('go_home');
+    if (didPop) {
+      if (!_leavingByUs) _voice.say('go_home');
+    } else if (_spec.popToRootOnExit && !_finishing && _session?.isFinished != true) {
+      // Games from a chooser take the back gesture themselves, to go all the way home.
+      _leavingByUs = true;
+      _voice.say('go_home');
+      _spec.leave(context);
+    }
   }
 
   bool get _finishing {
@@ -74,7 +81,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
       if (!mounted) return;
       _leavingByUs = true;
       await _voice.say('error_home');
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) _spec.leave(context);
     }
   }
 
@@ -161,7 +168,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
         ));
     final outcome = await ref.read(rewardStateProvider.notifier).completeRound(session.firstTryCount);
     if (!mounted) return;
-    await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome)));
+    await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome, popToRoot: _spec.popToRootOnExit)));
   }
 
   @override
@@ -169,14 +176,14 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     final session = _session;
     if (session == null || session.isFinished) {
       return PopScope(
-        canPop: _session == null,
+        canPop: _session == null && !_spec.popToRootOnExit,
         onPopInvokedWithResult: _onPopInvoked,
         child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
       );
     }
     final q = session.current;
     return PopScope(
-      canPop: !_finishing,
+      canPop: !_finishing && !_spec.popToRootOnExit,
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
         body: IceBackground(
@@ -193,7 +200,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
                         if (_finishing) return;
                         _leavingByUs = true;
                         _voice.say('go_home');
-                        Navigator.of(context).pop();
+                        _spec.leave(context);
                       },
                     ),
                     const Spacer(),

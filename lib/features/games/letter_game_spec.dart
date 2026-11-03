@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import '../../core/content/models.dart';
 
 /// Everything that differs between the English and the Vietnamese version of the
@@ -13,7 +15,9 @@ class LetterGameSpec {
     this.wrongThisId = '',
     this.wrongFindId = '',
     this.doneId = '',
+    this.tryAgainId,
     this.showExampleCard = true,
+    this.popToRootOnExit = false,
   });
 
   final List<LetterItem> Function(ContentBundle content) letters;
@@ -35,6 +39,23 @@ class LetterGameSpec {
   /// the child touched (only for the wrong-balloon phrase).
   final Map<String, String> Function(LetterItem target, {LetterItem? tapped})
   vars;
+
+  /// Trace only: the phrase said after a wrong stroke. Null: a random one of the `try_again` group.
+  final String? tryAgainId;
+
+  /// True when the game was opened from a chooser: 🏠, back and the reward's ✅ go all the way
+  /// home instead of back to the chooser.
+  final bool popToRootOnExit;
+
+  /// Leaves the game (or the reward screen after it) the way this spec wants.
+  void leave(BuildContext context) {
+    final nav = Navigator.of(context);
+    if (popToRootOnExit) {
+      nav.popUntil((r) => r.isFirst);
+    } else {
+      nav.pop();
+    }
+  }
 
   /// Trace only: after a letter, pop up its example picture (English) or just show the big letter.
   final bool showExampleCard;
@@ -59,6 +80,7 @@ class LetterGameSpec {
     wrongThisId: 'vi_balloon_wrong_this',
     wrongFindId: 'vi_balloon_wrong_find',
     vars: _varsVi,
+    popToRootOnExit: true,
   );
 
   static const traceEn = LetterGameSpec(
@@ -76,8 +98,10 @@ class LetterGameSpec {
     sessionGame: 'trace_vi',
     promptId: 'vi_trace_prompt',
     doneId: 'vi_trace_done',
+    tryAgainId: 'try_again_vi_1',
     vars: _varsVi,
     showExampleCard: false,
+    popToRootOnExit: true,
   );
 }
 

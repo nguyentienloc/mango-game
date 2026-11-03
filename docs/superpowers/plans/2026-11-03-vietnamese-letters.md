@@ -13,7 +13,7 @@
 - Nét: chữ không dấu dùng **y hệt** nét của chữ cùng hình trong `letters_en.json`. Chữ có dấu phía trên (Ă Â Ê Ô): nét chữ gốc co theo chiều dọc vào dải y 0,3–0,9 (`y' = 0.3 + (y − 0.1) × 0.75`, x giữ nguyên), rồi thêm nét dấu (tô sau cùng):
   - Ă dấu trăng: `{"arc":[0.5,0.1,0.15,0.1,180,-180]}`
   - Â/Ê/Ô dấu mũ: `{"line":[[0.35,0.22],[0.5,0.08],[0.65,0.22]]}`
-  - Ơ (không co): thêm `{"line":[[0.76,0.22],[0.9,0.1]]}`; Ư (không co): thêm `{"line":[[0.8,0.18],[0.94,0.08]]}`
+  - Ơ (không co): thêm `{"line":[[0.74,0.24],[0.94,0.06]]}`; Ư (không co): thêm `{"line":[[0.8,0.2],[0.96,0.04]]}`
   - Đ (không co): nét D + nét gạch `{"line":[[0.12,0.5],[0.42,0.5]]}` (tô sau cùng).
 - Khóa mức thuộc: `balloon_vi_upper:<CHAR>`, `trace_vi_upper:<CHAR>`; phiên `game: 'balloon_vi'` / `'trace_vi'`.
 - Câu nói (một đoạn `vi` mỗi câu, tên chữ nhúng trong câu để ngữ điệu tự nhiên), nhóm `vi_letters`:

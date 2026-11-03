@@ -100,8 +100,8 @@ void main() {
     for (final c in ['Â', 'Ê', 'Ô']) {
       expect(_toJsonStroke(v(c).strokes.last), '[line 0.35,0.22 0.5,0.08 0.65,0.22]', reason: c);
     }
-    expect(_toJsonStroke(v('Ơ').strokes.last), '[line 0.76,0.22 0.9,0.1]');
-    expect(_toJsonStroke(v('Ư').strokes.last), '[line 0.8,0.18 0.94,0.08]');
+    expect(_toJsonStroke(v('Ơ').strokes.last), '[line 0.74,0.24 0.94,0.06]');
+    expect(_toJsonStroke(v('Ư').strokes.last), '[line 0.8,0.2 0.96,0.04]');
     expect(_toJsonStroke(v('Đ').strokes.last), '[line 0.12,0.5 0.42,0.5]');
   });
 }

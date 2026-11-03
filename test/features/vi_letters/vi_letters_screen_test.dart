@@ -88,6 +88,52 @@ void main() {
     expect(find.byType(VietnameseLettersScreen), findsNothing);
   });
 
+  testWidgets('the home button inside a game returns to the home screen, skipping the chooser', (tester) async {
+    for (final button in ['🎈', '✏️']) {
+      final tts = FakeTts();
+      await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('🇻🇳'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text(button));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.tap(find.text('🏠'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(BalloonScreen), findsNothing, reason: button);
+      expect(find.byType(TraceScreen), findsNothing, reason: button);
+      expect(find.byType(VietnameseLettersScreen), findsNothing, reason: button);
+      expect(find.byType(HomeScreen), findsOneWidget, reason: button);
+      expect(tts.texts.where((t) => t == 'Về lâu đài nào!'), hasLength(1), reason: button);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    }
+  });
+
+  testWidgets('the back gesture inside a game also returns to the home screen', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('🇻🇳'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('🎈'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(VietnameseLettersScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(tts.texts.where((t) => t == 'Về lâu đài nào!'), hasLength(1));
+  });
+
   testWidgets('home 🇻🇳 names the topic and opens the chooser', (tester) async {
     final tts = FakeTts();
     await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));

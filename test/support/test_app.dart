@@ -27,6 +27,7 @@ Widget testApp({
   Set<String> missingVoices = const {},
   Future<UpdateCheck>? updateFuture,
   ProgressResetter? resetter,
+  int voiceSeed = 1,
 }) {
   return ProviderScope(
     overrides: [
@@ -35,7 +36,7 @@ Widget testApp({
         tts: tts,
         phrases: content.phrases,
         names: const Names(en: 'An', vi: 'Xoài'),
-        random: Random(1),
+        random: Random(voiceSeed),
       )),
       itemStatsStoreProvider.overrideWithValue(itemStats ?? MemoryItemStatsStore()),
       sessionStoreProvider.overrideWithValue(sessions ?? MemorySessionStore()),

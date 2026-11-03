@@ -5,6 +5,9 @@ import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/features/games/letter_game_spec.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
+import 'package:xoai_castle/core/content/strokes.dart';
+import 'package:xoai_castle/features/games/vi_letters/vi_letters_screen.dart';
+import 'package:xoai_castle/features/home/home_screen.dart';
 import 'package:xoai_castle/features/reward/reward_screen.dart';
 
 import '../../support/fakes.dart';
@@ -21,7 +24,7 @@ void main() {
 
   List<String> asked(FakeTts tts) => [for (final t in tts.texts) if (_prompt.hasMatch(t)) _prompt.firstMatch(t)![1]!];
 
-  Future<void> open(WidgetTester tester, FakeTts tts, {MemorySessionStore? sessions, MemoryItemStatsStore? stats}) async {
+  Future<void> open(WidgetTester tester, FakeTts tts, {MemorySessionStore? sessions, MemoryItemStatsStore? stats, int voiceSeed = 1}) async {
     await tester.pumpWidget(testApp(
       content: content,
       tts: tts,
@@ -29,6 +32,7 @@ void main() {
       rewards: MemoryRewardStore(),
       sessions: sessions,
       itemStats: stats,
+      voiceSeed: voiceSeed,
     ));
     await tester.pump();
     await tester.pump();
@@ -60,6 +64,52 @@ void main() {
     expect(sessions.records.single.game, 'trace_vi');
     expect(stats.stats, hasLength(3));
     expect(stats.stats.keys.every((k) => k.startsWith('trace_vi_upper:')), isTrue);
+  });
+
+  testWidgets('a wrong stroke always says the Vietnamese try-again, never the English one', (tester) async {
+    // Several voice seeds, so a random pick from the whole try_again group would show up.
+    for (var seed = 1; seed <= 8; seed++) {
+      final tts = FakeTts();
+      await open(tester, tts, voiceSeed: seed);
+      for (var i = 0; i < 2; i++) {
+        await drawPoints(tester, [for (var k = 0; k <= 20; k++) TracePoint(0.02 + k * 0.0125, 0.98)]);
+        expect(tts.texts.last, 'Thử lại nha con!', reason: 'seed $seed attempt ${i + 1}');
+      }
+      expect(tts.texts.where((t) => t == 'Try again!'), isEmpty, reason: 'seed $seed');
+      expect(tts.texts.where((t) => t == 'Thử lại nha con!'), hasLength(2), reason: 'seed $seed');
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    }
+  });
+
+  testWidgets('the reward ✅ after a Vietnamese round goes home, not back to the chooser', (tester) async {
+    final tts = FakeTts();
+    await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen(), rewards: MemoryRewardStore()));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('🇻🇳'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('✏️'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    for (var i = 0; i < 3; i++) {
+      final letter = bySpoken(asked(tts).last);
+      for (final s in letter.strokes) {
+        await drawPoints(tester, s.sample(step: 0.05));
+      }
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(RewardScreen), findsOneWidget);
+    await tester.tap(find.text('✅'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(RewardScreen), findsNothing);
+    expect(find.byType(VietnameseLettersScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('every Vietnamese letter, accented ones included, can be traced along its own strokes', (tester) async {
