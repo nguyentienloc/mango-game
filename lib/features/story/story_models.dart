@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show immutable, setEquals;
+// No Flutter imports: content models are also used by the dart-only tools (tool/gen_voice.dart).
+import 'package:meta/meta.dart' show immutable;
 
 /// How many stories can be picked in one session.
 const storyCountOptions = [1, 2, 3, 4, 5];
@@ -153,7 +154,7 @@ class StorySetup {
 
   @override
   bool operator ==(Object other) =>
-      other is StorySetup && setEquals(other.topics, topics) && other.limit == limit && other.mode == mode;
+      other is StorySetup && other.topics.length == topics.length && other.topics.containsAll(topics) && other.limit == limit && other.mode == mode;
 
   @override
   int get hashCode => Object.hash(Object.hashAllUnordered(topics), limit, mode);

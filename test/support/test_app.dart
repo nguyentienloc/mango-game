@@ -4,16 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xoai_castle/app/providers.dart';
 import 'package:xoai_castle/core/content/models.dart';
+import 'package:xoai_castle/core/net/connectivity_probe.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/progress/item_stats_store.dart';
 import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
+import 'package:xoai_castle/core/screen/screen_awake.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
 import 'package:xoai_castle/core/speech/speech_recognizer.dart';
 import 'package:xoai_castle/core/stories/story_store.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
+import 'package:xoai_castle/features/story/story_player.dart';
 
 import 'fakes.dart';
 
@@ -32,6 +35,9 @@ Widget testApp({
   int voiceSeed = 1,
   SpeechRecognizer? speech,
   StoryStore? stories,
+  StoryPlayerFactory? storyPlayer,
+  ConnectivityProbe? connectivity,
+  ScreenAwake? screenAwake,
 }) {
   const names = Names(en: 'An', vi: 'Xoài');
   return ProviderScope(
@@ -56,6 +62,9 @@ Widget testApp({
       missingVoicesProvider.overrideWithValue(missingVoices),
       speechRecognizerProvider.overrideWithValue(speech ?? FakeSpeechRecognizer()),
       storyStoreProvider.overrideWithValue(stories ?? MemoryStoryStore()),
+      storyPlayerFactoryProvider.overrideWithValue(storyPlayer ?? FakeStoryPlayers().create),
+      connectivityProbeProvider.overrideWithValue(connectivity ?? FakeConnectivityProbe()),
+      screenAwakeProvider.overrideWithValue(screenAwake ?? FakeScreenAwake()),
     ],
     child: MaterialApp(home: home),
   );

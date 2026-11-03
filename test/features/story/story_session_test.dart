@@ -161,6 +161,15 @@ void main() {
       expect(s.canPick(story('b')), isTrue);
     });
 
+    test('finishStory without a current story does nothing (ended + dispose may both call it)', () {
+      final s = StorySession(const CountLimit(2))..startStory(story('a'));
+      s.finishStory(completed: true);
+      s.finishStory(completed: true);
+      s.finishStory(completed: false);
+      expect(s.listened, 1);
+      expect(s.storiesLeft, 1);
+    });
+
     test('played time resets for each story', () {
       final s = StorySession(const CountLimit(3))..startStory(story('a'));
       s.advance(const Duration(seconds: 30), playing: true);

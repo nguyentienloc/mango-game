@@ -48,7 +48,9 @@ class StorySession {
   }
 
   /// Ends the current story. It counts if it [completed] or played long enough.
+  /// Does nothing when no story is playing (a screen may end it twice).
   void finishStory({required bool completed}) {
+    if (_current == null) return;
     if (completed || _currentPlayed >= storyCountsAfter) _listened++;
     _clearCurrent();
   }

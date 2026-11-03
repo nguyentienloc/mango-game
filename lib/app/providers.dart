@@ -4,11 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/content/models.dart';
+import '../core/net/connectivity_probe.dart';
 import '../core/db/database.dart';
 import '../core/profile/profile_store.dart';
 import '../core/profile/names.dart';
 import '../core/progress/item_stats_store.dart';
 import '../core/progress/progress_resetter.dart';
+import '../core/screen/screen_awake.dart';
 import '../core/rewards/reward_store.dart';
 import '../core/session/session_store.dart';
 import '../core/speech/speech_recognizer.dart';
@@ -18,6 +20,8 @@ import '../core/updater/app_updater.dart';
 import '../core/voice/voice_service.dart';
 import '../features/story/oembed_client.dart';
 import '../features/story/story_library.dart';
+import '../features/story/story_player.dart';
+import '../features/story/youtube_story_player.dart';
 import 'config.dart';
 
 /// Overridden in main() after bootstrapping.
@@ -74,3 +78,10 @@ final storyLibraryProvider = FutureProvider<StoryLibrary>((ref) async {
 });
 
 final oembedClientProvider = Provider<OEmbedClient>((ref) => OEmbedClient(Dio()));
+
+/// Makes the video player for a story screen (a fake in widget tests: no WebView there).
+final storyPlayerFactoryProvider = Provider<StoryPlayerFactory>((ref) => YoutubeStoryPlayer.new);
+
+final connectivityProbeProvider = Provider<ConnectivityProbe>((ref) => const DnsConnectivityProbe());
+
+final screenAwakeProvider = Provider<ScreenAwake>((ref) => const WakelockScreenAwake());
