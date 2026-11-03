@@ -16,6 +16,13 @@ const storyCountsAfter = Duration(seconds: 60);
 /// Fade-out before playback is cut at a time limit (overrun "stopNow").
 const storyFadeOut = Duration(seconds: 5);
 
+/// With a count limit, the sitting still ends after this much foreground time
+/// (so hopping between stories without finishing any cannot go on forever).
+const storyCountModeCeiling = Duration(minutes: 60);
+
+/// Away from the app this long (wall clock) and the sitting is over on return.
+const storyBackgroundExpiry = Duration(minutes: 10);
+
 const _defaultCount = 2;
 const _defaultMinutes = 15;
 

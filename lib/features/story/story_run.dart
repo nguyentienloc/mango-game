@@ -11,9 +11,13 @@ import 'story_session.dart';
 /// Every second the app is in the foreground (resumed or merely inactive) the
 /// session advances by a second — counting toward the current story only while
 /// [isPlaying] — and listeners are notified. In the background (paused, hidden,
-/// detached) the clock stands still. The grid screen owns and disposes it.
+/// detached) the clock stands still. Back in front after [storyBackgroundExpiry]
+/// or more away (wall clock) the sitting has [expired]. The grid screen owns
+/// and disposes it.
 class StoryRun extends ChangeNotifier with WidgetsBindingObserver {
-  StoryRun({required this.setup, required this.library}) : session = StorySession(setup.limit) {
+  StoryRun({required this.setup, required this.library, DateTime Function()? now})
+    : session = StorySession(setup.limit),
+      _now = now ?? DateTime.now {
     _foreground = _isForeground(WidgetsBinding.instance.lifecycleState);
     WidgetsBinding.instance.addObserver(this);
     _timer = Timer.periodic(tick, (_) => _onTick());
@@ -31,12 +35,24 @@ class StoryRun extends ChangeNotifier with WidgetsBindingObserver {
   /// [Story.id]s that failed to play in this sitting; hidden from the grid.
   final Set<String> failedThisRun = {};
 
+  final DateTime Function() _now;
+
+  /// When the app last went to the background; null while in front.
+  DateTime? _awaySince;
+  bool _expired = false;
+
+  /// The app was away for [storyBackgroundExpiry] or more: the sitting is over.
+  bool get expired => _expired;
+
   late final Timer _timer;
   late bool _foreground;
   bool _disposed = false;
 
   static bool _isForeground(AppLifecycleState? s) =>
       s == null || s == AppLifecycleState.resumed || s == AppLifecycleState.inactive;
+
+  /// The app is in front (resumed or merely inactive): Elsa may speak.
+  static bool get appInForeground => _isForeground(WidgetsBinding.instance.lifecycleState);
 
   /// Stories the child may start now: visible in the chosen topics, not failed,
   /// and allowed by the session (length vs. time left).
@@ -45,8 +61,9 @@ class StoryRun extends ChangeNotifier with WidgetsBindingObserver {
       if (!failedThisRun.contains(s.id) && session.canPick(s)) s,
   ];
 
-  /// Time to say good night: no story is playing and the limit is reached or nothing is left.
-  bool get shouldEnd => session.current == null && (session.limitReached || pickable.isEmpty);
+  /// Time to say good night: no story is playing and the limit is reached, the
+  /// sitting [expired] or nothing is left.
+  bool get shouldEnd => session.current == null && (_expired || session.limitReached || pickable.isEmpty);
 
   void _onTick() {
     if (_disposed || !_foreground) return;
@@ -55,7 +72,18 @@ class StoryRun extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) => _foreground = _isForeground(state);
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = _isForeground(state);
+    if (!_foreground) {
+      _awaySince ??= _now();
+      return;
+    }
+    final since = _awaySince;
+    _awaySince = null;
+    if (since == null || _expired || _disposed || _now().difference(since) < storyBackgroundExpiry) return;
+    _expired = true;
+    notifyListeners();
+  }
 
   @override
   void dispose() {

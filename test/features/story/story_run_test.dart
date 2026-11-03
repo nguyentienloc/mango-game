@@ -20,8 +20,8 @@ void main() {
 
   tearDown(() => WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed));
 
-  StoryRun newRun({StorySetup setup = const StorySetup(), List<Story>? stories}) =>
-      StoryRun(setup: setup, library: library(stories ?? [story('a'), story('b')]));
+  StoryRun newRun({StorySetup setup = const StorySetup(), List<Story>? stories, DateTime Function()? now}) =>
+      StoryRun(setup: setup, library: library(stories ?? [story('a'), story('b')]), now: now);
 
   group('clock', () {
     test('ticks once a second while the app is in the foreground and notifies each tick', () {
@@ -87,6 +87,62 @@ void main() {
         expect(run.session.elapsed, const Duration(seconds: 2));
         expect(async.periodicTimerCount, 0);
       });
+    });
+  });
+
+  group('background expiry', () {
+    void away(Duration d, void Function(Duration) advanceClock) {
+      for (final s in [AppLifecycleState.inactive, AppLifecycleState.hidden, AppLifecycleState.paused]) {
+        WidgetsBinding.instance.handleAppLifecycleStateChanged(s);
+      }
+      advanceClock(d);
+      for (final s in [AppLifecycleState.hidden, AppLifecycleState.inactive, AppLifecycleState.resumed]) {
+        WidgetsBinding.instance.handleAppLifecycleStateChanged(s);
+      }
+    }
+
+    test('away 10 minutes or more: the sitting has expired and should end', () {
+      var now = DateTime(2026, 11, 3, 20);
+      final run = newRun(now: () => now);
+      var notified = 0;
+      run.addListener(() => notified++);
+      expect(storyBackgroundExpiry, const Duration(minutes: 10));
+      away(const Duration(minutes: 10), (d) => now = now.add(d));
+      expect(run.expired, isTrue);
+      expect(run.shouldEnd, isTrue);
+      expect(notified, greaterThan(0), reason: 'screens hear about it at once');
+      run.dispose();
+    });
+
+    test('away 5 minutes: the sitting goes on', () {
+      var now = DateTime(2026, 11, 3, 20);
+      final run = newRun(now: () => now);
+      away(const Duration(minutes: 5), (d) => now = now.add(d));
+      expect(run.expired, isFalse);
+      expect(run.shouldEnd, isFalse);
+      run.dispose();
+    });
+
+    test('short trips away do not add up', () {
+      var now = DateTime(2026, 11, 3, 20);
+      final run = newRun(now: () => now);
+      for (var i = 0; i < 3; i++) {
+        away(const Duration(minutes: 6), (d) => now = now.add(d));
+      }
+      expect(run.expired, isFalse);
+      run.dispose();
+    });
+
+    test('expired with a story playing: shouldEnd waits for the player to end it', () {
+      var now = DateTime(2026, 11, 3, 20);
+      final run = newRun(now: () => now);
+      run.session.startStory(story('a'));
+      away(const Duration(minutes: 20), (d) => now = now.add(d));
+      expect(run.expired, isTrue);
+      expect(run.shouldEnd, isFalse);
+      run.session.finishStory(completed: false);
+      expect(run.shouldEnd, isTrue);
+      run.dispose();
     });
   });
 

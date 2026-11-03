@@ -59,7 +59,12 @@ class _StoryGridScreenState extends ConsumerState<StoryGridScreen> {
       return;
     }
     setState(() => _ready = true);
-    if (!_endIfDone()) unawaited(_voice.say('story_pick'));
+    if (!_endIfDone()) _askToPick();
+  }
+
+  /// Elsa asks for a story — not while the app is in the background.
+  void _askToPick() {
+    if (StoryRun.appInForeground) unawaited(_voice.say('story_pick'));
   }
 
   void _onTick() {
@@ -98,7 +103,7 @@ class _StoryGridScreenState extends ConsumerState<StoryGridScreen> {
     if (_endIfDone()) return;
     setState(() {});
     // A story that failed already had Elsa ask for another one.
-    if (!_run.failedThisRun.contains(s.id)) unawaited(_voice.say('story_pick'));
+    if (!_run.failedThisRun.contains(s.id)) _askToPick();
   }
 
   String _remaining() {

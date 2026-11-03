@@ -181,6 +181,26 @@ void main() {
     });
   });
 
+  group('StorySession count limit, 60-minute ceiling', () {
+    test('ends the sitting at 60 minutes even if no story counted (hopping between stories)', () {
+      final s = StorySession(const CountLimit(5));
+      s.advance(const Duration(minutes: 59, seconds: 59), playing: false);
+      expect(s.limitReached, isFalse);
+      expect(s.mustStopPlayback, isFalse);
+      s.advance(const Duration(seconds: 1), playing: false);
+      expect(storyCountModeCeiling, const Duration(minutes: 60));
+      expect(s.listened, 0);
+      expect(s.limitReached, isTrue);
+      expect(s.mustStopPlayback, isTrue);
+    });
+
+    test('cuts a story still playing at the ceiling', () {
+      final s = StorySession(const CountLimit(1))..startStory(story('a'));
+      s.advance(const Duration(minutes: 60), playing: true);
+      expect(s.mustStopPlayback, isTrue);
+    });
+  });
+
   group('StorySession time + finish', () {
     StorySession make() => StorySession(const TimeLimit(Duration(minutes: 15), StoryOverrun.finish));
 

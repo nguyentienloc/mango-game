@@ -70,14 +70,15 @@ class StorySession {
         _ => true,
       };
 
+  /// A count limit also ends at [storyCountModeCeiling] of foreground time.
   bool get limitReached => switch (limit) {
-        CountLimit(:final stories) => _listened >= stories,
+        CountLimit(:final stories) => _listened >= stories || _elapsed >= storyCountModeCeiling,
         TimeLimit(:final duration) => _elapsed >= duration,
       };
 
   /// Whether playback must be cut now, mid-story.
   bool get mustStopPlayback => switch (limit) {
-        CountLimit() => false,
+        CountLimit() => _elapsed >= storyCountModeCeiling,
         TimeLimit(:final duration, overrun: StoryOverrun.stopNow) => _elapsed >= duration,
         TimeLimit(:final duration, overrun: StoryOverrun.finish) => _elapsed >= duration + storyOverrunCap,
       };

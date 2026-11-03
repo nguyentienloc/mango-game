@@ -55,6 +55,8 @@ void main() {
     content = await ContentRepository(FileContentSource('content')).load();
   });
 
+  tearDown(() => WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed));
+
   /// Frames for route transitions and pending futures (the night sky never settles).
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 4; i++) {
@@ -66,6 +68,8 @@ void main() {
     WidgetTester tester, {
     StorySetup setup = const StorySetup(),
     bool online = true,
+    List<Story> stories = _stories,
+    DateTime Function()? now,
   }) async {
     final tts = FakeTts();
     final players = FakeStoryPlayers();
@@ -73,7 +77,8 @@ void main() {
     final probe = FakeConnectivityProbe(isOnline: online);
     final run = StoryRun(
       setup: setup,
-      library: StoryLibrary(bundled: _stories, user: const [], hidden: const {}),
+      library: StoryLibrary(bundled: stories, user: const [], hidden: const {}),
+      now: now,
     );
     await tester.pumpWidget(
       testApp(
@@ -128,6 +133,18 @@ void main() {
     expect(find.byType(StoryEndScreen), findsNothing);
     expect(find.byType(StoryGridScreen), findsNothing);
     expect(find.text('open'), findsOneWidget);
+  }
+
+  void goAway(WidgetTester tester) {
+    for (final s in [AppLifecycleState.inactive, AppLifecycleState.hidden, AppLifecycleState.paused]) {
+      tester.binding.handleAppLifecycleStateChanged(s);
+    }
+  }
+
+  void comeBack(WidgetTester tester) {
+    for (final s in [AppLifecycleState.hidden, AppLifecycleState.inactive, AppLifecycleState.resumed]) {
+      tester.binding.handleAppLifecycleStateChanged(s);
+    }
   }
 
   testWidgets('count 2: two stories end naturally, then good night and back home', (tester) async {
@@ -511,5 +528,134 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pump(const Duration(seconds: 3));
     await settle(tester);
+  });
+
+  group('away from the app', () {
+    testWidgets('on the grid, away 20 minutes: back in front it says good night and goes home', (tester) async {
+      var now = DateTime(2026, 11, 3, 20);
+      final env = await pumpGrid(tester, now: () => now);
+      goAway(tester);
+      now = now.add(const Duration(minutes: 20));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(StoryGridScreen), findsOneWidget, reason: 'nothing happens while away');
+      comeBack(tester);
+      await settle(tester);
+      await expectEndThenHome(tester, env, _bye);
+    });
+
+    testWidgets('on the grid, away 5 minutes: the sitting goes on', (tester) async {
+      var now = DateTime(2026, 11, 3, 20);
+      await pumpGrid(tester, now: () => now);
+      goAway(tester);
+      now = now.add(const Duration(minutes: 5));
+      comeBack(tester);
+      await settle(tester);
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.byType(StoryGridScreen), findsOneWidget);
+      expect(find.byType(StoryEndScreen), findsNothing);
+    });
+
+    testWidgets('in a story, away 20 minutes: back in front the story stops and good night', (tester) async {
+      var now = DateTime(2026, 11, 3, 20);
+      final env = await pumpGrid(tester, now: () => now);
+      await openStory(tester, env, 'aaaaaaaaaaa');
+      await emit(tester, env, StoryPlayerState.playing);
+      goAway(tester);
+      await tester.pump();
+      now = now.add(const Duration(minutes: 20));
+      comeBack(tester);
+      await tester.pump();
+      expect(env.player.pauses, greaterThanOrEqualTo(2), reason: 'paused on hide and again on the stop');
+      expect(env.player.volumes, [100], reason: 'no fade');
+      await settle(tester);
+      expect(find.byType(StoryPlayerScreen), findsNothing);
+      expect(env.awake.on, isFalse);
+      await expectEndThenHome(tester, env, _bye);
+    });
+
+    testWidgets('a story that fails while the app is away: Elsa does not say so; good night once back', (tester) async {
+      final env = await pumpGrid(tester, stories: [_stories.first]);
+      await openStory(tester, env, 'aaaaaaaaaaa');
+      goAway(tester);
+      await tester.pump();
+      await emit(tester, env, StoryPlayerState.error);
+      await tester.pump(const Duration(seconds: 6));
+      expect(env.said(_error), 0);
+      expect(env.run.failedThisRun, {'yt:aaaaaaaaaaa'});
+      expect(env.awake.on, isFalse);
+      comeBack(tester);
+      await settle(tester);
+      // Nothing left to pick: the end screen comes up once the app is in front again.
+      await expectEndThenHome(tester, env, _bye);
+      expect(env.said(_error), 0);
+    });
+
+    testWidgets('the end screen built while the app is away says nothing and still goes home', (tester) async {
+      final tts = FakeTts();
+      await tester.pumpWidget(
+        testApp(
+          content: content,
+          tts: tts,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const StoryEndScreen(reason: StoryEndReason.finished)),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      goAway(tester);
+      // No frames run in the background; force the one that builds the screen.
+      tester.binding.scheduleForcedFrame();
+      await tester.pump();
+      expect(find.byType(StoryEndScreen, skipOffstage: false), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+      comeBack(tester);
+      await settle(tester);
+      expect(find.byType(StoryEndScreen), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+      expect(tts.texts, isEmpty);
+    });
+
+    testWidgets('a story that ends while the app is away: back on the grid Elsa does not ask for another', (tester) async {
+      final env = await pumpGrid(tester, setup: const StorySetup(limit: CountLimit(3)));
+      await openStory(tester, env, 'aaaaaaaaaaa');
+      goAway(tester);
+      await tester.pump();
+      await emit(tester, env, StoryPlayerState.ended);
+      await settle(tester);
+      expect(env.run.session.listened, 1);
+      expect(env.said(_pick), 1, reason: 'only the first one, before the story');
+      comeBack(tester);
+      await settle(tester);
+      expect(find.byType(StoryGridScreen), findsOneWidget);
+      expect(find.byType(StoryEndScreen), findsNothing);
+    });
+  });
+
+  testWidgets('time + stop now while the video is still loading: it is paused anyway', (tester) async {
+    final env = await pumpGrid(tester, setup: const StorySetup(limit: TimeLimit(Duration(minutes: 10), StoryOverrun.stopNow)));
+    await openStory(tester, env, 'aaaaaaaaaaa');
+    await tester.pump(const Duration(minutes: 10));
+    expect(env.player.pauses, 1);
+    expect(env.player.volumes, [100], reason: 'nothing to fade');
+    await settle(tester);
+    await expectEndThenHome(tester, env, _bye);
+  });
+
+  testWidgets('count mode: a story still playing after 60 minutes is cut, then good night', (tester) async {
+    final env = await pumpGrid(tester, setup: const StorySetup(limit: CountLimit(5)));
+    await openStory(tester, env, 'ccccccccccc');
+    await emit(tester, env, StoryPlayerState.playing);
+    await tester.pump(const Duration(minutes: 60));
+    await tester.pump(const Duration(seconds: 6));
+    expect(env.player.pauses, 1);
+    await settle(tester);
+    await expectEndThenHome(tester, env, _bye);
   });
 }

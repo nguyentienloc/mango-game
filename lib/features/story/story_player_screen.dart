@@ -141,7 +141,10 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     } else {
       _pausedAfterLimit = Duration.zero;
     }
-    if (session.mustStopPlayback || _pausedAfterLimit >= StoryPlayerScreen.pausedAfterLimitCap) {
+    if (_run.expired) {
+      // Back after a long time away: the sitting is over, no fade.
+      unawaited(_stopForTime(fade: false));
+    } else if (session.mustStopPlayback || _pausedAfterLimit >= StoryPlayerScreen.pausedAfterLimitCap) {
       unawaited(_stopForTime());
     }
   }
@@ -176,30 +179,37 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     _run.isPlaying = false;
     _run.session.abandonStory();
     _run.failedThisRun.add(widget.story.id);
+    // No new Elsa lines while the app is in the background.
+    if (!_hidden) await _sayError();
+    _pop();
+  }
+
+  Future<void> _sayError() async {
     await ref
         .read(voiceProvider)
         .say('story_error')
         .timeout(StoryPlayerScreen.errorSayCap, onTimeout: () {})
         .catchError((Object e) => debugPrint('Story error voice failed: $e'));
-    _pop();
   }
 
-  /// Time is up mid-story: fade the sound out over [storyFadeOut] (if it is
-  /// playing), stop, back to the grid (which then says good night).
-  Future<void> _stopForTime() async {
+  /// Time is up mid-story (or the sitting [StoryRun.expired]): fade the sound
+  /// out over [storyFadeOut] if it is playing and [fade] is set, stop, back to
+  /// the grid (which then says good night). Always pauses: a video still
+  /// loading or buffering must not start playing on its own afterwards.
+  Future<void> _stopForTime({bool fade = true}) async {
     if (_leaving) return;
     _leaving = true;
-    if (_state == StoryPlayerState.playing) {
+    if (fade && _state == StoryPlayerState.playing) {
       const steps = StoryPlayerScreen.fadeSteps;
       for (var i = 1; i <= steps; i++) {
         await Future<void>.delayed(storyFadeOut ~/ steps);
         if (!mounted) break;
         await _player.setVolume(100 - i * 100 ~/ steps);
       }
-      if (mounted) await _player.pause();
     }
+    if (mounted) await _player.pause();
     _run.isPlaying = false;
-    _run.session.finishStory(completed: true);
+    _run.session.finishStory(completed: fade);
     _pop();
   }
 

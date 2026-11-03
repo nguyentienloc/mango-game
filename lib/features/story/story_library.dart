@@ -5,11 +5,11 @@ class StoryLibrary {
   StoryLibrary({required List<Story> bundled, required List<Story> user, required Set<String> hidden})
     // ignore: prefer_initializing_formals
     : _hidden = hidden,
-      all = [
+      all = List.unmodifiable([
         ...bundled,
         for (final u in user)
           if (!bundled.any((b) => b.videoId == u.videoId)) u,
-      ];
+      ]);
 
   final Set<String> _hidden;
 

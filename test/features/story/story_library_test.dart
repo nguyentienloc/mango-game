@@ -49,4 +49,9 @@ void main() {
     expect(lib.visible(), isEmpty);
     expect(lib.topicsWithStories, isEmpty);
   });
+
+  test('all cannot be changed from outside', () {
+    final lib = StoryLibrary(bundled: [tam], user: const [], hidden: const {});
+    expect(() => lib.all.add(elsa), throwsUnsupportedError);
+  });
 }

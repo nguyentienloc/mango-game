@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../shared/character_view.dart';
 import 'night_sky.dart';
+import 'story_run.dart';
 
 enum StoryEndReason { finished, offline }
 
-/// Good night (or "no internet"): Elsa says it, then back to the home screen.
+/// Good night (or "no internet"): Elsa says it (unless the app is in the
+/// background), then back to the home screen.
 /// Nothing to tap; at least [minShow] on screen.
 class StoryEndScreen extends ConsumerStatefulWidget {
   const StoryEndScreen({super.key, required this.reason});
@@ -34,9 +36,12 @@ class _StoryEndScreenState extends ConsumerState<StoryEndScreen> {
 
   Future<void> _run() async {
     final phrase = widget.reason == StoryEndReason.finished ? 'story_bye' : 'story_offline';
-    final say = ref.read(voiceProvider).say(phrase).timeout(StoryEndScreen.sayCap, onTimeout: () {}).catchError((Object e) {
-      debugPrint('Story end voice failed: $e');
-    });
+    // In the background Elsa says nothing; the screen still goes home.
+    final say = !StoryRun.appInForeground
+        ? Future<void>.value()
+        : ref.read(voiceProvider).say(phrase).timeout(StoryEndScreen.sayCap, onTimeout: () {}).catchError((Object e) {
+            debugPrint('Story end voice failed: $e');
+          });
     await Future.wait([say, Future<void>.delayed(StoryEndScreen.minShow)]);
     if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
