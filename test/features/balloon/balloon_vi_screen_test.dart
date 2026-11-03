@@ -10,7 +10,6 @@ import 'package:xoai_castle/features/reward/reward_screen.dart';
 
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
-import '../../support/vi_content.dart';
 
 final _balloonKey = RegExp(r'^balloon-[^-]$');
 final _prompt = RegExp(r'^Xoài tìm chữ (.+) nào!$');
@@ -86,7 +85,7 @@ Future<String?> tapAnyWrong(WidgetTester tester, String goal) async {
 
 void main() {
   setUpAll(() async {
-    content = withViLetterPhrases(await ContentRepository(FileContentSource('content')).load());
+    content = await ContentRepository(FileContentSource('content')).load();
   });
 
   Future<void> start(WidgetTester tester, FakeTts tts, {MemorySessionStore? sessions, MemoryItemStatsStore? stats}) async {

@@ -3,7 +3,7 @@ import '../content/vocab.dart';
 import '../profile/names.dart';
 import 'utterance.dart';
 
-enum UtteranceKind { fixed, vocab, trace, balloon, numbers }
+enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters }
 
 class PlannedUtterance {
   const PlannedUtterance(this.utterance, this.kind);
@@ -20,6 +20,15 @@ const numberPhraseIds = ['snowflake_count'];
 const maxSpokenCount = 999;
 const letterPhraseIds = ['letter_example'];
 const balloonPhraseIds = ['balloon_prompt', 'balloon_correct', 'balloon_wrong_this', 'balloon_wrong_find'];
+/// The Vietnamese letter games: each is a single `vi` part with the letter's spoken name inside.
+const viLetterPhraseIds = [
+  'vi_balloon_prompt',
+  'vi_balloon_correct',
+  'vi_balloon_wrong_this',
+  'vi_balloon_wrong_find',
+  'vi_trace_prompt',
+  'vi_trace_done',
+];
 
 /// Every utterance the app can say, with names and item variables filled in.
 /// Used by tool/gen_voice.dart to pre-generate audio and by the voice coverage test.
@@ -36,7 +45,7 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
 
   for (final id in content.phrases.keys) {
     if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
-        balloonPhraseIds.contains(id) || numberPhraseIds.contains(id)) {
+        balloonPhraseIds.contains(id) || numberPhraseIds.contains(id) || viLetterPhraseIds.contains(id)) {
       continue;
     }
     add(id, const {}, UtteranceKind.fixed);
@@ -59,6 +68,14 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
     add('balloon_correct', {'letter': l.char}, UtteranceKind.balloon);
     add('balloon_wrong_this', {'tapped': l.char}, UtteranceKind.balloon);
     add('balloon_wrong_find', {'letter': l.char}, UtteranceKind.balloon);
+  }
+  // Vietnamese letters: every phrase x every letter. wrong_this carries the tapped letter's name;
+  // the others the target's. Called with the same vars as LetterGameSpec.balloonVi / traceVi.
+  for (final l in content.lettersVi) {
+    final spoken = l.spoken ?? l.lower;
+    for (final id in viLetterPhraseIds) {
+      add(id, id == 'vi_balloon_wrong_this' ? {'tapped': spoken} : {'spoken': spoken}, UtteranceKind.viLetters);
+    }
   }
   for (var n = 0; n <= maxSpokenCount; n++) {
     add('snowflake_count', {'count': '$n'}, UtteranceKind.numbers);

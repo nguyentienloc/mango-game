@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -32,6 +32,14 @@
     { "id": "snowflake_count", "group": "reward", "parts": [ { "lang": "vi", "text": "{name_vi} đã kiếm được" }, { "lang": "vi", "text": "{count}" }, { "lang": "vi", "text": "bông tuyết rồi, giỏi quá nè!" } ] },
     { "id": "castle_level_up", "lang": "vi", "text": "Lâu đài lớn thêm rồi nè!", "group": "reward" },
     { "id": "friend_unlocked", "lang": "vi", "text": "Có bạn mới đến chơi với {name_vi} nè!", "group": "reward" },
-    { "id": "error_home", "lang": "vi", "text": "Mình về lâu đài nha!", "group": "system" }
+    { "id": "error_home", "lang": "vi", "text": "Mình về lâu đài nha!", "group": "system" },
+    { "id": "vi_balloon_prompt", "lang": "vi", "text": "{name_vi} tìm chữ {spoken} nào!", "group": "vi_letters" },
+    { "id": "vi_balloon_correct", "lang": "vi", "text": "Đúng rồi! Chữ {spoken}!", "group": "vi_letters" },
+    { "id": "vi_balloon_wrong_this", "lang": "vi", "text": "Chưa đúng rồi, đây là chữ {tapped}.", "group": "vi_letters" },
+    { "id": "vi_balloon_wrong_find", "lang": "vi", "text": "Tìm chữ {spoken} nha!", "group": "vi_letters" },
+    { "id": "vi_trace_prompt", "lang": "vi", "text": "Mình cùng viết chữ {spoken} nào!", "group": "vi_letters" },
+    { "id": "vi_trace_done", "lang": "vi", "text": "Giỏi quá! Chữ {spoken}!", "group": "vi_letters" },
+    { "id": "game_vi_balloon", "lang": "vi", "text": "Đập bong bóng", "group": "menu" },
+    { "id": "game_vi_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" }
   ]
 }

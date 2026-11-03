@@ -54,6 +54,22 @@ void main() {
     expect(balloon, hasLength(26 * 4));
   });
 
+  test('Vietnamese letters: every phrase for all 29 letters, single vi part, names embedded', () {
+    final vi = keys(UtteranceKind.viLetters).toSet();
+    expect(vi, hasLength(29 * 6));
+    expect(vi, containsAll([
+      'vi|Xoài tìm chữ bờ nào!',
+      'vi|Đúng rồi! Chữ i dài!',
+      'vi|Chưa đúng rồi, đây là chữ ớ.',
+      'vi|Tìm chữ ca nha!',
+      'vi|Mình cùng viết chữ đờ nào!',
+      'vi|Giỏi quá! Chữ ơ!',
+    ]));
+    for (final p in planned.where((p) => p.kind == UtteranceKind.viLetters)) {
+      expect(p.utterance.parts, hasLength(1));
+    }
+  });
+
   test('tracing needs a prompt and an example for every letter', () {
     final trace = keys(UtteranceKind.trace).toSet();
     expect(trace, containsAll(['en|Let\'s write B!', 'en|B! B is for Ball!']));

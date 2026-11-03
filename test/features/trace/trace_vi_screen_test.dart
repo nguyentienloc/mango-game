@@ -9,14 +9,13 @@ import 'package:xoai_castle/features/reward/reward_screen.dart';
 
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
-import '../../support/vi_content.dart';
 import 'trace_screen_test.dart' show drawPoints;
 
 final _prompt = RegExp(r'^Mình cùng viết chữ (.+) nào!$');
 
 void main() {
   late ContentBundle content;
-  setUpAll(() async => content = withViLetterPhrases(await ContentRepository(FileContentSource('content')).load()));
+  setUpAll(() async => content = await ContentRepository(FileContentSource('content')).load());
 
   LetterItem bySpoken(String spoken) => content.lettersVi.firstWhere((l) => l.spoken == spoken);
 

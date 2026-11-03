@@ -34,6 +34,14 @@ const requiredPhraseIds = {
   'friend_unlocked',
   'error_home',
   'snowflake_count',
+  'vi_balloon_prompt',
+  'vi_balloon_correct',
+  'vi_balloon_wrong_this',
+  'vi_balloon_wrong_find',
+  'vi_trace_prompt',
+  'vi_trace_done',
+  'game_vi_balloon',
+  'game_vi_trace',
 };
 
 /// Phrase groups the app picks from at random.

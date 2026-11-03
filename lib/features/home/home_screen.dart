@@ -18,6 +18,7 @@ import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
 import '../games/balloon/balloon_screen.dart';
 import '../games/trace/trace_screen.dart';
+import '../games/vi_letters/vi_letters_screen.dart';
 import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
 
@@ -92,7 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _GameEntry('🎈', 'game_balloon', (_) => const BalloonScreen()),
       _GameEntry('✏️', 'game_trace', (_) => const TraceScreen()),
       const _GameEntry('🗣️', 'game_talk'),
-      const _GameEntry('🇻🇳', 'game_vi'),
+      _GameEntry('🇻🇳', 'game_vi', (_) => const VietnameseLettersScreen()),
     ];
     // Home is the root: the back gesture must not exit the app by accident.
     return PopScope(
