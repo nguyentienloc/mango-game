@@ -5,7 +5,7 @@ import 'package:xoai_castle/core/content/content_validator.dart';
 Map<String, String> validFiles() => {
       'manifest.json': jsonEncode({
         'schema': 1,
-        'packs': {'letters_en': 1, 'letters_vi': 1, 'vocab_animals': 1},
+        'packs': {'letters_en': 1, 'letters_vi': 1, 'conversation': 1, 'vocab_animals': 1},
         'files': {'phrases': 1, 'castle': 1, 'characters': 1, 'profile_defaults': 1},
       }),
       'packs/letters_en.json': jsonEncode({
@@ -22,6 +22,25 @@ Map<String, String> validFiles() => {
         'items': [
           {'char': 'A', 'spoken': 'a', 'strokes': [[{'line': [[0.5, 0.1], [0.15, 0.9]]}]]},
           {'char': 'Ă', 'spoken': 'á', 'strokes': [[{'line': [[0.5, 0.3], [0.15, 0.9]]}]]},
+        ],
+      }),
+      'packs/conversation.json': jsonEncode({
+        'id': 'conversation',
+        'version': 1,
+        'items': [
+          {
+            'id': 'age',
+            'question': 'How old are you?',
+            'model': 'I am five.',
+            'accept': [['five'], ['4']],
+            'aliases': {'five': ['fine']},
+          },
+          {
+            'id': 'hello',
+            'question': 'Hello, {name_en}!',
+            'model': 'Hello, Elsa!',
+            'accept': [['hello']],
+          },
         ],
       }),
       'packs/vocab_animals.json': jsonEncode({

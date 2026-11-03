@@ -142,6 +142,44 @@ class VocabItem {
   final String topic;
 }
 
+/// One question Elsa asks in the talk game, with the words that count as an
+/// answer. `{name_en}` in [question] and [model] is the child's English name,
+/// filled in when the line is spoken.
+class ConversationItem {
+  const ConversationItem({
+    required this.id,
+    required this.question,
+    required this.model,
+    required this.accept,
+    this.aliases = const {},
+  });
+
+  factory ConversationItem.fromJson(Map<String, dynamic> json) => ConversationItem(
+        id: json['id'] as String,
+        question: json['question'] as String,
+        model: json['model'] as String,
+        accept: [
+          for (final group in json['accept'] as List) [for (final w in group as List) w as String],
+        ],
+        aliases: {
+          for (final e in (json['aliases'] as Map<String, dynamic>? ?? const {}).entries)
+            e.key: [for (final a in e.value as List) a as String],
+        },
+      );
+
+  final String id;
+  final String question;
+
+  /// What Elsa says for the child to repeat.
+  final String model;
+
+  /// An answer is right if every word of at least one group is heard.
+  final List<List<String>> accept;
+
+  /// Words the speech recogniser often hears instead of an accepted word.
+  final Map<String, List<String>> aliases;
+}
+
 class ContentBundle {
   const ContentBundle({
     required this.lettersEn,
@@ -151,6 +189,7 @@ class ContentBundle {
     required this.characters,
     required this.profileDefaults,
     required this.vocab,
+    this.conversation = const [],
   });
 
   /// Builds a bundle from already-validated files (paths relative to content/).
@@ -183,6 +222,9 @@ class ContentBundle {
       },
       profileDefaults: ProfileDefaults.fromJson(read('profile_defaults.json')),
       vocab: vocab,
+      conversation: [
+        for (final j in read('packs/conversation.json')['items'] as List) ConversationItem.fromJson(j as Map<String, dynamic>),
+      ],
     );
   }
 
@@ -193,4 +235,5 @@ class ContentBundle {
   final Map<String, CharacterDef> characters;
   final ProfileDefaults profileDefaults;
   final List<VocabItem> vocab;
+  final List<ConversationItem> conversation;
 }

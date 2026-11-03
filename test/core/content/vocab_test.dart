@@ -19,4 +19,14 @@ void main() {
     expect(lion.vi, 'con sư tử');
     expect(lion.image, 'images/vocab/lion.png');
   });
+
+  test('the shipped content has 8 conversation items', () async {
+    final bundle = await ContentRepository(FileContentSource('content')).load();
+    expect(bundle.conversation, hasLength(8));
+    final name = bundle.conversation.first;
+    expect(name.id, 'name');
+    expect(name.accept.first, ['name', 'an']);
+    expect(name.aliases['an'], contains('and'));
+    expect(bundle.conversation.last.aliases['thank'], contains('tank'));
+  });
 }

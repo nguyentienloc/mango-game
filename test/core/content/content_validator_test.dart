@@ -110,6 +110,57 @@ void main() {
     expect(errors, contains('packs/vocab_animals.json items[1]: không tìm thấy ảnh "images/vocab/dog.png"'));
   });
 
+  group('conversation pack', () {
+    const path = 'packs/conversation.json';
+    List<String> check(void Function(List items) edit) {
+      final pack = readJson(validFiles(), path);
+      edit(pack['items'] as List);
+      return validateContent(withJson(validFiles(), path, pack));
+    }
+
+    test('the pack is required', () {
+      final manifest = readJson(validFiles(), 'manifest.json');
+      (manifest['packs'] as Map).remove('conversation');
+      final files = withJson(validFiles(), 'manifest.json', manifest)..remove(path);
+      expect(validateContent(files), contains('manifest.json: thiếu gói "conversation"'));
+    });
+
+    test('duplicate ids are reported', () {
+      final errors = check((items) => (items[1] as Map)['id'] = 'age');
+      expect(errors, contains('$path items[1]: id "age" bị trùng'));
+    });
+
+    test('empty question or model is reported', () {
+      final errors = check((items) {
+        (items[0] as Map)['question'] = '  ';
+        (items[0] as Map).remove('model');
+      });
+      expect(errors, containsAll(['$path items[0]: thiếu "question"', '$path items[0]: thiếu "model"']));
+    });
+
+    test('accept needs at least one non-empty group of words', () {
+      expect(check((items) => (items[0] as Map)['accept'] = []), contains('$path items[0]: "accept" cần ít nhất một nhóm'));
+      expect(check((items) => (items[0] as Map)['accept'] = [[]]),
+          contains('$path items[0] accept[0]: nhóm phải là danh sách từ không rỗng'));
+      expect(check((items) => (items[0] as Map)['accept'] = [['five', '']]),
+          contains('$path items[0] accept[0]: nhóm phải là danh sách từ không rỗng'));
+      expect(check((items) => (items[0] as Map).remove('accept')), contains('$path items[0]: "accept" cần ít nhất một nhóm'));
+    });
+
+    test('aliases must map a word to a list of words', () {
+      expect(check((items) => (items[0] as Map)['aliases'] = {'five': 'fine'}),
+          contains('$path items[0] aliases.five: phải là danh sách từ không rỗng'));
+      expect(check((items) => (items[0] as Map)['aliases'] = {'five': ['fine', 3]}),
+          contains('$path items[0] aliases.five: phải là danh sách từ không rỗng'));
+      expect(check((items) => (items[0] as Map)['aliases'] = ['fine']),
+          contains('$path items[0]: "aliases" phải là object'));
+    });
+
+    test('aliases are optional', () {
+      expect(check((items) {}), isEmpty);
+    });
+  });
+
   test('multi-part phrases are validated', () {
     final phrases = readJson(validFiles(), 'phrases.json');
     (phrases['items'] as List).add({
