@@ -11,6 +11,8 @@ import 'package:xoai_castle/features/games/talk/talk_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
 import 'package:xoai_castle/features/games/vocab/vocab_screen.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
+import 'package:xoai_castle/features/story/math_gate_screen.dart';
+import 'package:xoai_castle/shared/big_button.dart';
 
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
@@ -193,5 +195,33 @@ void main() {
       update: const UpdateAvailable(ReleaseInfo(version: '0.2.0', apkUrl: 'https://x/a.apk', sizeBytes: 1)),
     );
     expect(find.byKey(const Key('update-dot')), findsOneWidget);
+  });
+
+  testWidgets('the moon button says "Nghe chuyện" and opens the math gate', (tester) async {
+    final tts = await pumpHome(tester);
+    await tester.tap(find.text('🌙'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('Nghe chuyện'));
+    expect(find.byType(MathGateScreen), findsOneWidget);
+  });
+
+  testWidgets('fits a 360x640 phone with all six game buttons', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpHome(tester);
+    expect(tester.takeException(), isNull);
+    final buttons = find.byType(BigButton);
+    expect(buttons, findsNWidgets(6));
+    for (var i = 0; i < 6; i++) {
+      final r = tester.getRect(buttons.at(i));
+      expect(r.left, greaterThanOrEqualTo(0));
+      expect(r.right, lessThanOrEqualTo(360));
+      expect(r.bottom, lessThanOrEqualTo(640));
+    }
+    final lock = tester.getRect(find.byKey(const Key('parent-lock')));
+    expect(lock.bottom, lessThanOrEqualTo(640));
   });
 }

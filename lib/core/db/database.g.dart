@@ -1396,6 +1396,17 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(1.0),
   );
+  static const VerificationMeta _storySetupMeta = const VerificationMeta(
+    'storySetup',
+  );
+  @override
+  late final GeneratedColumn<String> storySetup = GeneratedColumn<String>(
+    'story_setup',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1407,6 +1418,7 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
     showFindLetter,
     enSpeed,
     viSpeed,
+    storySetup,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1483,6 +1495,12 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
         viSpeed.isAcceptableOrUnknown(data['vi_speed']!, _viSpeedMeta),
       );
     }
+    if (data.containsKey('story_setup')) {
+      context.handle(
+        _storySetupMeta,
+        storySetup.isAcceptableOrUnknown(data['story_setup']!, _storySetupMeta),
+      );
+    }
     return context;
   }
 
@@ -1528,6 +1546,10 @@ class $ProfileTable extends Profile with TableInfo<$ProfileTable, ProfileRow> {
         DriftSqlType.double,
         data['${effectivePrefix}vi_speed'],
       )!,
+      storySetup: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}story_setup'],
+      ),
     );
   }
 
@@ -1547,6 +1569,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final bool showFindLetter;
   final double enSpeed;
   final double viSpeed;
+
+  /// JSON of the last story setup (StorySetup.toJson); null until the parent picks one.
+  final String? storySetup;
   const ProfileRow({
     required this.id,
     required this.nameEn,
@@ -1557,6 +1582,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     required this.showFindLetter,
     required this.enSpeed,
     required this.viSpeed,
+    this.storySetup,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1570,6 +1596,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     map['show_find_letter'] = Variable<bool>(showFindLetter);
     map['en_speed'] = Variable<double>(enSpeed);
     map['vi_speed'] = Variable<double>(viSpeed);
+    if (!nullToAbsent || storySetup != null) {
+      map['story_setup'] = Variable<String>(storySetup);
+    }
     return map;
   }
 
@@ -1584,6 +1613,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       showFindLetter: Value(showFindLetter),
       enSpeed: Value(enSpeed),
       viSpeed: Value(viSpeed),
+      storySetup: storySetup == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storySetup),
     );
   }
 
@@ -1602,6 +1634,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       showFindLetter: serializer.fromJson<bool>(json['showFindLetter']),
       enSpeed: serializer.fromJson<double>(json['enSpeed']),
       viSpeed: serializer.fromJson<double>(json['viSpeed']),
+      storySetup: serializer.fromJson<String?>(json['storySetup']),
     );
   }
   @override
@@ -1617,6 +1650,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'showFindLetter': serializer.toJson<bool>(showFindLetter),
       'enSpeed': serializer.toJson<double>(enSpeed),
       'viSpeed': serializer.toJson<double>(viSpeed),
+      'storySetup': serializer.toJson<String?>(storySetup),
     };
   }
 
@@ -1630,6 +1664,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     bool? showFindLetter,
     double? enSpeed,
     double? viSpeed,
+    Value<String?> storySetup = const Value.absent(),
   }) => ProfileRow(
     id: id ?? this.id,
     nameEn: nameEn ?? this.nameEn,
@@ -1640,6 +1675,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     showFindLetter: showFindLetter ?? this.showFindLetter,
     enSpeed: enSpeed ?? this.enSpeed,
     viSpeed: viSpeed ?? this.viSpeed,
+    storySetup: storySetup.present ? storySetup.value : this.storySetup,
   );
   ProfileRow copyWithCompanion(ProfileCompanion data) {
     return ProfileRow(
@@ -1656,6 +1692,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           : this.showFindLetter,
       enSpeed: data.enSpeed.present ? data.enSpeed.value : this.enSpeed,
       viSpeed: data.viSpeed.present ? data.viSpeed.value : this.viSpeed,
+      storySetup: data.storySetup.present
+          ? data.storySetup.value
+          : this.storySetup,
     );
   }
 
@@ -1670,7 +1709,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('testMode: $testMode, ')
           ..write('showFindLetter: $showFindLetter, ')
           ..write('enSpeed: $enSpeed, ')
-          ..write('viSpeed: $viSpeed')
+          ..write('viSpeed: $viSpeed, ')
+          ..write('storySetup: $storySetup')
           ..write(')'))
         .toString();
   }
@@ -1686,6 +1726,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     showFindLetter,
     enSpeed,
     viSpeed,
+    storySetup,
   );
   @override
   bool operator ==(Object other) =>
@@ -1699,7 +1740,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.testMode == this.testMode &&
           other.showFindLetter == this.showFindLetter &&
           other.enSpeed == this.enSpeed &&
-          other.viSpeed == this.viSpeed);
+          other.viSpeed == this.viSpeed &&
+          other.storySetup == this.storySetup);
 }
 
 class ProfileCompanion extends UpdateCompanion<ProfileRow> {
@@ -1712,6 +1754,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
   final Value<bool> showFindLetter;
   final Value<double> enSpeed;
   final Value<double> viSpeed;
+  final Value<String?> storySetup;
   const ProfileCompanion({
     this.id = const Value.absent(),
     this.nameEn = const Value.absent(),
@@ -1722,6 +1765,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     this.showFindLetter = const Value.absent(),
     this.enSpeed = const Value.absent(),
     this.viSpeed = const Value.absent(),
+    this.storySetup = const Value.absent(),
   });
   ProfileCompanion.insert({
     this.id = const Value.absent(),
@@ -1733,6 +1777,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     this.showFindLetter = const Value.absent(),
     this.enSpeed = const Value.absent(),
     this.viSpeed = const Value.absent(),
+    this.storySetup = const Value.absent(),
   }) : nameEn = Value(nameEn),
        nameVi = Value(nameVi),
        dailyLimitMin = Value(dailyLimitMin);
@@ -1746,6 +1791,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     Expression<bool>? showFindLetter,
     Expression<double>? enSpeed,
     Expression<double>? viSpeed,
+    Expression<String>? storySetup,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1757,6 +1803,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
       if (showFindLetter != null) 'show_find_letter': showFindLetter,
       if (enSpeed != null) 'en_speed': enSpeed,
       if (viSpeed != null) 'vi_speed': viSpeed,
+      if (storySetup != null) 'story_setup': storySetup,
     });
   }
 
@@ -1770,6 +1817,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     Value<bool>? showFindLetter,
     Value<double>? enSpeed,
     Value<double>? viSpeed,
+    Value<String?>? storySetup,
   }) {
     return ProfileCompanion(
       id: id ?? this.id,
@@ -1781,6 +1829,7 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
       showFindLetter: showFindLetter ?? this.showFindLetter,
       enSpeed: enSpeed ?? this.enSpeed,
       viSpeed: viSpeed ?? this.viSpeed,
+      storySetup: storySetup ?? this.storySetup,
     );
   }
 
@@ -1814,6 +1863,9 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
     if (viSpeed.present) {
       map['vi_speed'] = Variable<double>(viSpeed.value);
     }
+    if (storySetup.present) {
+      map['story_setup'] = Variable<String>(storySetup.value);
+    }
     return map;
   }
 
@@ -1828,7 +1880,541 @@ class ProfileCompanion extends UpdateCompanion<ProfileRow> {
           ..write('testMode: $testMode, ')
           ..write('showFindLetter: $showFindLetter, ')
           ..write('enSpeed: $enSpeed, ')
-          ..write('viSpeed: $viSpeed')
+          ..write('viSpeed: $viSpeed, ')
+          ..write('storySetup: $storySetup')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $UserStoriesTable extends UserStories
+    with TableInfo<$UserStoriesTable, UserStoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserStoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _videoIdMeta = const VerificationMeta(
+    'videoId',
+  );
+  @override
+  late final GeneratedColumn<String> videoId = GeneratedColumn<String>(
+    'video_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _topicMeta = const VerificationMeta('topic');
+  @override
+  late final GeneratedColumn<String> topic = GeneratedColumn<String>(
+    'topic',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationSecMeta = const VerificationMeta(
+    'durationSec',
+  );
+  @override
+  late final GeneratedColumn<int> durationSec = GeneratedColumn<int>(
+    'duration_sec',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    videoId,
+    title,
+    topic,
+    durationSec,
+    addedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_stories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserStoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('video_id')) {
+      context.handle(
+        _videoIdMeta,
+        videoId.isAcceptableOrUnknown(data['video_id']!, _videoIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_videoIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('topic')) {
+      context.handle(
+        _topicMeta,
+        topic.isAcceptableOrUnknown(data['topic']!, _topicMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_topicMeta);
+    }
+    if (data.containsKey('duration_sec')) {
+      context.handle(
+        _durationSecMeta,
+        durationSec.isAcceptableOrUnknown(
+          data['duration_sec']!,
+          _durationSecMeta,
+        ),
+      );
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {videoId};
+  @override
+  UserStoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserStoryRow(
+      videoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}video_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      topic: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}topic'],
+      )!,
+      durationSec: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_sec'],
+      ),
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UserStoriesTable createAlias(String alias) {
+    return $UserStoriesTable(attachedDatabase, alias);
+  }
+}
+
+class UserStoryRow extends DataClass implements Insertable<UserStoryRow> {
+  final String videoId;
+  final String title;
+  final String topic;
+  final int? durationSec;
+  final DateTime addedAt;
+  const UserStoryRow({
+    required this.videoId,
+    required this.title,
+    required this.topic,
+    this.durationSec,
+    required this.addedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['video_id'] = Variable<String>(videoId);
+    map['title'] = Variable<String>(title);
+    map['topic'] = Variable<String>(topic);
+    if (!nullToAbsent || durationSec != null) {
+      map['duration_sec'] = Variable<int>(durationSec);
+    }
+    map['added_at'] = Variable<DateTime>(addedAt);
+    return map;
+  }
+
+  UserStoriesCompanion toCompanion(bool nullToAbsent) {
+    return UserStoriesCompanion(
+      videoId: Value(videoId),
+      title: Value(title),
+      topic: Value(topic),
+      durationSec: durationSec == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationSec),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory UserStoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserStoryRow(
+      videoId: serializer.fromJson<String>(json['videoId']),
+      title: serializer.fromJson<String>(json['title']),
+      topic: serializer.fromJson<String>(json['topic']),
+      durationSec: serializer.fromJson<int?>(json['durationSec']),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'videoId': serializer.toJson<String>(videoId),
+      'title': serializer.toJson<String>(title),
+      'topic': serializer.toJson<String>(topic),
+      'durationSec': serializer.toJson<int?>(durationSec),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
+    };
+  }
+
+  UserStoryRow copyWith({
+    String? videoId,
+    String? title,
+    String? topic,
+    Value<int?> durationSec = const Value.absent(),
+    DateTime? addedAt,
+  }) => UserStoryRow(
+    videoId: videoId ?? this.videoId,
+    title: title ?? this.title,
+    topic: topic ?? this.topic,
+    durationSec: durationSec.present ? durationSec.value : this.durationSec,
+    addedAt: addedAt ?? this.addedAt,
+  );
+  UserStoryRow copyWithCompanion(UserStoriesCompanion data) {
+    return UserStoryRow(
+      videoId: data.videoId.present ? data.videoId.value : this.videoId,
+      title: data.title.present ? data.title.value : this.title,
+      topic: data.topic.present ? data.topic.value : this.topic,
+      durationSec: data.durationSec.present
+          ? data.durationSec.value
+          : this.durationSec,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserStoryRow(')
+          ..write('videoId: $videoId, ')
+          ..write('title: $title, ')
+          ..write('topic: $topic, ')
+          ..write('durationSec: $durationSec, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(videoId, title, topic, durationSec, addedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserStoryRow &&
+          other.videoId == this.videoId &&
+          other.title == this.title &&
+          other.topic == this.topic &&
+          other.durationSec == this.durationSec &&
+          other.addedAt == this.addedAt);
+}
+
+class UserStoriesCompanion extends UpdateCompanion<UserStoryRow> {
+  final Value<String> videoId;
+  final Value<String> title;
+  final Value<String> topic;
+  final Value<int?> durationSec;
+  final Value<DateTime> addedAt;
+  final Value<int> rowid;
+  const UserStoriesCompanion({
+    this.videoId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.topic = const Value.absent(),
+    this.durationSec = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserStoriesCompanion.insert({
+    required String videoId,
+    required String title,
+    required String topic,
+    this.durationSec = const Value.absent(),
+    required DateTime addedAt,
+    this.rowid = const Value.absent(),
+  }) : videoId = Value(videoId),
+       title = Value(title),
+       topic = Value(topic),
+       addedAt = Value(addedAt);
+  static Insertable<UserStoryRow> custom({
+    Expression<String>? videoId,
+    Expression<String>? title,
+    Expression<String>? topic,
+    Expression<int>? durationSec,
+    Expression<DateTime>? addedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (videoId != null) 'video_id': videoId,
+      if (title != null) 'title': title,
+      if (topic != null) 'topic': topic,
+      if (durationSec != null) 'duration_sec': durationSec,
+      if (addedAt != null) 'added_at': addedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserStoriesCompanion copyWith({
+    Value<String>? videoId,
+    Value<String>? title,
+    Value<String>? topic,
+    Value<int?>? durationSec,
+    Value<DateTime>? addedAt,
+    Value<int>? rowid,
+  }) {
+    return UserStoriesCompanion(
+      videoId: videoId ?? this.videoId,
+      title: title ?? this.title,
+      topic: topic ?? this.topic,
+      durationSec: durationSec ?? this.durationSec,
+      addedAt: addedAt ?? this.addedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (videoId.present) {
+      map['video_id'] = Variable<String>(videoId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (topic.present) {
+      map['topic'] = Variable<String>(topic.value);
+    }
+    if (durationSec.present) {
+      map['duration_sec'] = Variable<int>(durationSec.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserStoriesCompanion(')
+          ..write('videoId: $videoId, ')
+          ..write('title: $title, ')
+          ..write('topic: $topic, ')
+          ..write('durationSec: $durationSec, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HiddenStoriesTable extends HiddenStories
+    with TableInfo<$HiddenStoriesTable, HiddenStoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HiddenStoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _storyIdMeta = const VerificationMeta(
+    'storyId',
+  );
+  @override
+  late final GeneratedColumn<String> storyId = GeneratedColumn<String>(
+    'story_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [storyId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hidden_stories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HiddenStoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('story_id')) {
+      context.handle(
+        _storyIdMeta,
+        storyId.isAcceptableOrUnknown(data['story_id']!, _storyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storyIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {storyId};
+  @override
+  HiddenStoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HiddenStoryRow(
+      storyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}story_id'],
+      )!,
+    );
+  }
+
+  @override
+  $HiddenStoriesTable createAlias(String alias) {
+    return $HiddenStoriesTable(attachedDatabase, alias);
+  }
+}
+
+class HiddenStoryRow extends DataClass implements Insertable<HiddenStoryRow> {
+  final String storyId;
+  const HiddenStoryRow({required this.storyId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['story_id'] = Variable<String>(storyId);
+    return map;
+  }
+
+  HiddenStoriesCompanion toCompanion(bool nullToAbsent) {
+    return HiddenStoriesCompanion(storyId: Value(storyId));
+  }
+
+  factory HiddenStoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HiddenStoryRow(
+      storyId: serializer.fromJson<String>(json['storyId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{'storyId': serializer.toJson<String>(storyId)};
+  }
+
+  HiddenStoryRow copyWith({String? storyId}) =>
+      HiddenStoryRow(storyId: storyId ?? this.storyId);
+  HiddenStoryRow copyWithCompanion(HiddenStoriesCompanion data) {
+    return HiddenStoryRow(
+      storyId: data.storyId.present ? data.storyId.value : this.storyId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HiddenStoryRow(')
+          ..write('storyId: $storyId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => storyId.hashCode;
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HiddenStoryRow && other.storyId == this.storyId);
+}
+
+class HiddenStoriesCompanion extends UpdateCompanion<HiddenStoryRow> {
+  final Value<String> storyId;
+  final Value<int> rowid;
+  const HiddenStoriesCompanion({
+    this.storyId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HiddenStoriesCompanion.insert({
+    required String storyId,
+    this.rowid = const Value.absent(),
+  }) : storyId = Value(storyId);
+  static Insertable<HiddenStoryRow> custom({
+    Expression<String>? storyId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (storyId != null) 'story_id': storyId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HiddenStoriesCompanion copyWith({Value<String>? storyId, Value<int>? rowid}) {
+    return HiddenStoriesCompanion(
+      storyId: storyId ?? this.storyId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (storyId.present) {
+      map['story_id'] = Variable<String>(storyId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HiddenStoriesCompanion(')
+          ..write('storyId: $storyId, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1841,6 +2427,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SessionsTable sessions = $SessionsTable(this);
   late final $RewardsTable rewards = $RewardsTable(this);
   late final $ProfileTable profile = $ProfileTable(this);
+  late final $UserStoriesTable userStories = $UserStoriesTable(this);
+  late final $HiddenStoriesTable hiddenStories = $HiddenStoriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1850,6 +2438,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sessions,
     rewards,
     profile,
+    userStories,
+    hiddenStories,
   ];
 }
 
@@ -2553,6 +3143,7 @@ typedef $$ProfileTableCreateCompanionBuilder = ProfileCompanion Function({
   Value<bool> showFindLetter,
   Value<double> enSpeed,
   Value<double> viSpeed,
+  Value<String?> storySetup,
 });
 typedef $$ProfileTableUpdateCompanionBuilder = ProfileCompanion Function({
   Value<int> id,
@@ -2564,6 +3155,7 @@ typedef $$ProfileTableUpdateCompanionBuilder = ProfileCompanion Function({
   Value<bool> showFindLetter,
   Value<double> enSpeed,
   Value<double> viSpeed,
+  Value<String?> storySetup,
 });
 
 class $$ProfileTableFilterComposer
@@ -2617,6 +3209,11 @@ class $$ProfileTableFilterComposer
 
   ColumnFilters<double> get viSpeed => $composableBuilder(
     column: $table.viSpeed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storySetup => $composableBuilder(
+    column: $table.storySetup,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2674,6 +3271,11 @@ class $$ProfileTableOrderingComposer
     column: $table.viSpeed,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get storySetup => $composableBuilder(
+    column: $table.storySetup,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProfileTableAnnotationComposer
@@ -2715,6 +3317,11 @@ class $$ProfileTableAnnotationComposer
 
   GeneratedColumn<double> get viSpeed =>
       $composableBuilder(column: $table.viSpeed, builder: (column) => column);
+
+  GeneratedColumn<String> get storySetup => $composableBuilder(
+    column: $table.storySetup,
+    builder: (column) => column,
+  );
 }
 
 class $$ProfileTableTableManager
@@ -2757,6 +3364,7 @@ class $$ProfileTableTableManager
                 Value<bool> showFindLetter = const Value.absent(),
                 Value<double> enSpeed = const Value.absent(),
                 Value<double> viSpeed = const Value.absent(),
+                Value<String?> storySetup = const Value.absent(),
               }) => ProfileCompanion(
                 id: id,
                 nameEn: nameEn,
@@ -2767,6 +3375,7 @@ class $$ProfileTableTableManager
                 showFindLetter: showFindLetter,
                 enSpeed: enSpeed,
                 viSpeed: viSpeed,
+                storySetup: storySetup,
               ),
           createCompanionCallback:
               ({
@@ -2779,6 +3388,7 @@ class $$ProfileTableTableManager
                 Value<bool> showFindLetter = const Value.absent(),
                 Value<double> enSpeed = const Value.absent(),
                 Value<double> viSpeed = const Value.absent(),
+                Value<String?> storySetup = const Value.absent(),
               }) => ProfileCompanion.insert(
                 id: id,
                 nameEn: nameEn,
@@ -2789,6 +3399,7 @@ class $$ProfileTableTableManager
                 showFindLetter: showFindLetter,
                 enSpeed: enSpeed,
                 viSpeed: viSpeed,
+                storySetup: storySetup,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2821,6 +3432,339 @@ typedef $$ProfileTableProcessedTableManager =
       ProfileRow,
       PrefetchHooks Function()
     >;
+typedef $$UserStoriesTableCreateCompanionBuilder =
+    UserStoriesCompanion Function({
+      required String videoId,
+      required String title,
+      required String topic,
+      Value<int?> durationSec,
+      required DateTime addedAt,
+      Value<int> rowid,
+    });
+typedef $$UserStoriesTableUpdateCompanionBuilder =
+    UserStoriesCompanion Function({
+      Value<String> videoId,
+      Value<String> title,
+      Value<String> topic,
+      Value<int?> durationSec,
+      Value<DateTime> addedAt,
+      Value<int> rowid,
+    });
+
+class $$UserStoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $UserStoriesTable> {
+  $$UserStoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get videoId => $composableBuilder(
+    column: $table.videoId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get topic => $composableBuilder(
+    column: $table.topic,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSec => $composableBuilder(
+    column: $table.durationSec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserStoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserStoriesTable> {
+  $$UserStoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get videoId => $composableBuilder(
+    column: $table.videoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get topic => $composableBuilder(
+    column: $table.topic,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationSec => $composableBuilder(
+    column: $table.durationSec,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserStoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserStoriesTable> {
+  $$UserStoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get videoId =>
+      $composableBuilder(column: $table.videoId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get topic =>
+      $composableBuilder(column: $table.topic, builder: (column) => column);
+
+  GeneratedColumn<int> get durationSec => $composableBuilder(
+    column: $table.durationSec,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+}
+
+class $$UserStoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserStoriesTable,
+          UserStoryRow,
+          $$UserStoriesTableFilterComposer,
+          $$UserStoriesTableOrderingComposer,
+          $$UserStoriesTableAnnotationComposer,
+          $$UserStoriesTableCreateCompanionBuilder,
+          $$UserStoriesTableUpdateCompanionBuilder,
+          (
+            UserStoryRow,
+            BaseReferences<_$AppDatabase, $UserStoriesTable, UserStoryRow>,
+          ),
+          UserStoryRow,
+          PrefetchHooks Function()
+        > {
+  $$UserStoriesTableTableManager(_$AppDatabase db, $UserStoriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserStoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserStoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserStoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> videoId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> topic = const Value.absent(),
+                Value<int?> durationSec = const Value.absent(),
+                Value<DateTime> addedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserStoriesCompanion(
+                videoId: videoId,
+                title: title,
+                topic: topic,
+                durationSec: durationSec,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String videoId,
+                required String title,
+                required String topic,
+                Value<int?> durationSec = const Value.absent(),
+                required DateTime addedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => UserStoriesCompanion.insert(
+                videoId: videoId,
+                title: title,
+                topic: topic,
+                durationSec: durationSec,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserStoriesTable, UserStoryRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $UserStoriesTable,
+                    UserStoryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserStoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserStoriesTable,
+      UserStoryRow,
+      $$UserStoriesTableFilterComposer,
+      $$UserStoriesTableOrderingComposer,
+      $$UserStoriesTableAnnotationComposer,
+      $$UserStoriesTableCreateCompanionBuilder,
+      $$UserStoriesTableUpdateCompanionBuilder,
+      (
+        UserStoryRow,
+        BaseReferences<_$AppDatabase, $UserStoriesTable, UserStoryRow>,
+      ),
+      UserStoryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$HiddenStoriesTableCreateCompanionBuilder =
+    HiddenStoriesCompanion Function({
+      required String storyId,
+      Value<int> rowid,
+    });
+typedef $$HiddenStoriesTableUpdateCompanionBuilder =
+    HiddenStoriesCompanion Function({Value<String> storyId, Value<int> rowid});
+
+class $$HiddenStoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $HiddenStoriesTable> {
+  $$HiddenStoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get storyId => $composableBuilder(
+    column: $table.storyId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HiddenStoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $HiddenStoriesTable> {
+  $$HiddenStoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get storyId => $composableBuilder(
+    column: $table.storyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HiddenStoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HiddenStoriesTable> {
+  $$HiddenStoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get storyId =>
+      $composableBuilder(column: $table.storyId, builder: (column) => column);
+}
+
+class $$HiddenStoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HiddenStoriesTable,
+          HiddenStoryRow,
+          $$HiddenStoriesTableFilterComposer,
+          $$HiddenStoriesTableOrderingComposer,
+          $$HiddenStoriesTableAnnotationComposer,
+          $$HiddenStoriesTableCreateCompanionBuilder,
+          $$HiddenStoriesTableUpdateCompanionBuilder,
+          (
+            HiddenStoryRow,
+            BaseReferences<_$AppDatabase, $HiddenStoriesTable, HiddenStoryRow>,
+          ),
+          HiddenStoryRow,
+          PrefetchHooks Function()
+        > {
+  $$HiddenStoriesTableTableManager(_$AppDatabase db, $HiddenStoriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HiddenStoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HiddenStoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HiddenStoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> storyId = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => HiddenStoriesCompanion(storyId: storyId, rowid: rowid),
+          createCompanionCallback: ({
+            required String storyId,
+            Value<int> rowid = const Value.absent(),
+          }) => HiddenStoriesCompanion.insert(storyId: storyId, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$HiddenStoriesTable, HiddenStoryRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $HiddenStoriesTable,
+                    HiddenStoryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HiddenStoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HiddenStoriesTable,
+      HiddenStoryRow,
+      $$HiddenStoriesTableFilterComposer,
+      $$HiddenStoriesTableOrderingComposer,
+      $$HiddenStoriesTableAnnotationComposer,
+      $$HiddenStoriesTableCreateCompanionBuilder,
+      $$HiddenStoriesTableUpdateCompanionBuilder,
+      (
+        HiddenStoryRow,
+        BaseReferences<_$AppDatabase, $HiddenStoriesTable, HiddenStoryRow>,
+      ),
+      HiddenStoryRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2833,4 +3777,8 @@ class $AppDatabaseManager {
       $$RewardsTableTableManager(_db, _db.rewards);
   $$ProfileTableTableManager get profile =>
       $$ProfileTableTableManager(_db, _db.profile);
+  $$UserStoriesTableTableManager get userStories =>
+      $$UserStoriesTableTableManager(_db, _db.userStories);
+  $$HiddenStoriesTableTableManager get hiddenStories =>
+      $$HiddenStoriesTableTableManager(_db, _db.hiddenStories);
 }

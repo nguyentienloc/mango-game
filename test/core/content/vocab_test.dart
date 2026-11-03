@@ -3,6 +3,9 @@ import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/content/vocab.dart';
+import 'package:xoai_castle/features/story/story_models.dart';
+
+import '../../support/content_fixture.dart';
 
 void main() {
   test('vocabVars capitalises the first letter of word and vi', () {
@@ -18,6 +21,19 @@ void main() {
     final lion = bundle.vocab.firstWhere((w) => w.id == 'lion');
     expect(lion.vi, 'con sư tử');
     expect(lion.image, 'images/vocab/lion.png');
+  });
+
+  test('ContentBundle.fromFiles reads the stories pack', () {
+    final stories = ContentBundle.fromFiles(validFiles()).stories;
+    expect(stories.map((s) => s.id), ['yt:aaaaaaaaaaa', 'yt:bbbbbbbbbbb']);
+    expect(stories.first.topic, StoryTopic.fairyVi);
+    expect(stories.first.duration, const Duration(minutes: 10));
+    expect(stories.first.userAdded, isFalse);
+  });
+
+  test('the shipped stories pack loads (it may still be empty)', () async {
+    final bundle = await ContentRepository(FileContentSource('content')).load();
+    expect(bundle.stories, isA<List<Story>>());
   });
 
   test('the shipped content has 8 conversation items', () async {

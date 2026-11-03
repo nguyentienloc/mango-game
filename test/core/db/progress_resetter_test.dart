@@ -9,6 +9,8 @@ import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
+import 'package:xoai_castle/core/stories/story_store.dart';
+import 'package:xoai_castle/features/story/story_models.dart';
 
 void main() {
   test('reset clears progress and keeps the profile', () async {
@@ -33,4 +35,45 @@ void main() {
     expect(await profile.showFindLetter(), isTrue);
     expect((await profile.loadNames(const ProfileDefaults(nameEn: 'X', nameVi: 'Y', dailyLimitMin: 1))).vi, 'Xoài');
   });
+
+  test(
+    'reset keeps parent-added stories, hidden stories and the story setup',
+    () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      await DriftProfileStore(db).loadNames(
+        const ProfileDefaults(nameEn: 'An', nameVi: 'Xoài', dailyLimitMin: 20),
+      );
+      final stories = DriftStoryStore(db);
+      await stories.addUserStory(
+        const Story(
+          videoId: 'abcdefghijk',
+          title: 'Truyện',
+          topic: StoryTopic.fairyVi,
+          userAdded: true,
+        ),
+      );
+      await stories.setHidden('yt:zzzzzzzzzzz', true);
+      await stories.saveSetup(
+        const StorySetup(
+          topics: {StoryTopic.princess},
+          mode: StoryViewMode.watch,
+        ),
+      );
+
+      await DriftProgressResetter(db).resetProgress();
+
+      expect((await stories.userStories()).map((s) => s.videoId), [
+        'abcdefghijk',
+      ]);
+      expect(await stories.hiddenIds(), {'yt:zzzzzzzzzzz'});
+      expect(
+        await stories.lastSetup(),
+        const StorySetup(
+          topics: {StoryTopic.princess},
+          mode: StoryViewMode.watch,
+        ),
+      );
+    },
+  );
 }

@@ -1,6 +1,10 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
+
 import 'package:xoai_castle/core/content/models.dart';
+import 'package:xoai_castle/core/net/connectivity_probe.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/profile/profile_store.dart';
 import 'package:xoai_castle/core/progress/item_stat.dart';
@@ -8,10 +12,13 @@ import 'package:xoai_castle/core/progress/item_stats_store.dart';
 import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
+import 'package:xoai_castle/core/screen/screen_awake.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
 import 'package:xoai_castle/core/speech/speech_recognizer.dart';
 import 'package:xoai_castle/core/voice/clip_player.dart';
 import 'package:xoai_castle/core/voice/tts_engine.dart';
+import 'package:xoai_castle/features/story/oembed_client.dart';
+import 'package:xoai_castle/features/story/story_player.dart';
 
 class FakeTts implements TtsEngine {
   final calls = <String>[];
@@ -216,5 +223,125 @@ class FakeSpeechRecognizer implements SpeechRecognizer {
     cancels++;
     _listening = false;
     _onResult = null;
+  }
+}
+
+/// Scriptable video player. [emit] plays the part of YouTube; [play]/[pause]
+/// answer with the matching state once a video is loaded, like the real one.
+class FakeStoryPlayer implements StoryPlayerController {
+  FakeStoryPlayer({this.controls = false});
+
+  final bool controls;
+  final _states = StreamController<StoryPlayerState>.broadcast();
+  final _positions = StreamController<Duration>.broadcast();
+  final loaded = <String>[];
+  final volumes = <int>[];
+  int plays = 0;
+  int pauses = 0;
+  bool playing = false;
+  bool disposed = false;
+
+  /// What [duration] answers.
+  Duration? knownDuration;
+
+  void emit(StoryPlayerState s) {
+    playing = s == StoryPlayerState.playing;
+    _states.add(s);
+  }
+
+  void emitPosition(Duration d) => _positions.add(d);
+
+  @override
+  Stream<StoryPlayerState> get states => _states.stream;
+
+  @override
+  Stream<Duration> get positions => _positions.stream;
+
+  @override
+  Future<Duration?> duration() async => knownDuration;
+
+  @override
+  Future<void> load(String videoId) async {
+    loaded.add(videoId);
+    emit(StoryPlayerState.loading);
+  }
+
+  @override
+  Future<void> play() async {
+    plays++;
+    if (loaded.isNotEmpty) emit(StoryPlayerState.playing);
+  }
+
+  @override
+  Future<void> pause() async {
+    pauses++;
+    if (loaded.isNotEmpty) emit(StoryPlayerState.paused);
+  }
+
+  @override
+  Future<void> setVolume(int percent) async => volumes.add(percent);
+
+  @override
+  Widget buildView() => const SizedBox.expand(key: Key('fake-story-video'));
+
+  @override
+  void dispose() {
+    disposed = true;
+    _states.close();
+    _positions.close();
+  }
+}
+
+/// Hands out [FakeStoryPlayer]s and remembers them; pass [create] as the factory.
+class FakeStoryPlayers {
+  final players = <FakeStoryPlayer>[];
+
+  FakeStoryPlayer get last => players.last;
+
+  StoryPlayerController create({required bool controls}) {
+    final p = FakeStoryPlayer(controls: controls);
+    players.add(p);
+    return p;
+  }
+}
+
+class FakeConnectivityProbe implements ConnectivityProbe {
+  FakeConnectivityProbe({this.isOnline = true});
+
+  bool isOnline;
+  int checks = 0;
+
+  @override
+  Future<bool> online() async {
+    checks++;
+    return isOnline;
+  }
+}
+
+class FakeScreenAwake implements ScreenAwake {
+  bool on = false;
+  int enables = 0;
+
+  @override
+  Future<void> enable() async {
+    enables++;
+    on = true;
+  }
+
+  @override
+  Future<void> disable() async => on = false;
+}
+
+/// Answers every oEmbed lookup with [result] (no network).
+class FakeOEmbedClient extends OEmbedClient {
+  FakeOEmbedClient({this.result = const OEmbedOk('Truyện thử')}) : super(Dio());
+
+  OEmbedResult result;
+  final asked = <String>[];
+
+  @override
+  Future<OEmbedResult> fetch(String videoId) async {
+    asked.add(videoId);
+    return result;
   }
 }

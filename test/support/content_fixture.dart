@@ -5,7 +5,7 @@ import 'package:xoai_castle/core/content/content_validator.dart';
 Map<String, String> validFiles() => {
       'manifest.json': jsonEncode({
         'schema': 1,
-        'packs': {'letters_en': 1, 'letters_vi': 1, 'conversation': 1, 'vocab_animals': 1},
+        'packs': {'letters_en': 1, 'letters_vi': 1, 'conversation': 1, 'stories': 1, 'vocab_animals': 1},
         'files': {'phrases': 1, 'castle': 1, 'characters': 1, 'profile_defaults': 1},
       }),
       'packs/letters_en.json': jsonEncode({
@@ -41,6 +41,14 @@ Map<String, String> validFiles() => {
             'model': 'Hello, Elsa!',
             'accept': [['hello']],
           },
+        ],
+      }),
+      'packs/stories.json': jsonEncode({
+        'id': 'stories',
+        'version': 1,
+        'items': [
+          {'id': 'yt:aaaaaaaaaaa', 'videoId': 'aaaaaaaaaaa', 'title': 'Tấm Cám', 'topic': 'fairy_vi', 'durationSec': 600},
+          {'id': 'yt:bbbbbbbbbbb', 'videoId': 'bbbbbbbbbbb', 'title': 'Frozen story', 'topic': 'princess', 'durationSec': 900},
         ],
       }),
       'packs/vocab_animals.json': jsonEncode({

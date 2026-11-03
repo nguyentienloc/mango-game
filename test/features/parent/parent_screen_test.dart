@@ -12,6 +12,7 @@ import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
 import 'package:xoai_castle/features/parent/parent_screen.dart';
+import 'package:xoai_castle/features/parent/stories_manage_screen.dart';
 
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
@@ -30,6 +31,14 @@ void main() {
     await tester.pump();
     await tester.pump();
   }
+
+  testWidgets('📖 Truyện opens the story list', (tester) async {
+    await pumpParent(tester);
+    await tester.scrollUntilVisible(find.byKey(const Key('parent-stories')), 200);
+    await tester.tap(find.byKey(const Key('parent-stories')));
+    await tester.pumpAndSettle();
+    expect(find.byType(StoriesManageScreen), findsOneWidget);
+  });
 
   testWidgets('warns when the Vietnamese voice is missing', (tester) async {
     await pumpParent(tester, missing: {'vi-VN'});

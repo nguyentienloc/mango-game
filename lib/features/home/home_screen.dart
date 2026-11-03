@@ -22,6 +22,8 @@ import '../games/trace/trace_screen.dart';
 import '../games/vi_letters/vi_letters_screen.dart';
 import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
+import '../story/math_gate_screen.dart';
+import '../story/story_setup_screen.dart';
 
 class _GameEntry {
   const _GameEntry(this.emoji, this.phraseId, this.builder);
@@ -87,6 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _GameEntry('✏️', 'game_trace', (_) => const TraceScreen()),
       _GameEntry('🗣️', 'game_talk', (_) => const TalkScreen()),
       _GameEntry('🇻🇳', 'game_vi', (_) => const VietnameseLettersScreen()),
+      _GameEntry('🌙', 'game_story', (_) => MathGateScreen(onPassed: (_) => const StorySetupScreen())),
     ];
     // Home is the root: the back gesture must not exit the app by accident.
     return PopScope(

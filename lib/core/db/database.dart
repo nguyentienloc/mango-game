@@ -51,16 +51,41 @@ class Profile extends Table {
   RealColumn get enSpeed => real().withDefault(const Constant(0.85))();
   RealColumn get viSpeed => real().withDefault(const Constant(1.0))();
 
+  /// JSON of the last story setup (StorySetup.toJson); null until the parent picks one.
+  TextColumn get storySetup => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [ItemStats, Sessions, Rewards, Profile])
+/// Stories a parent added by pasting a YouTube link.
+@DataClassName('UserStoryRow')
+class UserStories extends Table {
+  TextColumn get videoId => text()();
+  TextColumn get title => text()();
+  TextColumn get topic => text()();
+  IntColumn get durationSec => integer().nullable()();
+  DateTimeColumn get addedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {videoId};
+}
+
+/// Story ids ('yt:<videoId>') the parent hid from the list.
+@DataClassName('HiddenStoryRow')
+class HiddenStories extends Table {
+  TextColumn get storyId => text()();
+
+  @override
+  Set<Column> get primaryKey => {storyId};
+}
+
+@DriftDatabase(tables: [ItemStats, Sessions, Rewards, Profile, UserStories, HiddenStories])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -70,6 +95,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await m.addColumn(profile, profile.enSpeed);
         await m.addColumn(profile, profile.viSpeed);
+      }
+      if (from < 4) {
+        await m.createTable(userStories);
+        await m.createTable(hiddenStories);
+        await m.addColumn(profile, profile.storySetup);
       }
     },
   );
