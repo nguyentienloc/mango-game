@@ -46,6 +46,11 @@ const requiredPhraseIds = {
   'vi_trace_done',
   'game_vi_balloon',
   'game_vi_trace',
+  'game_story',
+  'story_pick',
+  'story_error',
+  'story_bye',
+  'story_offline',
 };
 
 /// Phrase groups the app picks from at random.

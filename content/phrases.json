@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -44,6 +44,11 @@
     { "id": "vi_trace_prompt", "lang": "vi", "text": "Mình cùng viết chữ {spoken} nào!", "group": "vi_letters" },
     { "id": "vi_trace_done", "lang": "vi", "text": "Giỏi quá! Chữ {spoken}!", "group": "vi_letters" },
     { "id": "game_vi_balloon", "lang": "vi", "text": "Đập bong bóng", "group": "menu" },
-    { "id": "game_vi_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" }
+    { "id": "game_vi_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" },
+    { "id": "game_story", "lang": "vi", "text": "Nghe chuyện", "group": "story" },
+    { "id": "story_pick", "lang": "vi", "text": "{name_vi} chọn truyện muốn nghe nào!", "group": "story" },
+    { "id": "story_error", "lang": "vi", "text": "Truyện này chưa mở được, {name_vi} chọn truyện khác nha!", "group": "story" },
+    { "id": "story_bye", "lang": "vi", "text": "Hết giờ nghe chuyện rồi, {name_vi} ngủ ngon nhé!", "group": "story" },
+    { "id": "story_offline", "lang": "vi", "text": "Cần có mạng để nghe chuyện nha!", "group": "story" }
   ]
 }
