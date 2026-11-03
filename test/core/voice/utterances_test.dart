@@ -42,16 +42,16 @@ void main() {
     ]));
   });
 
-  test('balloon covers prompt, correct and wrong for every letter', () {
+  test('balloon covers prompt, correct and both wrong-tap phrases for every letter', () {
     final balloon = keys(UtteranceKind.balloon).toSet();
     expect(balloon, containsAll([
       'vi|Xoài tìm chữ || en|B || vi|nào!',
       'vi|Đúng rồi! || en|B!',
-      'vi|Chưa đúng rồi, đây là chữ || en|C || vi|Tìm chữ || en|A || vi|nha!',
-      'vi|Chưa đúng rồi, đây là chữ || en|A || vi|Tìm chữ || en|C || vi|nha!',
+      'vi|Chưa đúng rồi, đây là chữ || en|C',
+      'vi|Tìm chữ || en|C || vi|nha!',
     ]));
-    // 26 prompts + 26 corrects + 26 + 26 - 1 (the A/A pair is shared) wrongs.
-    expect(balloon, hasLength(26 + 26 + 51));
+    // 26 each of prompt, correct, wrong_this (tapped) and wrong_find (target).
+    expect(balloon, hasLength(26 * 4));
   });
 
   test('tracing needs a prompt and an example for every letter', () {

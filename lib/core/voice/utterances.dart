@@ -19,7 +19,7 @@ const tracePhraseIds = ['trace_prompt'];
 const numberPhraseIds = ['snowflake_count'];
 const maxSpokenCount = 999;
 const letterPhraseIds = ['letter_example'];
-const balloonPhraseIds = ['balloon_prompt', 'balloon_correct', 'balloon_wrong'];
+const balloonPhraseIds = ['balloon_prompt', 'balloon_correct', 'balloon_wrong_this', 'balloon_wrong_find'];
 
 /// Every utterance the app can say, with names and item variables filled in.
 /// Used by tool/gen_voice.dart to pre-generate audio and by the voice coverage test.
@@ -51,14 +51,14 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
     // Tracing reuses letter_example, so it is required rather than optional.
     add('letter_example', {'letter': l.char, 'word': l.exampleWord}, UtteranceKind.trace);
   }
-  // Balloon: clips are per PART, so a part like "{tapped}" only depends on one letter and
-  // "{letter}" on another. Varying tapped over A..Z with letter fixed to 'A', and letter over
-  // A..Z with tapped fixed to 'A', covers every part of balloon_wrong for every pair.
+  // Balloon: clips are per PART. The wrong-tap feedback is split in two phrases (the second one
+  // is not awaited by the screen), each depending on one letter: {tapped} in _this and {letter}
+  // in _find, so A..Z in each covers every pair.
   for (final l in content.lettersEn) {
     add('balloon_prompt', {'letter': l.char}, UtteranceKind.balloon);
     add('balloon_correct', {'letter': l.char}, UtteranceKind.balloon);
-    add('balloon_wrong', {'tapped': l.char, 'letter': 'A'}, UtteranceKind.balloon);
-    add('balloon_wrong', {'tapped': 'A', 'letter': l.char}, UtteranceKind.balloon);
+    add('balloon_wrong_this', {'tapped': l.char}, UtteranceKind.balloon);
+    add('balloon_wrong_find', {'letter': l.char}, UtteranceKind.balloon);
   }
   for (var n = 0; n <= maxSpokenCount; n++) {
     add('snowflake_count', {'count': '$n'}, UtteranceKind.numbers);

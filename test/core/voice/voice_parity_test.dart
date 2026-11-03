@@ -62,12 +62,13 @@ void main() {
     }
     for (final l in content.lettersEn) {
       await check('trace_prompt', 'trace_prompt', {'letter': l.char});
-      // Exactly as the balloon screen says them: prompt/correct with {letter},
-      // wrong with the tapped letter and the target.
+      // Exactly as the balloon screen says them: prompt/correct with {letter};
+      // a wrong tap says the tapped letter, then (not awaited) asks for the target.
       await check('balloon_prompt', 'balloon_prompt', {'letter': l.char});
       await check('balloon_correct', 'balloon_correct', {'letter': l.char});
       final other = content.lettersEn[(content.lettersEn.indexOf(l) + 7) % content.lettersEn.length];
-      await check('balloon_wrong', 'balloon_wrong', {'tapped': l.char, 'letter': other.char});
+      await check('balloon_wrong_this', 'balloon_wrong_this', {'tapped': l.char});
+      await check('balloon_wrong_find', 'balloon_wrong_find', {'letter': other.char});
       await check('letter_example', 'letter_example', {'letter': l.char, 'word': l.exampleWord});
     }
 

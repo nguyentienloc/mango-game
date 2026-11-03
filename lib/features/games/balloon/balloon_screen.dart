@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -86,21 +88,31 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     await _voice.say('balloon_prompt', vars: {'letter': _session!.current.answer});
   }
 
-  void _onPop(String letter) {
-    if (_busy) return;
+  /// The field asks before it pops a balloon. Locks synchronously, so a second touch in
+  /// the same frame is refused (and its balloon stays) instead of being popped unseen.
+  bool _onPop(String letter) {
+    if (_busy) return false;
+    _busy = true;
     _guard(() => _handlePop(letter));
+    return true;
   }
 
   Future<void> _handlePop(String letter) async {
     final session = _session!;
     final result = session.tap(letter);
     if (result == TapResult.wrong) {
-      setState(() => _busy = true);
-      await _voice.say('balloon_wrong', vars: {'tapped': letter, 'letter': session.current.answer});
-      if (mounted) setState(() => _busy = false);
+      // Locked only while the tapped letter is named; "find X" plays on while the child can
+      // already tap again (a new tap's speech cuts it).
+      await _voice.say('balloon_wrong_this', vars: {'tapped': letter});
+      if (!mounted) return;
+      setState(() => _busy = false);
+      unawaited(_guard(() => _voice.say('balloon_wrong_find', vars: {'letter': session.current.answer})));
       return;
     }
-    if (result != TapResult.correct) return;
+    if (result != TapResult.correct) {
+      if (mounted && !_celebrating) setState(() => _busy = false);
+      return;
+    }
 
     final q = session.current;
     setState(() {
@@ -109,8 +121,9 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     });
     final stat = (_stats[q.key] ?? ItemStat(key: q.key)).apply(session.outcomes.last, ref.read(clockProvider)());
     _stats[q.key] = stat;
-    await ref.read(itemStatsStoreProvider).save(stat);
+    // The stats write does not delay Elsa's cheer: both run together.
     await Future.wait([
+      ref.read(itemStatsStoreProvider).save(stat),
       _voice.say('balloon_correct', vars: {'letter': q.answer}),
       Future<void>.delayed(const Duration(milliseconds: 800)),
     ]);
@@ -192,7 +205,6 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
                   onPop: _onPop,
                   hint: session.showHint ? q.answer : null,
                   random: ref.read(randomProvider),
-                  enabled: !_busy,
                 ),
               ),
             ],

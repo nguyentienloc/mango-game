@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -15,7 +15,8 @@
     { "id": "game_balloon", "lang": "vi", "text": "Đập bong bóng", "group": "menu" },
     { "id": "balloon_prompt", "group": "balloon", "parts": [ { "lang": "vi", "text": "{name_vi} tìm chữ" }, { "lang": "en", "text": "{letter}" }, { "lang": "vi", "text": "nào!" } ] },
     { "id": "balloon_correct", "group": "balloon", "parts": [ { "lang": "vi", "text": "Đúng rồi!" }, { "lang": "en", "text": "{letter}!" } ] },
-    { "id": "balloon_wrong", "group": "balloon", "parts": [ { "lang": "vi", "text": "Chưa đúng rồi, đây là chữ" }, { "lang": "en", "text": "{tapped}" }, { "lang": "vi", "text": "Tìm chữ" }, { "lang": "en", "text": "{letter}" }, { "lang": "vi", "text": "nha!" } ] },
+    { "id": "balloon_wrong_this", "group": "balloon", "parts": [ { "lang": "vi", "text": "Chưa đúng rồi, đây là chữ" }, { "lang": "en", "text": "{tapped}" } ] },
+    { "id": "balloon_wrong_find", "group": "balloon", "parts": [ { "lang": "vi", "text": "Tìm chữ" }, { "lang": "en", "text": "{letter}" }, { "lang": "vi", "text": "nha!" } ] },
     { "id": "game_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" },
     { "id": "game_talk", "lang": "vi", "text": "Nói chuyện với Elsa", "group": "menu" },
     { "id": "game_vi", "lang": "vi", "text": "Chữ cái tiếng Việt", "group": "menu" },
