@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -27,6 +27,7 @@
     { "id": "coming_soon", "lang": "vi", "text": "Trò này sắp có rồi nha!", "group": "system" },
     { "id": "round_done", "lang": "vi", "text": "Hoàn thành rồi! {name_vi} giỏi quá!", "group": "reward", "priority": true },
     { "id": "quest_done", "lang": "vi", "text": "Xong nhiệm vụ hôm nay rồi! Mở quà nào!", "group": "reward" },
+    { "id": "snowflake_count", "group": "reward", "parts": [ { "lang": "vi", "text": "{name_vi} đã kiếm được" }, { "lang": "vi", "text": "{count}" }, { "lang": "vi", "text": "bông tuyết rồi, giỏi quá nè!" } ] },
     { "id": "castle_level_up", "lang": "vi", "text": "Lâu đài lớn thêm rồi nè!", "group": "reward" },
     { "id": "friend_unlocked", "lang": "vi", "text": "Có bạn mới đến chơi với {name_vi} nè!", "group": "reward" },
     { "id": "error_home", "lang": "vi", "text": "Mình về lâu đài nha!", "group": "system" }

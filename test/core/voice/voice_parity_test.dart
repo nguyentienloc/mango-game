@@ -45,8 +45,17 @@ void main() {
 
     for (final id in content.phrases.keys) {
       if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id)) continue;
+      if (numberPhraseIds.contains(id)) continue;
       await check(id, id);
     }
+    // Three say() calls per number are slow, so the 1000 counts are checked by
+    // key; one real count goes through say().
+    for (var n = 0; n <= maxSpokenCount; n++) {
+      for (final part in voice.utterance('snowflake_count', vars: {'count': '$n'}).parts) {
+        if (clips.assetFor(part) == null) missing.add(part.key);
+      }
+    }
+    await check('snowflake_count', 'snowflake_count', {'count': '125'});
     for (final w in content.vocab) {
       for (final id in vocabPhraseIds) {
         await check(id, id, vocabVars(w));

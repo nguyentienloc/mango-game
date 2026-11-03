@@ -266,4 +266,123 @@ void main() {
       expect(() => parseGenArgs(['--bogus']), throwsFormatException);
     });
   });
+
+  group('batching', () {
+    UtterancePart vi(String t) => UtterancePart('vi', t);
+    UtterancePart en(String t) => UtterancePart('en', t);
+
+    test('--batch parses', () {
+      expect(parseGenArgs(['--batch']).batch, isTrue);
+      expect(parseGenArgs([]).batch, isFalse);
+    });
+
+    test('short parts of one language are grouped by 50, in order', () {
+      final parts = [for (var i = 0; i < 120; i++) vi('$i')];
+      final r = planBatches(parts);
+      expect(r.batches.map((b) => b.length), [50, 50, 20]);
+      expect(r.batches.expand((b) => b).map((p) => p.text), [for (var i = 0; i < 120; i++) '$i']);
+      expect(r.single, isEmpty);
+    });
+
+    test('languages are never mixed in one batch', () {
+      final r = planBatches([vi('1'), en('One!'), vi('2'), en('Two!')]);
+      expect(r.batches, hasLength(2));
+      expect(r.batches.map((b) => b.map((p) => p.lang).toSet().single).toSet(), {'vi', 'en'});
+    });
+
+    test('long parts stay single unless forced; a lone short part stays single', () {
+      final long = vi('bông tuyết rồi, giỏi quá nè!');
+      final r = planBatches([long, vi('7')]);
+      expect(r.batches, isEmpty);
+      expect(r.single, [long, vi('7')].map((p) => p.key));
+      final forced = planBatches([long, vi('7')], forceAll: true);
+      expect(forced.batches, hasLength(1));
+      expect(forced.batches.single, hasLength(2));
+    });
+
+    test('text of 12 characters is short, 13 is not', () {
+      expect(planBatches([vi('a' * 12), vi('b' * 12)]).batches, hasLength(1));
+      expect(planBatches([vi('a' * 13), vi('b' * 13)]).batches, isEmpty);
+    });
+
+    test('batchText puts each part on its own line, closed by a full stop', () {
+      expect(batchText([vi('1'), vi('22'), vi('333')]), '1.\n22.\n333.');
+      expect(batchText([vi('Lion!'), vi('a,')]), 'Lion!\na,');
+    });
+
+    test('the request pause settings', () {
+      expect(batchPause['paragraphBreak'], closeTo(1.2, 0.01));
+      expect(batchPause['sentenceBreak'], closeTo(1.0, 0.01));
+    });
+  });
+
+  group('silence parsing', () {
+    const stderr = '''
+  Duration: 00:00:09.50, start: 0.000000, bitrate: 128 kb/s
+[silencedetect @ 0x1] silence_start: 0
+[silencedetect @ 0x1] silence_end: 0.35 | silence_duration: 0.35
+[silencedetect @ 0x1] silence_start: 1.2
+[silencedetect @ 0x1] silence_end: 2.5 | silence_duration: 1.3
+[silencedetect @ 0x1] silence_start: 3.4
+[silencedetect @ 0x1] silence_end: 4.7 | silence_duration: 1.3
+[silencedetect @ 0x1] silence_start: 5.6
+''';
+
+    test('parses silences and total duration', () {
+      final s = parseSilences(stderr);
+      expect(s, hasLength(4));
+      expect(s.first.start, 0);
+      expect(s.first.end, 0.35);
+      expect(s.last.start, 5.6);
+      expect(s.last.end, isNull);
+      expect(parseDuration(stderr), closeTo(9.5, 0.001));
+    });
+
+    test('speech segments are the gaps between silences', () {
+      final seg = speechSegments(parseSilences(stderr), 9.5);
+      expect(seg.map((e) => (e.start, e.end)), [(0.35, 1.2), (2.5, 3.4), (4.7, 5.6)]);
+    });
+
+    test('no silence at all is one segment; a silent tail ends the last segment', () {
+      expect(speechSegments(const [], 3.0).map((e) => (e.start, e.end)), [(0.0, 3.0)]);
+      final seg = speechSegments(parseSilences('[silencedetect @ 1] silence_start: 2'), 4.0);
+      expect(seg.map((e) => (e.start, e.end)), [(0.0, 2.0)]);
+    });
+
+    test('a few milliseconds of noise at an edge is not an item', () {
+      final seg = speechSegments(parseSilences('silence_start: 0.01\nsilence_end: 1.0\nsilence_start: 2.0\nsilence_end: 9.995'), 10.0);
+      expect(seg.map((e) => (e.start, e.end)), [(1.0, 2.0)]);
+    });
+
+    test('garbage gives nothing', () {
+      expect(parseSilences('hello'), isEmpty);
+      expect(parseDuration('hello'), isNull);
+    });
+  });
+
+  group('split decision', () {
+    test('splits only when the segment count equals the item count', () {
+      final seg = [for (var i = 0; i < 3; i++) Segment(i * 2.0, i * 2.0 + 1)];
+      expect(canSplit(3, seg), isTrue);
+      expect(canSplit(4, seg), isFalse);
+      expect(canSplit(2, seg), isFalse);
+      expect(canSplit(0, const []), isFalse);
+    });
+
+    test('cut window is padded by 80 ms and clamped to the file', () {
+      final w = cutWindow(const Segment(0.05, 1.0), 1.02);
+      expect(w.start, 0.0);
+      expect(w.end, closeTo(1.02, 1e-9));
+      final m = cutWindow(const Segment(2.0, 3.0), 10);
+      expect(m.start, closeTo(1.92, 1e-9));
+      expect(m.end, closeTo(3.08, 1e-9));
+    });
+
+    test('cache key of a batch depends on voice, speed and the exact texts', () {
+      final a = batchCacheKey('vi', ['1', '2'], 'v', 0.9);
+      expect(a, batchCacheKey('vi', ['1', '2'], 'v', 0.9));
+      expect(a, isNot(batchCacheKey('vi', ['2', '1'], 'v', 0.9)));
+      expect(a, isNot(batchCacheKey('vi', ['1', '2'], 'w', 0.9)));
+    });
+  });
 }

@@ -27,6 +27,7 @@ const requiredPhraseIds = {
   'castle_level_up',
   'friend_unlocked',
   'error_home',
+  'snowflake_count',
 };
 
 /// Phrase groups the app picks from at random.

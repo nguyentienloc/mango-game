@@ -41,6 +41,30 @@ void main() {
     expect(find.byKey(const Key('update-dot')), findsNothing);
   });
 
+  testWidgets('tapping the snowflake counter says the count, part by part', (tester) async {
+    final tts = await pumpHome(tester, rewards: const RewardState(snowflakesTotal: 12));
+    tts.spoken.clear();
+    await tester.tap(find.text('❄️ 12'));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(tts.texts, ['Xoài đã kiếm được', '12', 'bông tuyết rồi, giỏi quá nè!']);
+  });
+
+  testWidgets('the counter on the castle screen is tappable too', (tester) async {
+    final tts = await pumpHome(tester, rewards: const RewardState(snowflakesTotal: 12));
+    await tester.tap(find.byKey(const Key('home-castle')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(CastleScreen), findsOneWidget);
+    tts.spoken.clear();
+    await tester.tap(find.text('❄️ 12'));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(tts.texts, ['Xoài đã kiếm được', '12', 'bông tuyết rồi, giỏi quá nè!']);
+  });
+
   testWidgets('a coming-soon game says its name and stays on home', (tester) async {
     final tts = await pumpHome(tester);
     await tester.tap(find.text('🗣️'));

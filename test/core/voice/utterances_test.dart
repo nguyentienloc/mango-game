@@ -5,6 +5,8 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
+import '../../../tool/src/voice_gen.dart' show distinctParts;
+
 void main() {
   late ContentBundle content;
   late List<PlannedUtterance> planned;
@@ -50,5 +52,18 @@ void main() {
     final trace = keys(UtteranceKind.trace).toSet();
     expect(trace, containsAll(['en|Let\'s write B!', 'en|B! B is for Ball!']));
     expect(trace, hasLength(26 * 2));
+  });
+
+  test('the snowflake count is not a fixed phrase; numbers 0..999 get one utterance each', () {
+    expect(keys(UtteranceKind.fixed).any((k) => k.contains('bông tuyết rồi')), isFalse);
+    final numbers = keys(UtteranceKind.numbers).toList();
+    expect(numbers, hasLength(1000));
+    expect(numbers.first, 'vi|Xoài đã kiếm được || vi|0 || vi|bông tuyết rồi, giỏi quá nè!');
+    expect(numbers, contains('vi|Xoài đã kiếm được || vi|999 || vi|bông tuyết rồi, giỏi quá nè!'));
+  });
+
+  test('only the number part differs between counts', () {
+    final parts = distinctParts([for (final p in planned.where((p) => p.kind == UtteranceKind.numbers)) p.utterance]);
+    expect(parts, hasLength(1002));
   });
 }

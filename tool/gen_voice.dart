@@ -19,7 +19,13 @@ import 'src/voice_gen.dart';
 /// ~/.config/xoai/vbee.env (VBEE_APP_ID, VBEE_TOKEN) or the same environment
 /// variables, and are never written or printed.
 ///
-///   dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api]
+///   dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api] [--batch]
+///
+/// With --allow-api, uncached parts of at most 12 characters are synthesised in
+/// batches (up to 50 per Vbee request, one per line, with long pauses between)
+/// and cut apart on silence with ffmpeg; --batch batches longer parts too. A batch
+/// whose silence-segment count differs from its item count is never guessed at:
+/// its parts fall back to one request each.
 ///
 /// --only restricts the run to parts whose key (`lang|text`) contains TEXT.
 const _api = 'https://api.vbee.vn/v1/tts';
@@ -34,7 +40,9 @@ const _requestTimeout = Duration(seconds: 60);
 
 /// Secrets to mask in every stderr message (set once the credentials are read).
 var _secrets = <String>[];
-void _err(String message) => stderr.writeln(redactSecrets(message, _secrets));
+void _err(String message) => stderr.writeln(
+  redactSecrets(message, _secrets).replaceAll(RegExp(r'\?X-Amz-[^\s,)]*'), '?…'),
+);
 
 Future<void> main(List<String> args) async {
   final GenArgs opts;
@@ -42,7 +50,7 @@ Future<void> main(List<String> args) async {
     opts = parseGenArgs(args);
   } on FormatException catch (e) {
     _err(
-      '${e.message}\nDùng: dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api]',
+      '${e.message}\nDùng: dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api] [--batch]',
     );
     exit(1);
   }
@@ -134,6 +142,29 @@ Future<void> main(List<String> args) async {
     final creds = _readCredentials();
     client = HttpClient()..connectionTimeout = _connectTimeout;
     vbee = _Vbee(client, creds.appId, creds.token, breaker);
+  }
+  final batchStats = _BatchStats();
+  if (vbee != null) {
+    final uncachedQueue = [for (final p in queue) if (!mp3Of(p).existsSync()) p];
+    final plan = planBatches(uncachedQueue, forceAll: opts.batch);
+    if (plan.batches.isNotEmpty) {
+      stdout.writeln(
+        '${plan.batches.length} batch requests for ${plan.batches.fold<int>(0, (n, b) => n + b.length)} parts, '
+        '${plan.single.length} single.',
+      );
+      try {
+        await _runBatches(vbee, plan.batches, batchStats);
+      } on _StopRun catch (e) {
+        _err('⏸ Dừng: ${e.message}');
+        client?.close();
+        exitCode = 2;
+        return;
+      }
+      stdout.writeln(
+        'BATCH requests=${batchStats.requests} clean=${batchStats.clean} '
+        'fallback=${batchStats.fallback} cached=${batchStats.cached} parts_cut=${batchStats.partsCut}',
+      );
+    }
   }
   var next = 0;
   var done = 0;
@@ -272,6 +303,45 @@ class _PartFailure implements Exception {
   String toString() => message;
 }
 
+class _BatchStats {
+  int requests = 0;
+  int clean = 0;
+  int fallback = 0;
+  int cached = 0;
+  int partsCut = 0;
+}
+
+/// Runs the batches [_concurrency] at a time. A batch that cannot be split
+/// cleanly leaves its parts uncached, so the normal per-part pass redoes them.
+Future<void> _runBatches(_Vbee vbee, List<List<UtterancePart>> batches, _BatchStats stats) async {
+  var next = 0;
+  Future<void> worker() async {
+    while (next < batches.length) {
+      final i = next++;
+      final b = batches[i];
+      final label = 'batch ${i + 1}/${batches.length} (${b.length} × ${b.first.lang})';
+      try {
+        final r = await vbee.batch(b, stats);
+        if (r) {
+          stats.clean++;
+          stats.partsCut += b.length;
+          stdout.writeln('✓ $label split cleanly');
+        } else {
+          stats.fallback++;
+          stdout.writeln('↩ $label: segment count mismatch, falling back to per-part requests');
+        }
+      } on _StopRun {
+        rethrow;
+      } on Object catch (e) {
+        stats.fallback++;
+        _err('↩ $label failed ($e), falling back to per-part requests');
+      }
+    }
+  }
+
+  await Future.wait([for (var i = 0; i < _concurrency; i++) worker()]);
+}
+
 File _partFile(String cacheKey) => File('build/voice-parts/$cacheKey.mp3');
 
 class _Vbee {
@@ -300,6 +370,37 @@ class _Vbee {
     );
   }
 
+  /// Synthesises [parts] (one language) in one request and cuts the MP3 apart on
+  /// silence into the per-part cache. True when it split cleanly; false (nothing
+  /// written) when the segment count did not match the item count.
+  Future<bool> batch(List<UtterancePart> parts, _BatchStats stats) async {
+    final lang = parts.first.lang;
+    final voice = voiceFor(lang);
+    final texts = [for (final p in parts) p.text];
+    final whole = _partFile('batch-${batchCacheKey(lang, texts, voice, voiceSpeed)}');
+    if (whole.existsSync()) {
+      stats.cached++;
+    } else {
+      // One retry: a dropped download should not cost 50 single requests.
+      for (var attempt = 1;; attempt++) {
+        stats.requests++;
+        try {
+          await _synthesise(batchText(parts), voice, whole, extra: {'clientPause': batchPause});
+          _breaker.recordSuccess(voice);
+          break;
+        } on _StopRun {
+          rethrow;
+        } on Object {
+          if (_breaker.recordFailure(voice)) {
+            throw _StopRun('giọng $voice bị Vbee từ chối liên tục khi tạo theo lô');
+          }
+          if (attempt >= 2) rethrow;
+        }
+      }
+    }
+    return _splitBatch(whole, parts, voice);
+  }
+
   /// Synthesises one part, feeding the circuit breaker and naming the part in errors.
   Future<File> _synthesiseTracked(
     UtterancePart p,
@@ -323,7 +424,7 @@ class _Vbee {
     }
   }
 
-  Future<File> _synthesise(String text, String voice, File out) async {
+  Future<File> _synthesise(String text, String voice, File out, {Map<String, Object>? extra}) async {
     final created = await _request('POST', Uri.parse(_api), {
       'text': text,
       'voiceCode': voice,
@@ -332,6 +433,7 @@ class _Vbee {
       'bitrate': 128,
       'speed': voiceSpeed,
       'webhookUrl': _webhook,
+      ...?extra,
     });
     final id = created['requestId'];
     if (id is! String) throw _VbeeFailure('Vbee: no requestId in response');
@@ -497,4 +599,69 @@ Future<void> _toOgg(File mp3, File out) async {
     if (tmpOgg.existsSync()) tmpOgg.deleteSync();
     rethrow;
   }
+}
+
+/// Cuts [whole] into one MP3 per part (cache key of each part). Returns false,
+/// writing nothing, unless the speech segments match the parts one to one.
+Future<bool> _splitBatch(File whole, List<UtterancePart> parts, String voice) async {
+  final r = await Process.run('ffmpeg', [
+    '-hide_banner',
+    '-nostats',
+    '-i',
+    whole.path,
+    '-af',
+    'silencedetect=noise=$silenceNoise:d=$silenceMinDuration',
+    '-f',
+    'null',
+    '-',
+  ]);
+  final log = '${r.stderr}';
+  if (r.exitCode != 0) throw ProcessException('ffmpeg', [], log, r.exitCode);
+  final total = parseDuration(log);
+  if (total == null) throw StateError('ffmpeg: no Duration in batch audio');
+  final segments = speechSegments(parseSilences(log), total);
+  if (!canSplit(parts.length, segments)) {
+    stdout.writeln('  expected ${parts.length} segments, found ${segments.length}');
+    return false;
+  }
+  final written = <File>[];
+  try {
+    for (var i = 0; i < parts.length; i++) {
+      final w = cutWindow(segments[i], total);
+      final out = _partFile(partCacheKey(parts[i].lang, parts[i].text, voice, voiceSpeed));
+      final tmp = File('${out.path}.tmp');
+      final c = await Process.run('ffmpeg', [
+        '-y',
+        '-loglevel',
+        'error',
+        '-ss',
+        w.start.toStringAsFixed(3),
+        '-to',
+        w.end.toStringAsFixed(3),
+        '-i',
+        whole.path,
+        '-ac',
+        '1',
+        '-c:a',
+        'libmp3lame',
+        '-b:a',
+        '128k',
+        '-f',
+        'mp3',
+        tmp.path,
+      ]);
+      if (c.exitCode != 0) throw ProcessException('ffmpeg', [], '${c.stderr}', c.exitCode);
+      written.add(tmp);
+    }
+  } on Object {
+    for (final t in written) {
+      if (t.existsSync()) t.deleteSync();
+    }
+    rethrow;
+  }
+  // Publish only once every cut succeeded.
+  for (var i = 0; i < parts.length; i++) {
+    written[i].renameSync(_partFile(partCacheKey(parts[i].lang, parts[i].text, voice, voiceSpeed)).path);
+  }
+  return true;
 }

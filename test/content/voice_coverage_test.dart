@@ -39,5 +39,19 @@ void main() {
     }
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
   });
-}
 
+  test('numbers 0..999 are a required kind: each has a clip for its number part', () async {
+    final content = await ContentRepository(FileContentSource('content')).load();
+    final defaults = content.profileDefaults;
+    final planned = enumerateUtterances(content, Names(en: defaults.nameEn, vi: defaults.nameVi));
+    final numbers = planned.where((p) => p.kind == UtteranceKind.numbers).toList();
+    expect(numbers, hasLength(1000));
+    final clips = (jsonDecode(File('content/audio/index.json').readAsStringSync())['clips'] as Map).cast<String, String>();
+    final missing = [
+      for (final p in numbers)
+        for (final part in p.utterance.parts)
+          if (clips[part.key] == null || !File('content/audio/${clips[part.key]}').existsSync()) part.key,
+    ];
+    expect(missing.toSet(), isEmpty, reason: 'Run: dart run tool/gen_voice.dart --allow-api');
+  });
+}

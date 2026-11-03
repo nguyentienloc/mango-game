@@ -456,6 +456,39 @@ void main() {
       expect(const VoiceSpeeds(en: 0.9, vi: 1.0).clamped(), const VoiceSpeeds(en: 0.9, vi: 1.0));
     });
   });
+
+  group('snowflake count', () {
+    const countPhrases = {
+      'snowflake_count': Phrase.multi(id: 'snowflake_count', group: 'reward', parts: [
+        PhrasePart('vi', '{name_vi} đã kiếm được'),
+        PhrasePart('vi', '{count}'),
+        PhrasePart('vi', 'bông tuyết rồi, giỏi quá nè!'),
+      ]),
+    };
+    final clips = ClipLibrary.parse(
+      '{"clips": {"vi|Xoài đã kiếm được": "a.ogg", "vi|999": "n999.ogg", "vi|bông tuyết rồi, giỏi quá nè!": "z.ogg"}}',
+    );
+
+    VoiceService build(List<String> order) => VoiceService(
+      tts: _LogTts(order),
+      phrases: countPhrases,
+      names: const Names(en: 'An', vi: 'Xoài'),
+      clips: clips,
+      player: _LogPlayer(order),
+    );
+
+    test('a count above 999 has no number clip: only that part uses device TTS', () async {
+      final order = <String>[];
+      await build(order).say('snowflake_count', vars: {'count': '1234'});
+      expect(order, ['clip:content/audio/a.ogg', 'tts:1234', 'clip:content/audio/z.ogg']);
+    });
+
+    test('a count of 999 plays three clips', () async {
+      final order = <String>[];
+      await build(order).say('snowflake_count', vars: {'count': '999'});
+      expect(order, ['clip:content/audio/a.ogg', 'clip:content/audio/n999.ogg', 'clip:content/audio/z.ogg']);
+    });
+  });
 }
 
 class _GatedClipPlayer extends FakeClipPlayer {
