@@ -45,7 +45,7 @@ void main() {
 
     for (final id in content.phrases.keys) {
       if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
-          viLetterPhraseIds.contains(id)) {
+          viLetterPhraseIds.contains(id) || talkPhraseIds.contains(id)) {
         continue;
       }
       if (numberPhraseIds.contains(id)) continue;
@@ -87,6 +87,14 @@ void main() {
       await check(tv.promptId, tv.promptId, tv.vars(l));
       await check(tv.doneId, tv.doneId, tv.vars(l));
     }
+
+    // Talk: exactly as the talk screen says them, with the item's text rendered first.
+    final names = Names(en: defaults.nameEn, vi: defaults.nameVi);
+    for (final item in content.conversation) {
+      await check('talk_question', 'talk_question', talkQuestionVars(item, names));
+      await check('talk_say_after', 'talk_say_after', talkModelVars(item, names));
+    }
+    expect(content.conversation, isNotEmpty);
 
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
     expect(tts.spoken, isEmpty);

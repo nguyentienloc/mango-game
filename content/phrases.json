@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -18,6 +18,10 @@
     { "id": "balloon_wrong_this", "group": "balloon", "parts": [ { "lang": "vi", "text": "Chưa đúng rồi, đây là chữ" }, { "lang": "en", "text": "{tapped}" } ] },
     { "id": "balloon_wrong_find", "group": "balloon", "parts": [ { "lang": "vi", "text": "Tìm chữ" }, { "lang": "en", "text": "{letter}" }, { "lang": "vi", "text": "nha!" } ] },
     { "id": "game_trace", "lang": "vi", "text": "Tô chữ", "group": "menu" },
+    { "id": "talk_question", "lang": "en", "text": "{question}", "group": "talk" },
+    { "id": "talk_again", "lang": "en", "text": "Hmm, can you say it again?", "group": "talk" },
+    { "id": "talk_say_after", "group": "talk", "parts": [ { "lang": "vi", "text": "Con nói theo Elsa nhé:" }, { "lang": "en", "text": "{model}" } ] },
+    { "id": "talk_hold_hint", "lang": "vi", "text": "Bấm giữ nút micro rồi nói nha!", "group": "talk" },
     { "id": "game_talk", "lang": "vi", "text": "Nói chuyện với Elsa", "group": "menu" },
     { "id": "game_vi", "lang": "vi", "text": "Chữ cái tiếng Việt", "group": "menu" },
     { "id": "game_vocab", "lang": "vi", "text": "Nhìn hình đoán từ", "group": "menu" },

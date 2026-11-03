@@ -10,6 +10,7 @@ import 'package:xoai_castle/core/progress/item_stats_store.dart';
 import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
+import 'package:xoai_castle/core/speech/speech_recognizer.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
 
@@ -28,6 +29,7 @@ Widget testApp({
   Future<UpdateCheck>? updateFuture,
   ProgressResetter? resetter,
   int voiceSeed = 1,
+  SpeechRecognizer? speech,
 }) {
   return ProviderScope(
     overrides: [
@@ -48,6 +50,7 @@ Widget testApp({
       appVersionProvider.overrideWithValue('0.1.0'),
       updateCheckProvider.overrideWith((ref) => updateFuture ?? Future.value(update)),
       missingVoicesProvider.overrideWithValue(missingVoices),
+      speechRecognizerProvider.overrideWithValue(speech ?? FakeSpeechRecognizer()),
     ],
     child: MaterialApp(home: home),
   );

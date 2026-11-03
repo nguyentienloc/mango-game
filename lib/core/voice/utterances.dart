@@ -3,7 +3,7 @@ import '../content/vocab.dart';
 import '../profile/names.dart';
 import 'utterance.dart';
 
-enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters }
+enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk }
 
 class PlannedUtterance {
   const PlannedUtterance(this.utterance, this.kind);
@@ -30,6 +30,16 @@ const viLetterPhraseIds = [
   'vi_trace_done',
 ];
 
+/// Talk-with-Elsa phrases that need an item: `talk_question` ({question}) and
+/// `talk_say_after` ({model}). The two other talk phrases (`talk_again`,
+/// `talk_hold_hint`) are plain fixed phrases.
+const talkPhraseIds = ['talk_question', 'talk_say_after'];
+
+/// Vars the talk screen passes for [item]. The item's own text may hold
+/// `{name_en}`, which a var value would not get filled in, so it is rendered here.
+Map<String, String> talkQuestionVars(ConversationItem item, Names names) => {'question': renderTemplate(item.question, names, const {})};
+Map<String, String> talkModelVars(ConversationItem item, Names names) => {'model': renderTemplate(item.model, names, const {})};
+
 /// Every utterance the app can say, with names and item variables filled in.
 /// Used by tool/gen_voice.dart to pre-generate audio and by the voice coverage test.
 List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
@@ -45,7 +55,8 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
 
   for (final id in content.phrases.keys) {
     if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
-        balloonPhraseIds.contains(id) || numberPhraseIds.contains(id) || viLetterPhraseIds.contains(id)) {
+        balloonPhraseIds.contains(id) || numberPhraseIds.contains(id) || viLetterPhraseIds.contains(id) ||
+        talkPhraseIds.contains(id)) {
       continue;
     }
     add(id, const {}, UtteranceKind.fixed);
@@ -76,6 +87,11 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
     for (final id in viLetterPhraseIds) {
       add(id, id == 'vi_balloon_wrong_this' ? {'tapped': spoken} : {'spoken': spoken}, UtteranceKind.viLetters);
     }
+  }
+  // Talk: every question and every model answer, as the talk screen says them.
+  for (final item in content.conversation) {
+    add('talk_question', talkQuestionVars(item, names), UtteranceKind.talk);
+    add('talk_say_after', talkModelVars(item, names), UtteranceKind.talk);
   }
   for (var n = 0; n <= maxSpokenCount; n++) {
     add('snowflake_count', {'count': '$n'}, UtteranceKind.numbers);
