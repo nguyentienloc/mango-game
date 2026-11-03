@@ -289,6 +289,7 @@ Thời gian chơi trong ngày = tổng `duration_sec` của các phiên có `dat
 ## 9. Khu bố mẹ
 
 - **Cửa vào:** giữ ổ khóa 2 giây → câu đố phép cộng hai số có hai chữ số ngẫu nhiên → nhập đúng mới vào.
+- Từ v0.3.2: giữ ổ khóa 3 giây là vào (bỏ phép cộng theo yêu cầu bố mẹ).
 - **Tiến độ:** biểu đồ phút chơi 7 ngày; danh sách "Đã thuộc" (mức ≥ 3) và "Cần ôn" (mức ≤ 1 và đã gặp ≥ 3 lần) theo từng trò.
 - **Thu âm:** mục 7.4.
 - **Cập nhật:** trạng thái nội dung (phiên bản từng gói, nút "Kiểm tra ngay"); cập nhật app (mục 10).
