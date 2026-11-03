@@ -54,6 +54,21 @@ void main() {
     expect(balloon, hasLength(26 * 4));
   });
 
+  test('talk: every question and model answer, names filled in, say-after in two parts', () {
+    final talk = keys(UtteranceKind.talk).toSet();
+    expect(talk, hasLength(content.conversation.length * 2));
+    expect(talk, containsAll([
+      "en|What's your name?",
+      'en|Hello, An!',
+      'en|Goodbye, An!',
+      'vi|Con nói theo Elsa nhé: || en|My name is An.',
+      "vi|Con nói theo Elsa nhé: || en|I'm fine, thank you!",
+    ]));
+    final fixed = keys(UtteranceKind.fixed);
+    expect(fixed, containsAll(['en|Hmm, can you say it again?', 'vi|Bấm giữ nút micro rồi nói nha!']));
+    expect(fixed.any((k) => k.contains('{question}') || k.contains('{model}')), isFalse);
+  });
+
   test('Vietnamese letters: every phrase for all 29 letters, single vi part, names embedded', () {
     final vi = keys(UtteranceKind.viLetters).toSet();
     expect(vi, hasLength(29 * 6));

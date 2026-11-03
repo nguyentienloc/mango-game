@@ -9,6 +9,7 @@ import 'package:xoai_castle/core/progress/progress_resetter.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/rewards/reward_store.dart';
 import 'package:xoai_castle/core/session/session_store.dart';
+import 'package:xoai_castle/core/speech/speech_recognizer.dart';
 import 'package:xoai_castle/core/voice/clip_player.dart';
 import 'package:xoai_castle/core/voice/tts_engine.dart';
 
@@ -146,5 +147,74 @@ class FakeProgressResetter implements ProgressResetter {
   Future<void> resetProgress() async {
     calls++;
     await onReset?.call();
+  }
+}
+
+/// Scriptable microphone. [scripts] holds what each listening session "hears":
+/// the next entry is delivered as the final result when the session is stopped
+/// (like releasing the mic button). [emit] pushes a result by hand.
+class FakeSpeechRecognizer implements SpeechRecognizer {
+  FakeSpeechRecognizer({this.initResult = true, List<List<String>> scripts = const []}) : scripts = [...scripts];
+
+  /// What [init] answers; also what [available] becomes.
+  bool initResult;
+  final List<List<String>> scripts;
+  int inits = 0;
+  int starts = 0;
+  int stops = 0;
+  int cancels = 0;
+  bool _available = false;
+  bool _listening = false;
+  void Function(List<String> transcripts, bool isFinal)? _onResult;
+
+  /// When true, [stop] does not deliver the final result (the test calls [emit]).
+  bool holdFinal = false;
+
+  /// The recogniser breaks for good (e.g. the permission was withdrawn).
+  void breakDown() => _available = false;
+
+  bool get isListening => _listening;
+
+  @override
+  bool get available => _available;
+
+  @override
+  Future<bool> init() async {
+    inits++;
+    _available = initResult;
+    return _available;
+  }
+
+  @override
+  Future<void> start({required void Function(List<String> transcripts, bool isFinal) onResult}) async {
+    if (!_available) return;
+    starts++;
+    _listening = true;
+    _onResult = onResult;
+  }
+
+  /// Delivers [transcripts] to the running session; a final one ends it.
+  void emit(List<String> transcripts, {bool isFinal = true}) {
+    final cb = _onResult;
+    if (cb == null) return;
+    if (isFinal) {
+      _listening = false;
+      _onResult = null;
+    }
+    cb(transcripts, isFinal);
+  }
+
+  @override
+  Future<void> stop() async {
+    stops++;
+    if (!_listening || holdFinal) return;
+    emit(scripts.isEmpty ? const [] : scripts.removeAt(0));
+  }
+
+  @override
+  Future<void> cancel() async {
+    cancels++;
+    _listening = false;
+    _onResult = null;
   }
 }

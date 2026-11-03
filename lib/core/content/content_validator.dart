@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-const requiredPacks = ['letters_en', 'letters_vi'];
+const requiredPacks = ['letters_en', 'letters_vi', 'conversation'];
 
 /// The 29 Vietnamese capitals, in teaching order.
 const viLetters = ['A', 'Ă', 'Â', 'B', 'C', 'D', 'Đ', 'E', 'Ê', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'Ô', 'Ơ', 'P', 'Q', 'R', 'S', 'T', 'U', 'Ư', 'V', 'X', 'Y'];
@@ -20,6 +20,10 @@ const requiredPhraseIds = {
   'balloon_wrong_find',
   'game_trace',
   'game_talk',
+  'talk_question',
+  'talk_again',
+  'talk_say_after',
+  'talk_hold_hint',
   'game_vi',
   'game_vocab',
   'vocab_prompt',
@@ -98,6 +102,7 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
 
   _checkLetters('letters_en', docs['packs/letters_en.json']!, errors, checkImage);
   _checkLetters('letters_vi', docs['packs/letters_vi.json']!, errors, checkImage);
+  _checkConversation(docs['packs/conversation.json']!, errors);
   _checkVocab(packs.keys, docs, errors, checkImage);
   _checkPhrases(docs['phrases.json']!, errors);
   final friends = _checkCastle(docs['castle.json']!, errors);
@@ -251,6 +256,54 @@ void _checkVocab(
     }
   }
   if (total < 4) errors.add('Cần ít nhất 4 từ vựng (hiện có $total)');
+}
+
+void _checkConversation(Map<String, dynamic> doc, List<String> errors) {
+  const path = 'packs/conversation.json';
+  final items = doc['items'];
+  if (items is! List || items.isEmpty) {
+    errors.add('$path: "items" phải là danh sách không rỗng');
+    return;
+  }
+  final seen = <String>{};
+  for (final (i, item) in items.indexed) {
+    final where = '$path items[$i]';
+    if (item is! Map<String, dynamic>) {
+      errors.add('$where: phải là object');
+      continue;
+    }
+    final id = item['id'];
+    if (!_nonEmpty(id)) {
+      errors.add('$where: thiếu "id"');
+    } else if (!seen.add(id as String)) {
+      errors.add('$where: id "$id" bị trùng');
+    }
+    for (final field in ['question', 'model']) {
+      if (!_nonEmpty(item[field])) errors.add('$where: thiếu "$field"');
+    }
+    final accept = item['accept'];
+    if (accept is! List || accept.isEmpty) {
+      errors.add('$where: "accept" cần ít nhất một nhóm');
+    } else {
+      for (final (g, group) in accept.indexed) {
+        if (group is! List || group.isEmpty || !group.every(_nonEmpty)) {
+          errors.add('$where accept[$g]: nhóm phải là danh sách từ không rỗng');
+        }
+      }
+    }
+    final aliases = item['aliases'];
+    if (aliases == null) continue;
+    if (aliases is! Map<String, dynamic>) {
+      errors.add('$where: "aliases" phải là object');
+      continue;
+    }
+    for (final e in aliases.entries) {
+      final list = e.value;
+      if (list is! List || list.isEmpty || !list.every(_nonEmpty)) {
+        errors.add('$where aliases.${e.key}: phải là danh sách từ không rỗng');
+      }
+    }
+  }
 }
 
 void _checkPhrases(Map<String, dynamic> doc, List<String> errors) {

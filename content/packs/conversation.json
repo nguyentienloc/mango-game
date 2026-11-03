@@ -1,0 +1,62 @@
+{
+  "id": "conversation",
+  "version": 1,
+  "items": [
+    {
+      "id": "name",
+      "question": "What's your name?",
+      "model": "My name is {name_en}.",
+      "accept": [["name", "an"], ["an"], ["xoai"], ["im", "an"]],
+      "aliases": { "an": ["ann", "anne", "and", "en", "un", "ang"], "xoai": ["swine", "soy", "sway", "xoài"] }
+    },
+    {
+      "id": "age",
+      "question": "How old are you?",
+      "model": "I am five.",
+      "accept": [["five"], ["four"], ["5"], ["4"]],
+      "aliases": { "five": ["fine", "fight", "5"], "four": ["for", "fourth", "4"] }
+    },
+    {
+      "id": "how_are_you",
+      "question": "How are you?",
+      "model": "I'm fine, thank you!",
+      "accept": [["fine"], ["good"], ["great"], ["ok"], ["okay"], ["happy"]],
+      "aliases": { "fine": ["find", "fun"] }
+    },
+    {
+      "id": "hello",
+      "question": "Hello, {name_en}!",
+      "model": "Hello, Elsa!",
+      "accept": [["hello"], ["hi"], ["hey"]],
+      "aliases": { "hello": ["hallo", "hullo", "yellow"] }
+    },
+    {
+      "id": "goodbye",
+      "question": "Goodbye, {name_en}!",
+      "model": "Goodbye, Elsa!",
+      "accept": [["bye"], ["goodbye"]],
+      "aliases": { "bye": ["by", "buy", "bai"] }
+    },
+    {
+      "id": "color",
+      "question": "What color do you like?",
+      "model": "I like blue.",
+      "accept": [["red"], ["blue"], ["pink"], ["green"], ["yellow"], ["purple"], ["orange"], ["white"], ["black"]],
+      "aliases": { "red": ["read"], "blue": ["blew"] }
+    },
+    {
+      "id": "apples",
+      "question": "Do you like apples?",
+      "model": "Yes, I do!",
+      "accept": [["yes"], ["yeah"], ["no"], ["like"]],
+      "aliases": { "yes": ["yesh", "yep"] }
+    },
+    {
+      "id": "flower",
+      "question": "Here is a flower for you!",
+      "model": "Thank you!",
+      "accept": [["thank"], ["thanks"]],
+      "aliases": { "thank": ["tank", "thanks", "thankyou"] }
+    }
+  ]
+}

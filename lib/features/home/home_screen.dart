@@ -17,19 +17,18 @@ import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
 import '../games/balloon/balloon_screen.dart';
+import '../games/talk/talk_screen.dart';
 import '../games/trace/trace_screen.dart';
 import '../games/vi_letters/vi_letters_screen.dart';
 import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
 
 class _GameEntry {
-  const _GameEntry(this.emoji, this.phraseId, [this.builder]);
+  const _GameEntry(this.emoji, this.phraseId, this.builder);
 
   final String emoji;
   final String phraseId;
-  final WidgetBuilder? builder;
-
-  bool get enabled => builder != null;
+  final WidgetBuilder builder;
 }
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -53,12 +52,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _openGame(_GameEntry game) async {
     if (_opening) return;
     final voice = ref.read(voiceProvider);
-    final builder = game.builder;
-    if (builder == null) {
-      await voice.say(game.phraseId);
-      await voice.say('coming_soon');
-      return;
-    }
     _opening = true;
     try {
       // Name the game first so the game's own first prompt doesn't cut it off,
@@ -71,7 +64,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         timer.cancel();
       }
       if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
-      await Navigator.of(context).push(MaterialPageRoute<void>(builder: builder));
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: game.builder));
     } finally {
       _opening = false;
     }
@@ -92,7 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _GameEntry('🐾', 'game_vocab', (_) => const VocabScreen()),
       _GameEntry('🎈', 'game_balloon', (_) => const BalloonScreen()),
       _GameEntry('✏️', 'game_trace', (_) => const TraceScreen()),
-      const _GameEntry('🗣️', 'game_talk'),
+      _GameEntry('🗣️', 'game_talk', (_) => const TalkScreen()),
       _GameEntry('🇻🇳', 'game_vi', (_) => const VietnameseLettersScreen()),
     ];
     // Home is the root: the back gesture must not exit the app by accident.
@@ -143,7 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: [
-                    for (final g in games) BigButton(emoji: g.emoji, enabled: g.enabled, onTap: () => _openGame(g)),
+                    for (final g in games) BigButton(emoji: g.emoji, onTap: () => _openGame(g)),
                   ],
                 ),
               ),

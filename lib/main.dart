@@ -40,6 +40,7 @@ Future<void> main() async {
       overrides: [
         contentProvider.overrideWithValue(content),
         databaseProvider.overrideWithValue(db),
+        namesProvider.overrideWithValue(names),
         voiceProvider.overrideWithValue(
           VoiceService(tts: tts, phrases: content.phrases, names: names, clips: clips, player: player, speeds: speeds),
         ),
