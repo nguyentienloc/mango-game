@@ -111,6 +111,32 @@ void main() {
     expect(find.text('opened'), findsOneWidget);
   });
 
+  Future<void> typeWrong(WidgetTester tester) async {
+    await _type(tester, _answer(tester) + 1);
+    await tester.pump(const Duration(milliseconds: 650));
+  }
+
+  testWidgets('three wrong answers in a row send the child back home', (tester) async {
+    await pumpGate(tester);
+    await typeWrong(tester);
+    await typeWrong(tester);
+    expect(find.byType(MathGateScreen), findsOneWidget, reason: 'two misses still get another sum');
+    await typeWrong(tester);
+    await tester.pumpAndSettle();
+    expect(find.byType(MathGateScreen), findsNothing);
+    expect(find.text('home'), findsOneWidget);
+    expect(find.text('opened'), findsNothing);
+  });
+
+  testWidgets('two wrong answers, then the right one, still opens', (tester) async {
+    await pumpGate(tester);
+    await typeWrong(tester);
+    await typeWrong(tester);
+    await _type(tester, _answer(tester));
+    await tester.pumpAndSettle();
+    expect(find.text('opened'), findsOneWidget);
+  });
+
   testWidgets('⌫ removes the last digit', (tester) async {
     await pumpGate(tester);
     final answer = _answer(tester);

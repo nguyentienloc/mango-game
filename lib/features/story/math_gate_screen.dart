@@ -9,12 +9,15 @@ import 'math_gate_logic.dart';
 
 /// A sum only a grown-up can solve before story time. Silent (it is for the
 /// parent); the right answer replaces this screen with [onPassed], a wrong one
-/// buzzes, flashes red and brings a new sum. Nothing is remembered: every
-/// visit asks again.
+/// buzzes, flashes red and brings a new sum — after [maxWrong] wrong answers in
+/// a row it goes back home instead (no guessing by trial). Nothing is
+/// remembered: every visit asks again.
 class MathGateScreen extends ConsumerStatefulWidget {
   const MathGateScreen({super.key, required this.onPassed});
 
   final WidgetBuilder onPassed;
+
+  static const maxWrong = 3;
 
   @override
   ConsumerState<MathGateScreen> createState() => _MathGateScreenState();
@@ -27,6 +30,7 @@ class _MathGateScreenState extends ConsumerState<MathGateScreen> {
   String _input = '';
   bool _wrong = false;
   bool _passed = false;
+  int _wrongInRow = 0;
   Timer? _wrongTimer;
 
   @override
@@ -47,13 +51,18 @@ class _MathGateScreenState extends ConsumerState<MathGateScreen> {
     } else {
       unawaited(HapticFeedback.mediumImpact());
       setState(() => _wrong = true);
-      _wrongTimer = Timer(_wrongFor, _nextProblem);
+      _wrongInRow++;
+      _wrongTimer = Timer(_wrongFor, _wrongInRow >= MathGateScreen.maxWrong ? _giveUp : _nextProblem);
     }
   }
 
   void _back() {
     if (_wrong || _passed || _input.isEmpty) return;
     setState(() => _input = _input.substring(0, _input.length - 1));
+  }
+
+  void _giveUp() {
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _nextProblem() {

@@ -238,6 +238,26 @@ void main() {
     expect((await env.store.userStories()).map((s) => s.videoId), [_mine.videoId]);
   });
 
+  testWidgets('add: the list reloads whenever the sheet closes, saved or not', (tester) async {
+    final env = await pumpManage(tester);
+    await openSheet(tester);
+    // Changed behind the list's back while the sheet is open.
+    await env.store.addUserStory(const Story(videoId: _newId, title: 'Mới thêm', topic: StoryTopic.other, userAdded: true));
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(AddStorySheet), findsNothing);
+    expect(_inRow(_newId, find.text('Mới thêm')), findsOneWidget);
+  });
+
+  testWidgets('add: the sheet cannot be dragged away (the preview takes drags)', (tester) async {
+    await pumpManage(tester);
+    await openSheet(tester);
+    expect(tester.widget<BottomSheet>(find.byType(BottomSheet)).enableDrag, isFalse);
+    await tester.drag(find.byType(AddStorySheet), const Offset(0, 500));
+    await tester.pumpAndSettle();
+    expect(find.byType(AddStorySheet), findsOneWidget);
+  });
+
   testWidgets('add: Dán pastes the link from the clipboard', (tester) async {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       if (call.method == 'Clipboard.getData') return {'text': 'https://youtu.be/$_newId'};

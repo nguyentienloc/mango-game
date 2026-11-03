@@ -111,14 +111,16 @@ class StoriesManageScreen extends ConsumerWidget {
   Future<void> _add(BuildContext context) async {
     // Taken before the await: still valid if this screen is gone by then.
     final container = ProviderScope.containerOf(context, listen: false);
-    final added = await showModalBottomSheet<bool>(
+    // No dragging: the video preview inside takes drags. Closes with back or Lưu.
+    await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      showDragHandle: true,
+      enableDrag: false,
       builder: (_) => const FractionallySizedBox(heightFactor: 1, child: AddStorySheet()),
     );
-    if (added == true) container.invalidate(storyLibraryProvider);
+    // However it closed, reload: the store may have changed either way.
+    container.invalidate(storyLibraryProvider);
   }
 
   /// Runs one store edit, then reloads the library; a failure is shown, not thrown.
