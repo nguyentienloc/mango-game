@@ -53,7 +53,7 @@
 - `lib/features/parent/stories_manage_screen.dart`, `youtube_link.dart` (trích mã), `oembed_client.dart`.
 - `lib/core/stories/story_store.dart` (DB) + `MemoryStoryStore`.
 - Mạng: `ConnectivityProbe` interface (thật: `InternetAddress.lookup`; giả trong test).
-- Phrases mới (vi, giọng Ngọc Huyền, có clip, kind `story` bắt buộc trong coverage): `game_story`, `story_pick`, `story_error`, `story_bye`, `story_offline`.
+- Phrases mới (vi, giọng Ngọc Huyền, có clip; phrase cố định nên thuộc kind `fixed` — coverage đã bắt buộc): `game_story`, `story_pick`, `story_error`, `story_bye`, `story_offline` (dùng `{name_vi}` thay "Xoài").
 
 ## Kiểm thử
 - `StorySession`: count (nghe < 60 s không trừ; truyện thứ n nghe hết), time+finish (lố ≤ 10 phút, lọc lưới theo độ dài), time+stopNow (nhỏ dần rồi kết thúc), đồng hồ dừng khi vào nền.
