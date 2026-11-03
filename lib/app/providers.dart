@@ -12,9 +12,12 @@ import '../core/progress/progress_resetter.dart';
 import '../core/rewards/reward_store.dart';
 import '../core/session/session_store.dart';
 import '../core/speech/speech_recognizer.dart';
+import '../core/stories/story_store.dart';
 import '../core/speech/speech_to_text_recognizer.dart';
 import '../core/updater/app_updater.dart';
 import '../core/voice/voice_service.dart';
+import '../features/story/oembed_client.dart';
+import '../features/story/story_library.dart';
 import 'config.dart';
 
 /// Overridden in main() after bootstrapping.
@@ -56,3 +59,18 @@ final appUpdaterProvider = Provider<AppUpdater>((ref) {
 });
 
 final updateCheckProvider = FutureProvider<UpdateCheck>((ref) => ref.watch(appUpdaterProvider).check());
+
+final storyStoreProvider = Provider<StoryStore>((ref) => DriftStoryStore(ref.watch(databaseProvider)));
+
+/// Bundled stories plus the parent's own and which ones are hidden.
+/// Reloads after the parent edits: screens call `ref.invalidate(storyLibraryProvider)`.
+final storyLibraryProvider = FutureProvider<StoryLibrary>((ref) async {
+  final store = ref.watch(storyStoreProvider);
+  return StoryLibrary(
+    bundled: ref.watch(contentProvider).stories,
+    user: await store.userStories(),
+    hidden: await store.hiddenIds(),
+  );
+});
+
+final oembedClientProvider = Provider<OEmbedClient>((ref) => OEmbedClient(Dio()));
