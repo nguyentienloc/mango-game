@@ -31,8 +31,9 @@ class TalkScreen extends ConsumerStatefulWidget {
 }
 
 class _TalkScreenState extends ConsumerState<TalkScreen> {
-  /// How long to wait for the final result after the mic was released.
-  static const _resultTimeout = Duration(seconds: 4);
+  /// Safety net: how long after the mic was released we wait for the final
+  /// result before treating it as silence (the recogniser has its own, shorter grace).
+  static const _resultTimeout = Duration(seconds: 6);
 
   late final SpeechRecognizer _speech;
   late final DateTime _startedAt;
@@ -43,6 +44,12 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   bool _busy = true;
   bool _celebrating = false;
   bool _listening = false;
+
+  /// The mic was released and the result is not in yet: the mic stays locked.
+  bool _waiting = false;
+
+  /// Consecutive releases of this turn with nothing heard.
+  int _silent = 0;
   int _listenId = 0;
   Future<void>? _starting;
   Timer? _resultTimer;
@@ -117,10 +124,14 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     await _ask(hint: _mode == TalkMode.normal);
   }
 
+  /// The model answer is given along with the question: always when following
+  /// along, and once the child has missed twice or been silent twice.
+  bool get _needsModel => _mode == TalkMode.followAlong || _turn.attempts >= 2 || _silent >= 2;
+
   Future<void> _sayQuestion() async {
     final names = ref.read(namesProvider);
     await _voice.say('talk_question', vars: talkQuestionVars(_turn.item, names));
-    if (_mode == TalkMode.followAlong && mounted) await _saySayAfter();
+    if (_needsModel && mounted) await _saySayAfter();
   }
 
   Future<void> _saySayAfter() => _voice.say('talk_say_after', vars: talkModelVars(_turn.item, ref.read(namesProvider)));
@@ -133,7 +144,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   void _reask() {
-    if (_busy || _listening) return;
+    if (_busy || _listening || _waiting) return;
     _guard(() async {
       setState(() => _busy = true);
       await _sayQuestion();
@@ -154,16 +165,15 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
   }
 
   void _onHoldEnd() {
-    if (!_listening) return;
+    if (!_listening || _waiting) return;
     final id = _listenId;
+    setState(() => _waiting = true);
+    // Armed first: even a hanging start()/stop() cannot leave the child stuck.
+    _resultTimer?.cancel();
+    _resultTimer = Timer(_resultTimeout, () => _onResult(id, const [], true));
     _guard(() async {
       await _starting;
       await _speech.stop();
-      // The final result normally arrives during stop(); if it never does, treat it as silence.
-      if (mounted && _listening && id == _listenId) {
-        _resultTimer?.cancel();
-        _resultTimer = Timer(_resultTimeout, () => _onResult(id, const [], true));
-      }
     });
   }
 
@@ -173,23 +183,54 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     _listenId++;
     setState(() {
       _listening = false;
+      _waiting = false;
       _busy = true;
     });
     _guard(() => _score(transcripts));
   }
 
+  /// The recogniser broke for good (e.g. the permission was withdrawn): the
+  /// rest of the round is follow-along, like when it was unavailable at the start.
+  void _switchToFollowAlong() {
+    final names = ref.read(namesProvider);
+    _mode = TalkMode.followAlong;
+    _silent = 0;
+    setState(() {
+      for (var i = _index; i < _turns!.length; i++) {
+        _turns![i] = TalkTurn(_turns![i].item, mode: _mode, childName: names.en);
+      }
+    });
+  }
+
   Future<void> _score(List<String> transcripts) async {
+    if (!_speech.available) {
+      _switchToFollowAlong();
+      await _saySayAfter();
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
     final heard = [
       for (final t in transcripts)
         if (t.trim().isNotEmpty) t,
     ];
+    final turn = _turn;
     if (heard.isEmpty) {
-      // Nothing heard is not a wrong answer: no attempt is used up.
-      await _voice.say('talk_hold_hint');
+      // Nothing heard is not a wrong answer: no attempt is used up. But the
+      // child must never be stuck, so the third silence passes the turn.
+      _silent++;
+      if (_silent >= 3 && turn.passUnheard()) {
+        await _pass(turn);
+        return;
+      }
+      if (_silent == 2) {
+        await _saySayAfter();
+      } else {
+        await _voice.say('talk_hold_hint');
+      }
       if (mounted) setState(() => _busy = false);
       return;
     }
-    final turn = _turn;
+    _silent = 0;
     final feedback = turn.submit(heard);
     if (feedback.passed) {
       await _pass(turn);
@@ -221,13 +262,11 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
       _stats[key] = stat;
       await ref.read(itemStatsStoreProvider).save(stat);
     }
-    await Future.wait([
-      _voice.sayGroup('praise'),
-      Future<void>.delayed(const Duration(milliseconds: 800)),
-    ]);
+    await Future.wait([_voice.sayGroup('praise'), Future<void>.delayed(const Duration(milliseconds: 800))]);
     if (!mounted) return;
     setState(() {
       _index++;
+      _silent = 0;
       _celebrating = false;
     });
     if (_isFinished) {
@@ -241,14 +280,18 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     final turns = _turns!;
     final snowflakes = turns.where((t) => t.earnsSnowflake).length;
     final now = ref.read(clockProvider)();
-    await ref.read(sessionStoreProvider).add(SessionRecord(
-          date: dayKey(_startedAt),
-          game: 'talk',
-          startedAt: _startedAt,
-          durationSec: now.difference(_startedAt).inSeconds,
-          correct: snowflakes,
-          total: turns.length,
-        ));
+    await ref
+        .read(sessionStoreProvider)
+        .add(
+          SessionRecord(
+            date: dayKey(_startedAt),
+            game: 'talk',
+            startedAt: _startedAt,
+            durationSec: now.difference(_startedAt).inSeconds,
+            correct: snowflakes,
+            total: turns.length,
+          ),
+        );
     final outcome = await ref.read(rewardStateProvider.notifier).completeRound(snowflakes);
     if (!mounted) return;
     await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome)));
@@ -260,7 +303,9 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
       return PopScope(
         canPop: _turns == null,
         onPopInvokedWithResult: _onPopInvoked,
-        child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
+        child: const Scaffold(
+          body: IceBackground(child: Center(child: CircularProgressIndicator())),
+        ),
       );
     }
     return PopScope(
@@ -305,7 +350,10 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                       SizedBox(
                         height: 48,
                         child: _celebrating && _turn.earnsSnowflake
-                            ? const Text('+1 ❄️', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: IceColors.deep))
+                            ? const Text(
+                                '+1 ❄️',
+                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: IceColors.deep),
+                              )
                             : null,
                       ),
                     ],
@@ -315,7 +363,8 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
               if (_mode == TalkMode.normal)
                 MicButton(
                   key: const Key('mic-button'),
-                  enabled: !_busy,
+                  enabled: !_busy && !_waiting,
+                  waiting: _waiting,
                   onHoldStart: _onHoldStart,
                   onHoldEnd: _onHoldEnd,
                 )

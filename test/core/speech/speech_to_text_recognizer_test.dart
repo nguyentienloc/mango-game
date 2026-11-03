@@ -364,4 +364,70 @@ void main() {
     await hear(['blue'], isFinal: true);
     expect(got, ['blue [final]']);
   });
+
+  test('initialize turns Bluetooth off (no BLUETOOTH_CONNECT permission needed)', () async {
+    final r = make();
+    await r.init();
+    final init = calls.firstWhere((c) => c.method == 'initialize');
+    expect(init.arguments.toString(), contains('noBluetooth'));
+  });
+
+  group('after stop', () {
+    SpeechToTextRecognizer fast() => SpeechToTextRecognizer(
+      speech: SpeechToText.withMethodChannel(),
+      graceNoPartial: const Duration(milliseconds: 150),
+      graceWithPartial: const Duration(milliseconds: 1500),
+    );
+
+    test('no partial heard: the short grace ends the session with an empty final', () async {
+      final r = fast();
+      await r.init();
+      final got = <String>[];
+      await r.start(onResult: (t, f) => got.add(fmt(t, f)));
+      await r.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(got, [' [final]']);
+    });
+
+    test('a partial was heard: the long grace is kept', () async {
+      final r = fast();
+      await r.init();
+      final got = <String>[];
+      await r.start(onResult: (t, f) => got.add(fmt(t, f)));
+      await hear(['hel'], isFinal: false);
+      await r.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(got, ['hel']);
+    });
+  });
+
+  group('on-device sessions that produce nothing', () {
+    test('two in a row make later sessions go online', () async {
+      final r = make();
+      await r.init();
+      for (var i = 0; i < 2; i++) {
+        await r.start(onResult: (_, _) {});
+        await error('error_no_match');
+      }
+      await r.start(onResult: (_, _) {});
+      final l = listens();
+      expect(l, hasLength(3));
+      expect((l[1].arguments as Map)['onDevice'], isTrue);
+      expect((l[2].arguments as Map)['onDevice'], isFalse);
+    });
+
+    test('a session with a partial result resets the count', () async {
+      final r = make();
+      await r.init();
+      await r.start(onResult: (_, _) {});
+      await error('error_no_match');
+      await r.start(onResult: (_, _) {});
+      await hear(['five'], isFinal: false);
+      await hear(['five'], isFinal: true);
+      await r.start(onResult: (_, _) {});
+      await error('error_no_match');
+      await r.start(onResult: (_, _) {});
+      expect(listens().map((c) => (c.arguments as Map)['onDevice']), everyElement(isTrue));
+    });
+  });
 }

@@ -45,15 +45,28 @@ class _Session {
 ///    timeout (last partial becomes final) and the `done` status; a grace timer
 ///    here covers anything else. Android reports `doneNoResult` right at stop()
 ///    when no partial was sent, and the real final follows 0.5-1.5 s later, so
-///    `done` never ends a stopped session; the plugin also drops errors that
+///    `done` never ends a stopped session (the grace is 2 s when no partial was
+///    heard, 4 s otherwise); the plugin also drops errors that
 ///    arrive after stop(), which is why a silent attempt ends at the grace timer.
 class SpeechToTextRecognizer implements SpeechRecognizer {
-  SpeechToTextRecognizer({SpeechToText? speech, this.listenFor = const Duration(seconds: 8), this.pauseFor = const Duration(seconds: 3)})
-    : _stt = speech ?? SpeechToText();
+  SpeechToTextRecognizer({
+    SpeechToText? speech,
+    this.listenFor = const Duration(seconds: 8),
+    this.pauseFor = const Duration(seconds: 3),
+    this.graceNoPartial = const Duration(seconds: 2),
+    this.graceWithPartial = const Duration(seconds: 4),
+  }) : _stt = speech ?? SpeechToText();
 
   final SpeechToText _stt;
   final Duration listenFor;
   final Duration pauseFor;
+
+  /// How long after stop() to wait for the final result when no partial result
+  /// came in during the session (nothing was heard, so a late result is unlikely).
+  final Duration graceNoPartial;
+
+  /// The same when partial results were received.
+  final Duration graceWithPartial;
 
   /// Errors that mean "this recogniser cannot do it", not "the child said nothing".
   static const _retryOnlineErrors = {
@@ -64,7 +77,11 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
     'error_client',
   };
   static const _doneDelay = Duration(milliseconds: 400);
-  static const _graceAfterStop = Duration(seconds: 4);
+  static const _doneGrace = Duration(seconds: 4);
+
+  /// Consecutive on-device sessions without any result after which on-device is
+  /// given up (some phones' offline recogniser just returns nothing).
+  static const _onDeviceSilentLimit = 2;
 
   bool _available = false;
   Future<bool>? _initFuture;
@@ -73,6 +90,7 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
 
   /// The offline recogniser failed once: later sessions go straight online.
   bool _onDeviceFailed = false;
+  int _onDeviceSilent = 0;
 
   @override
   bool get available => _available;
@@ -89,7 +107,11 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
 
   Future<bool> _initialize() async {
     try {
-      _available = await _stt.initialize(onError: _onError, onStatus: _onStatus);
+      _available = await _stt.initialize(
+        onError: _onError,
+        onStatus: _onStatus,
+        options: [SpeechToText.androidNoBluetooth],
+      );
     } on Object catch (e) {
       debugPrint('Speech init failed: $e');
       _available = false;
@@ -213,7 +235,7 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
     // listen, so give that error a moment to trigger the online retry. Any other
     // `done` (plugin-side pause/listenFor stop) may also precede a late final.
     final mayRetryOnline = s.onDevice && !s.retriedOnline && !s.gotResult;
-    s.doneTimer = Timer(mayRetryOnline ? _doneDelay : _graceAfterStop, () => _finish(s));
+    s.doneTimer = Timer(mayRetryOnline ? _doneDelay : _doneGrace, () => _finish(s));
   }
 
   /// Delivers the one final result of [s]: the last transcripts, or none.
@@ -223,6 +245,11 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
     s.grace?.cancel();
     s.doneTimer?.cancel();
     if (identical(s, _session)) _session = null;
+    if (s.onDevice) {
+      // A session that produced no partial or final text is a strike against on-device.
+      _onDeviceSilent = s.gotResult ? 0 : _onDeviceSilent + 1;
+      if (_onDeviceSilent >= _onDeviceSilentLimit) _onDeviceFailed = true;
+    }
     s.onResult(s.last, true);
   }
 
@@ -240,7 +267,7 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
   Future<void> _applyStop(_Session s) async {
     s.doneTimer?.cancel();
     s.grace?.cancel();
-    s.grace = Timer(_graceAfterStop, () => _finish(s));
+    s.grace = Timer(s.gotResult ? graceWithPartial : graceNoPartial, () => _finish(s));
     try {
       await _stt.stop();
     } on Object catch (e) {

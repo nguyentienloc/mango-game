@@ -117,6 +117,14 @@ class TalkTurn {
     return true;
   }
 
+  /// Nothing was heard three releases in a row: pass the turn anyway (hinted,
+  /// no snowflake) so the child is never stuck. False if already done.
+  bool passUnheard() {
+    if (_done || mode == TalkMode.followAlong) return false;
+    _finish(AnswerOutcome.hinted);
+    return true;
+  }
+
   void _finish(AnswerOutcome outcome) {
     _done = true;
     _outcome = outcome;

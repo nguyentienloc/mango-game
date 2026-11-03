@@ -28,4 +28,17 @@ void main() {
     await tester.pump();
     expect(tts.calls.where((c) => c == 'stop').length, greaterThan(before));
   });
+
+  testWidgets('listening stops when the app goes to the background', (tester) async {
+    final speech = FakeSpeechRecognizer();
+    await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const XoaiApp(), speech: speech));
+    await tester.pump();
+    await tester.pump();
+
+    final before = speech.cancels;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pump();
+    expect(speech.cancels, greaterThan(before));
+  });
 }

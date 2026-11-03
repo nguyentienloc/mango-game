@@ -167,6 +167,12 @@ class FakeSpeechRecognizer implements SpeechRecognizer {
   bool _listening = false;
   void Function(List<String> transcripts, bool isFinal)? _onResult;
 
+  /// When true, [stop] does not deliver the final result (the test calls [emit]).
+  bool holdFinal = false;
+
+  /// The recogniser breaks for good (e.g. the permission was withdrawn).
+  void breakDown() => _available = false;
+
   bool get isListening => _listening;
 
   @override
@@ -201,7 +207,7 @@ class FakeSpeechRecognizer implements SpeechRecognizer {
   @override
   Future<void> stop() async {
     stops++;
-    if (!_listening) return;
+    if (!_listening || holdFinal) return;
     emit(scripts.isEmpty ? const [] : scripts.removeAt(0));
   }
 

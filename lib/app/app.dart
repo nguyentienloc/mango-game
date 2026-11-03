@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,8 +20,13 @@ class _XoaiAppState extends ConsumerState<XoaiApp> {
   @override
   void initState() {
     super.initState();
-    // Don't keep talking from the background (home button, screen off, call).
-    _lifecycle = AppLifecycleListener(onHide: () => ref.read(voiceProvider).stop());
+    // Don't keep talking or listening from the background (home button, screen off, call).
+    _lifecycle = AppLifecycleListener(
+      onHide: () {
+        ref.read(voiceProvider).stop();
+        unawaited(ref.read(speechRecognizerProvider).cancel());
+      },
+    );
   }
 
   @override
@@ -30,11 +37,6 @@ class _XoaiAppState extends ConsumerState<XoaiApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Lâu đài Xoài',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      home: const HomeScreen(),
-    );
+    return MaterialApp(title: 'Lâu đài Xoài', debugShowCheckedModeBanner: false, theme: buildTheme(), home: const HomeScreen());
   }
 }

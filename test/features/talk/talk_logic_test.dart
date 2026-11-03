@@ -155,4 +155,15 @@ void main() {
       expect(TalkTurn(age, mode: TalkMode.followAlong).earnsSnowflake, isFalse);
     });
   });
+
+  group('passUnheard', () {
+    test('ends the turn as hinted without a snowflake', () {
+      final t = TalkTurn(age);
+      expect(t.passUnheard(), isTrue);
+      expect(t.isDone, isTrue);
+      expect(t.outcome, AnswerOutcome.hinted);
+      expect(t.earnsSnowflake, isFalse);
+      expect(t.passUnheard(), isFalse);
+    });
+  });
 }

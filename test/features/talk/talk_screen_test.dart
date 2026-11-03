@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
@@ -19,6 +21,12 @@ const _sayAfterVi = 'Con nói theo Elsa nhé:';
 const _praise = ['Great job!', 'Wonderful, An!', 'You did it!', 'Giỏi quá Xoài ơi!', 'Xoài làm đúng rồi!'];
 final _mic = find.byKey(const Key('mic-button'));
 final _confirm = find.byKey(const Key('confirm-button'));
+
+/// A recogniser whose stop() never returns.
+class HangingStopSpeech extends FakeSpeechRecognizer {
+  @override
+  Future<void> stop() => Completer<void>().future;
+}
 
 void main() {
   late ContentBundle content;
@@ -163,18 +171,133 @@ void main() {
     expect(stats.stats['conv:$firstId']!.mastery, 0);
   });
 
-  testWidgets('a silent release is not an attempt', (tester) async {
+  testWidgets('a silent release is not an attempt; the second one says the model answer', (tester) async {
     final (tts, speech, _, _, _) = await pumpTalk(tester);
+    final item = current(tts);
     await speak(tester, speech, const []);
-    await speak(tester, speech, ['  ', '']);
-    expect(count(tts, _hint), 3);
-    expect(count(tts, _again), 0);
+    expect(count(tts, _hint), 2);
     expect(tts.spoken.where((s) => s.text == _sayAfterVi), isEmpty);
-    // The first real miss is still the first attempt: "again", not the model answer.
+    await speak(tester, speech, ['  ', '']);
+    expect(count(tts, _hint), 2);
+    expect(tts.spoken, contains((text: _sayAfterVi, lang: 'vi')));
+    expect(tts.spoken, contains((text: model(item), lang: 'en')));
+    expect(count(tts, _again), 0);
+    // The first real miss is still the first attempt: "again".
     await speak(tester, speech, ['banana']);
     expect(count(tts, _again), 1);
-    expect(tts.spoken.where((s) => s.text == _sayAfterVi), isEmpty);
+    expect(find.text('1/5'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('three silent releases in a row pass the turn without a snowflake and move on', (tester) async {
+    final (tts, speech, _, _, stats) = await pumpTalk(tester);
+    final item = current(tts);
+    await speak(tester, speech, const []);
+    await speak(tester, speech, const []);
+    expect(find.text('1/5'), findsOneWidget);
+    await speak(tester, speech, const []);
+    expect(praises(tts), 1);
+    expect(find.text('+1 ❄️'), findsNothing);
+    expect(find.text('2/5'), findsOneWidget);
+    expect(current(tts).id, isNot(item.id));
+    expect(stats.stats['conv:${item.id}']!.mastery, 0);
+    expect(tester.widget<MicButton>(_mic).enabled, isTrue);
+    // The next turn starts counting from zero.
+    await speak(tester, speech, const []);
+    expect(find.text('2/5'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('a real answer between silent releases restarts the silent count', (tester) async {
+    final (tts, speech, _, _, _) = await pumpTalk(tester);
+    await speak(tester, speech, const []);
+    await speak(tester, speech, const []);
+    await speak(tester, speech, ['banana']);
+    await speak(tester, speech, const []);
+    await speak(tester, speech, const []);
+    expect(find.text('1/5'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('the recogniser breaking mid-round switches the rest of the round to follow-along', (tester) async {
+    final (tts, speech, sessions, rewards, _) = await pumpTalk(tester);
+    final item = current(tts);
+    final g = await tester.startGesture(tester.getCenter(_mic));
+    await tester.pump(const Duration(milliseconds: 100));
+    speech.breakDown(); // e.g. error_permission
+    await g.up();
+    await tester.pump();
+    await settle(tester);
+    expect(_mic, findsNothing);
+    expect(_confirm, findsOneWidget);
+    expect(find.text('1/5'), findsOneWidget);
+    expect(tts.spoken, contains((text: model(item), lang: 'en')));
+    for (var i = 0; i < 5; i++) {
+      await tester.tap(_confirm);
+      await tester.pump();
+      await settle(tester);
+      expect(praises(tts), i + 1);
+    }
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(RewardScreen), findsOneWidget);
+    expect(sessions.records.single.total, 5);
+    expect(rewards.state.snowflakesTotal, 10);
+  });
+
+  testWidgets('after letting go the mic shows a waiting cue and ignores presses until the result comes', (tester) async {
+    final speech = FakeSpeechRecognizer()..holdFinal = true;
+    final (tts, _, _, _, _) = await pumpTalk(tester, speech: speech);
+    final waiting = find.byKey(const Key('mic-waiting'));
+    expect(waiting, findsNothing);
+    final g = await tester.startGesture(tester.getCenter(_mic));
+    await tester.pump(const Duration(milliseconds: 100));
+    await g.up();
+    await tester.pump();
+    expect(speech.stops, 1);
+    expect(waiting, findsOneWidget);
+    expect(tester.widget<MicButton>(_mic).enabled, isFalse);
+
+    final g2 = await tester.startGesture(tester.getCenter(_mic));
+    await tester.pump(const Duration(milliseconds: 100));
+    await g2.up();
+    await tester.pump(const Duration(seconds: 1));
+    expect(speech.starts, 1);
+    expect(speech.stops, 1);
+    expect(waiting, findsOneWidget);
+
+    speech.emit([model(current(tts))]);
+    await tester.pump();
+    expect(waiting, findsNothing);
+    await settle(tester);
+    expect(praises(tts), 1);
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('a result that never comes is treated as silence after the safety timeout', (tester) async {
+    final speech = FakeSpeechRecognizer()..holdFinal = true;
+    final (tts, _, _, _, _) = await pumpTalk(tester, speech: speech);
+    final g = await tester.startGesture(tester.getCenter(_mic));
+    await tester.pump(const Duration(milliseconds: 100));
+    await g.up();
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.byKey(const Key('mic-waiting')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    await settle(tester);
+    expect(find.byKey(const Key('mic-waiting')), findsNothing);
+    expect(count(tts, _hint), 2);
+    expect(tester.widget<MicButton>(_mic).enabled, isTrue);
+  });
+
+  testWidgets('the safety timeout runs even if stop() itself hangs', (tester) async {
+    final speech = HangingStopSpeech();
+    final (tts, _, _, _, _) = await pumpTalk(tester, speech: speech);
+    final g = await tester.startGesture(tester.getCenter(_mic));
+    await tester.pump(const Duration(milliseconds: 100));
+    await g.up();
+    await tester.pump(const Duration(seconds: 7));
+    await settle(tester);
+    expect(count(tts, _hint), 2);
+    expect(tester.widget<MicButton>(_mic).enabled, isTrue);
   });
 
   testWidgets('tapping Elsa asks the question again', (tester) async {
@@ -184,6 +307,18 @@ void main() {
     await tester.tap(find.byKey(const Key('elsa')));
     await settle(tester);
     expect(count(tts, question(item)), before + 1);
+  });
+
+  testWidgets('tapping Elsa after the second miss says the model answer again', (tester) async {
+    final (tts, speech, _, _, _) = await pumpTalk(tester);
+    final item = current(tts);
+    await speak(tester, speech, ['banana']);
+    await speak(tester, speech, ['banana']);
+    final before = count(tts, model(item));
+    await tester.tap(find.byKey(const Key('elsa')));
+    await settle(tester);
+    expect(count(tts, model(item)), before + 1);
+    await tester.pump(const Duration(seconds: 2));
   });
 
   testWidgets('speech not available: a big check button and the follow-along flow, +1 per question', (tester) async {
