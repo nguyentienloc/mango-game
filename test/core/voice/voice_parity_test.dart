@@ -8,7 +8,6 @@ import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
-import 'package:xoai_castle/features/games/find_letter/find_letter_logic.dart';
 
 import '../../support/fakes.dart';
 
@@ -44,9 +43,18 @@ void main() {
     }
 
     for (final id in content.phrases.keys) {
-      if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id)) continue;
+      if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id)) continue;
+      if (numberPhraseIds.contains(id)) continue;
       await check(id, id);
     }
+    // Three say() calls per number are slow, so the 1000 counts are checked by
+    // key; one real count goes through say().
+    for (var n = 0; n <= maxSpokenCount; n++) {
+      for (final part in voice.utterance('snowflake_count', vars: {'count': '$n'}).parts) {
+        if (clips.assetFor(part) == null) missing.add(part.key);
+      }
+    }
+    await check('snowflake_count', 'snowflake_count', {'count': '125'});
     for (final w in content.vocab) {
       for (final id in vocabPhraseIds) {
         await check(id, id, vocabVars(w));
@@ -54,10 +62,13 @@ void main() {
     }
     for (final l in content.lettersEn) {
       await check('trace_prompt', 'trace_prompt', {'letter': l.char});
-      for (final mode in FindLetterMode.values) {
-        final q = FindLetterQuestion(mode: mode, item: l, options: const []);
-        await check(q.promptPhraseId, q.promptPhraseId, q.promptVars);
-      }
+      // Exactly as the balloon screen says them: prompt/correct with {letter};
+      // a wrong tap says the tapped letter, then (not awaited) asks for the target.
+      await check('balloon_prompt', 'balloon_prompt', {'letter': l.char});
+      await check('balloon_correct', 'balloon_correct', {'letter': l.char});
+      final other = content.lettersEn[(content.lettersEn.indexOf(l) + 7) % content.lettersEn.length];
+      await check('balloon_wrong_this', 'balloon_wrong_this', {'tapped': l.char});
+      await check('balloon_wrong_find', 'balloon_wrong_find', {'letter': other.char});
       await check('letter_example', 'letter_example', {'letter': l.char, 'word': l.exampleWord});
     }
 

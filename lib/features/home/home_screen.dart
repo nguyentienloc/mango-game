@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../app/reward_controller.dart';
-import '../../app/show_find_letter_controller.dart';
 import '../../core/rewards/reward_rules.dart';
 import '../../core/rewards/reward_state.dart';
 import '../../core/time.dart';
@@ -17,7 +16,7 @@ import '../../shared/ice_background.dart';
 import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
-import '../games/find_letter/find_letter_screen.dart';
+import '../games/balloon/balloon_screen.dart';
 import '../games/trace/trace_screen.dart';
 import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
@@ -88,10 +87,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final rewards = ref.watch(rewardStateProvider).value ?? const RewardState();
     final today = dayKey(ref.watch(clockProvider)());
     final hasUpdate = ref.watch(updateCheckProvider).value is UpdateAvailable;
-    final showFindLetter = ref.watch(showFindLetterProvider).value ?? false;
     final games = <_GameEntry>[
       _GameEntry('🐾', 'game_vocab', (_) => const VocabScreen()),
-      if (showFindLetter) _GameEntry('🎈', 'game_find_letter', (_) => const FindLetterScreen()),
+      _GameEntry('🎈', 'game_balloon', (_) => const BalloonScreen()),
       _GameEntry('✏️', 'game_trace', (_) => const TraceScreen()),
       const _GameEntry('🗣️', 'game_talk'),
       const _GameEntry('🇻🇳', 'game_vi'),

@@ -6,6 +6,7 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/castle/castle_screen.dart';
+import 'package:xoai_castle/features/games/balloon/balloon_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
 import 'package:xoai_castle/features/games/vocab/vocab_screen.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
@@ -41,6 +42,30 @@ void main() {
     expect(find.byKey(const Key('update-dot')), findsNothing);
   });
 
+  testWidgets('tapping the snowflake counter says the count, part by part', (tester) async {
+    final tts = await pumpHome(tester, rewards: const RewardState(snowflakesTotal: 12));
+    tts.spoken.clear();
+    await tester.tap(find.text('❄️ 12'));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(tts.texts, ['Xoài đã kiếm được', '12', 'bông tuyết rồi, giỏi quá nè!']);
+  });
+
+  testWidgets('the counter on the castle screen is tappable too', (tester) async {
+    final tts = await pumpHome(tester, rewards: const RewardState(snowflakesTotal: 12));
+    await tester.tap(find.byKey(const Key('home-castle')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(CastleScreen), findsOneWidget);
+    tts.spoken.clear();
+    await tester.tap(find.text('❄️ 12'));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(tts.texts, ['Xoài đã kiếm được', '12', 'bông tuyết rồi, giỏi quá nè!']);
+  });
+
   testWidgets('a coming-soon game says its name and stays on home', (tester) async {
     final tts = await pumpHome(tester);
     await tester.tap(find.text('🗣️'));
@@ -67,19 +92,15 @@ void main() {
     expect(find.byType(VocabScreen), findsOneWidget);
   });
 
-  testWidgets('the balloon game is hidden by default and the dog button is gone', (tester) async {
-    await pumpHome(tester);
-    expect(find.text('🎈'), findsNothing);
+  testWidgets('the dog button is gone and the balloon game opens', (tester) async {
+    final tts = await pumpHome(tester);
     expect(find.text('🐶'), findsNothing);
-  });
-
-  testWidgets('the balloon game shows when the parent switch is on', (tester) async {
-    final tts = FakeTts();
-    await tester.pumpWidget(testApp(
-        content: content, tts: tts, home: const HomeScreen(), profile: MemoryProfileStore(show: true)));
+    await tester.tap(find.text('🎈'));
     await tester.pump();
-    await tester.pump();
-    expect(find.text('🎈'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('Đập bong bóng'));
+    expect(find.byType(BalloonScreen), findsOneWidget);
   });
 
   testWidgets('the game opens only after its name has been spoken', (tester) async {

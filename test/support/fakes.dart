@@ -124,6 +124,7 @@ class MemoryProfileStore implements ProfileStore {
   @override
   Future<Names> loadNames(ProfileDefaults defaults) async => const Names(en: 'An', vi: 'Xoài');
 
+  // unused since v0.4.0
   @override
   Future<bool> showFindLetter() async => show;
 

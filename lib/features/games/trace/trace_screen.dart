@@ -17,7 +17,7 @@ import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
 import '../../../shared/ice_background.dart';
 import '../../reward/reward_screen.dart';
-import '../find_letter/example_card.dart';
+import '../../../shared/example_card.dart';
 import 'trace_logic.dart';
 import 'trace_pad.dart';
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
-import 'parent_gate.dart';
 import 'parent_screen.dart';
 
-/// Small lock in the corner: hold for 2 seconds to reach the parent gate.
+/// Small lock in the corner: hold for 3 seconds to open the parent area.
 class ParentLockButton extends StatefulWidget {
   const ParentLockButton({super.key, required this.hasUpdate});
 
@@ -15,7 +14,9 @@ class ParentLockButton extends StatefulWidget {
 }
 
 class _ParentLockButtonState extends State<ParentLockButton> with SingleTickerProviderStateMixin {
-  late final AnimationController _hold = AnimationController(vsync: this, duration: const Duration(seconds: 2))
+  static const _size = 56.0;
+
+  late final AnimationController _hold = AnimationController(vsync: this, duration: const Duration(seconds: 3))
     ..addStatusListener((status) {
       if (status == AnimationStatus.completed) _open();
     });
@@ -28,8 +29,6 @@ class _ParentLockButtonState extends State<ParentLockButton> with SingleTickerPr
 
   Future<void> _open() async {
     _hold.reset();
-    final ok = await showParentGate(context);
-    if (!ok || !mounted) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ParentScreen()));
   }
 
@@ -38,10 +37,14 @@ class _ParentLockButtonState extends State<ParentLockButton> with SingleTickerPr
     return Listener(
       key: const Key('parent-lock'),
       onPointerDown: (_) => _hold.forward(from: 0),
+      // The pointer stays captured by the lock after it leaves, so check the bounds ourselves.
+      onPointerMove: (e) {
+        if (_hold.isAnimating && !(Offset.zero & const Size.square(_size)).contains(e.localPosition)) _hold.reset();
+      },
       onPointerUp: (_) => _hold.reset(),
       onPointerCancel: (_) => _hold.reset(),
       child: SizedBox.square(
-        dimension: 56,
+        dimension: _size,
         child: Stack(
           alignment: Alignment.center,
           children: [

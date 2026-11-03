@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xoai_castle/app/theme.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/content/models.dart';
@@ -310,6 +311,63 @@ void padTests() {
     expect(strokes, hasLength(2));
     await tester.pump(const Duration(milliseconds: 400));
     expect(painter().fadeOpacity, 0.0);
+  });
+
+  testWidgets('the live ink is a deep saturated blue (not the pale ice) with a lighter glow under it', (tester) async {
+    await pumpPad(tester, (_) {});
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    final ink = find.descendant(of: find.byKey(const Key('trace-ink')), matching: find.byType(CustomPaint));
+    final g = await tester.startGesture(rect.topLeft + const Offset(30, 30));
+    await g.moveTo(rect.topLeft + const Offset(150, 30));
+    await tester.pump();
+    final side = rect.width;
+    expect(
+      tester.renderObject(ink),
+      paints
+        ..path(color: IceColors.ice.withValues(alpha: 0.7)) // soft glow, lighter than the ink
+        ..path(color: const Color(0xFF1565C0), strokeWidth: 0.075 * side),
+    );
+    await g.up();
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('completed strokes are drawn in a navy darker than the live ink', (tester) async {
+    const doneInk = Color(0xFF0D2B5C);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox.square(
+              dimension: 300,
+              child: TracePad(
+                strokes: const [
+                  [TracePoint(0.2, 0.2), TracePoint(0.2, 0.8)],
+                  [TracePoint(0.5, 0.2), TracePoint(0.8, 0.8)],
+                ],
+                current: 1,
+                onStrokeDrawn: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final guide = find.byWidgetPredicate((w) => w is CustomPaint && w.painter.runtimeType.toString() == '_GuidePainter');
+    expect(tester.renderObject(guide), paints..path(color: doneInk));
+    expect(doneInk.computeLuminance(), lessThan(const Color(0xFF1565C0).computeLuminance()));
+  });
+
+  testWidgets('the fading ink keeps the live colour, which differs from the navy of completed strokes', (tester) async {
+    await pumpPad(tester, (_) {});
+    final rect = tester.getRect(find.byKey(const Key('trace-pad')));
+    final ink = find.descendant(of: find.byKey(const Key('trace-ink')), matching: find.byType(CustomPaint));
+    final g = await tester.startGesture(rect.topLeft + const Offset(30, 30));
+    await g.moveTo(rect.topLeft + const Offset(150, 30));
+    await g.up();
+    await tester.pump();
+    expect(tester.renderObject(ink), paints..path()..path(color: const Color(0xFF1565C0), strokeWidth: 0.075 * rect.width));
+    expect(const Color(0xFF1565C0), isNot(IceColors.deep));
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('a tap with a tiny jitter does not report a stroke', (tester) async {

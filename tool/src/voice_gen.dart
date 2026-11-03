@@ -153,6 +153,7 @@ class GenArgs {
     this.prune = false,
     this.dryRun = false,
     this.allowApi = false,
+    this.batch = false,
   });
 
   final int? limit;
@@ -162,6 +163,10 @@ class GenArgs {
 
   /// Without it, parts missing from the local cache are only reported (no Vbee call).
   final bool allowApi;
+
+  /// Batch every uncached part per language, whatever its length (by default only
+  /// parts of at most [maxBatchTextLength] characters are batched).
+  final bool batch;
 }
 
 /// Parses the generator's command line; throws [FormatException] on bad input.
@@ -171,6 +176,7 @@ GenArgs parseGenArgs(List<String> args) {
   var prune = false;
   var dryRun = false;
   var allowApi = false;
+  var batch = false;
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
     switch (a) {
@@ -180,6 +186,8 @@ GenArgs parseGenArgs(List<String> args) {
         dryRun = true;
       case '--allow-api':
         allowApi = true;
+      case '--batch':
+        batch = true;
       case '--limit':
         final v = i + 1 < args.length ? int.tryParse(args[++i]) : null;
         if (v == null || v < 0) {
@@ -202,5 +210,149 @@ GenArgs parseGenArgs(List<String> args) {
     prune: prune,
     dryRun: dryRun,
     allowApi: allowApi,
+    batch: batch,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Batch synthesis: many short parts in one Vbee request, split on silence.
+// ---------------------------------------------------------------------------
+
+/// Parts with at most this many characters are batched automatically.
+const maxBatchTextLength = 12;
+
+/// Most parts in one request.
+const maxBatchSize = 50;
+
+/// Silences (seconds) Vbee inserts between lines, so items can be split apart.
+const batchPause = <String, double>{
+  'majorBreak': 1.2,
+  'mediumBreak': 1.2,
+  'paragraphBreak': 1.2,
+  'sentenceBreak': 1.0,
+};
+
+/// ffmpeg silencedetect settings: quiet below [silenceNoise], for at least [silenceMinDuration] s.
+const silenceNoise = '-40dB';
+const silenceMinDuration = 0.6;
+
+/// Padding kept around each cut item.
+const cutPadding = 0.08;
+
+class BatchPlan {
+  const BatchPlan(this.batches, this.single);
+
+  /// Groups of 2..[maxBatchSize] parts of one language, in the order given.
+  final List<List<UtterancePart>> batches;
+
+  /// Keys of parts that are synthesised on their own.
+  final List<String> single;
+}
+
+/// Groups [parts] (uncached ones) into batches. Short parts of the same language
+/// share a batch; long ones (unless [forceAll]) and lone leftovers stay single.
+BatchPlan planBatches(Iterable<UtterancePart> parts, {bool forceAll = false}) {
+  final byLang = <String, List<UtterancePart>>{};
+  final single = <String>[];
+  for (final p in parts) {
+    if (forceAll || p.text.runes.length <= maxBatchTextLength) {
+      byLang.putIfAbsent(p.lang, () => []).add(p);
+    } else {
+      single.add(p.key);
+    }
+  }
+  final batches = <List<UtterancePart>>[];
+  for (final list in byLang.values) {
+    for (var i = 0; i < list.length; i += maxBatchSize) {
+      final chunk = list.sublist(i, i + maxBatchSize > list.length ? list.length : i + maxBatchSize);
+      if (chunk.length < 2) {
+        single.addAll(chunk.map((p) => p.key));
+      } else {
+        batches.add(chunk);
+      }
+    }
+  }
+  return BatchPlan(batches, single);
+}
+
+/// One part per line, each ended by a full stop (unless it already ends in
+/// punctuation) so the voice reads every line as its own sentence.
+String batchText(List<UtterancePart> parts) => parts.map((p) => _closed(p.text)).join('\n');
+
+String _closed(String t) => RegExp(r'[.!?…,;:]$').hasMatch(t) ? t : '$t.';
+
+/// Cache key of a batch MP3 (so a re-run never pays twice for the same batch).
+String batchCacheKey(String lang, List<String> texts, String voice, double speed) =>
+    sha1.convert(utf8.encode('batch2|$lang|${texts.join('\n')}|$voice|$speed|${batchPause.values.join(',')}')).toString();
+
+/// A silent stretch; [end] is null when the file ends while still silent.
+class Silence {
+  const Silence(this.start, this.end);
+  final double start;
+  final double? end;
+}
+
+/// A stretch of speech between silences, in seconds.
+class Segment {
+  const Segment(this.start, this.end);
+  final double start;
+  final double end;
+}
+
+final _silenceStart = RegExp(r'silence_start:\s*(-?[\d.]+)');
+final _silenceEnd = RegExp(r'silence_end:\s*(-?[\d.]+)');
+final _duration = RegExp(r'Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)');
+
+/// Silences found by `ffmpeg -af silencedetect` in its stderr.
+List<Silence> parseSilences(String stderr) {
+  final out = <Silence>[];
+  double? open;
+  for (final line in stderr.split('\n')) {
+    final s = _silenceStart.firstMatch(line);
+    if (s != null) {
+      if (open != null) out.add(Silence(open, null));
+      open = double.tryParse(s[1]!);
+      continue;
+    }
+    final e = _silenceEnd.firstMatch(line);
+    if (e != null && open != null) {
+      out.add(Silence(open, double.tryParse(e[1]!)));
+      open = null;
+    }
+  }
+  if (open != null) out.add(Silence(open, null));
+  return out;
+}
+
+/// Total length in seconds from ffmpeg's `Duration: hh:mm:ss.xx` line.
+double? parseDuration(String stderr) {
+  final m = _duration.firstMatch(stderr);
+  if (m == null) return null;
+  return int.parse(m[1]!) * 3600 + int.parse(m[2]!) * 60 + double.parse(m[3]!);
+}
+
+/// Speech shorter than this is encoder noise at an edge, not an item.
+const minSpeech = 0.1;
+
+/// The speech between [silences] in a file of [total] seconds.
+List<Segment> speechSegments(List<Silence> silences, double total) {
+  final out = <Segment>[];
+  void add(double a, double b) {
+    if (b - a >= minSpeech) out.add(Segment(a, b));
+  }
+
+  var at = 0.0;
+  for (final s in silences) {
+    add(at, s.start);
+    at = s.end ?? total;
+  }
+  add(at, total);
+  return out;
+}
+
+/// Only a perfect count match is trusted; the mapping is never guessed.
+bool canSplit(int items, List<Segment> segments) => items > 0 && segments.length == items;
+
+/// The cut for [s]: padded by [cutPadding] on both sides, clamped to the file.
+Segment cutWindow(Segment s, double total) =>
+    Segment((s.start - cutPadding).clamp(0.0, total), (s.end + cutPadding).clamp(0.0, total));

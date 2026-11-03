@@ -7,11 +7,13 @@ const requiredFiles = ['phrases', 'castle', 'characters', 'profile_defaults'];
 const requiredPhraseIds = {
   'greet_vi',
   'greet_en',
-  'find_letter_prompt',
-  'find_letter_small_prompt',
   'letter_example',
   'trace_prompt',
-  'game_find_letter',
+  'game_balloon',
+  'balloon_prompt',
+  'balloon_correct',
+  'balloon_wrong_this',
+  'balloon_wrong_find',
   'game_trace',
   'game_talk',
   'game_vi',
@@ -27,6 +29,7 @@ const requiredPhraseIds = {
   'castle_level_up',
   'friend_unlocked',
   'error_home',
+  'snowflake_count',
 };
 
 /// Phrase groups the app picks from at random.

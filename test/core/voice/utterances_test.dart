@@ -5,6 +5,8 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
+import '../../../tool/src/voice_gen.dart' show distinctParts;
+
 void main() {
   late ContentBundle content;
   late List<PlannedUtterance> planned;
@@ -40,15 +42,34 @@ void main() {
     ]));
   });
 
-  test('letters cover upper and lower prompts and small prompts', () {
-    final letters = keys(UtteranceKind.letters).toSet();
-    expect(letters, containsAll(['en|Find the letter B!', 'en|Find the letter b!', 'en|Find the small b!']));
-    expect(letters, hasLength(26 * 3));
+  test('balloon covers prompt, correct and both wrong-tap phrases for every letter', () {
+    final balloon = keys(UtteranceKind.balloon).toSet();
+    expect(balloon, containsAll([
+      'vi|Xoài tìm chữ || en|B || vi|nào!',
+      'vi|Đúng rồi! || en|B!',
+      'vi|Chưa đúng rồi, đây là chữ || en|C',
+      'vi|Tìm chữ || en|C || vi|nha!',
+    ]));
+    // 26 each of prompt, correct, wrong_this (tapped) and wrong_find (target).
+    expect(balloon, hasLength(26 * 4));
   });
 
   test('tracing needs a prompt and an example for every letter', () {
     final trace = keys(UtteranceKind.trace).toSet();
     expect(trace, containsAll(['en|Let\'s write B!', 'en|B! B is for Ball!']));
     expect(trace, hasLength(26 * 2));
+  });
+
+  test('the snowflake count is not a fixed phrase; numbers 0..999 get one utterance each', () {
+    expect(keys(UtteranceKind.fixed).any((k) => k.contains('bông tuyết rồi')), isFalse);
+    final numbers = keys(UtteranceKind.numbers).toList();
+    expect(numbers, hasLength(1000));
+    expect(numbers.first, 'vi|Xoài đã kiếm được || vi|0 || vi|bông tuyết rồi, giỏi quá nè!');
+    expect(numbers, contains('vi|Xoài đã kiếm được || vi|999 || vi|bông tuyết rồi, giỏi quá nè!'));
+  });
+
+  test('only the number part differs between counts', () {
+    final parts = distinctParts([for (final p in planned.where((p) => p.kind == UtteranceKind.numbers)) p.utterance]);
+    expect(parts, hasLength(1002));
   });
 }
