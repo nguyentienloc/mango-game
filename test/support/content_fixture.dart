@@ -5,7 +5,7 @@ import 'package:xoai_castle/core/content/content_validator.dart';
 Map<String, String> validFiles() => {
       'manifest.json': jsonEncode({
         'schema': 1,
-        'packs': {'letters_en': 1, 'vocab_animals': 1},
+        'packs': {'letters_en': 1, 'letters_vi': 1, 'vocab_animals': 1},
         'files': {'phrases': 1, 'castle': 1, 'characters': 1, 'profile_defaults': 1},
       }),
       'packs/letters_en.json': jsonEncode({
@@ -14,6 +14,14 @@ Map<String, String> validFiles() => {
         'items': [
           {'char': 'A', 'example': {'word': 'Apple', 'emoji': '🍎'}, 'strokes': [[{'line': [[0.5, 0.1], [0.15, 0.9]]}]]},
           {'char': 'B', 'example': {'word': 'Ball', 'emoji': '⚽'}, 'strokes': [[{'line': [[0.25, 0.1], [0.25, 0.9]]}]]},
+        ],
+      }),
+      'packs/letters_vi.json': jsonEncode({
+        'id': 'letters_vi',
+        'version': 1,
+        'items': [
+          {'char': 'A', 'spoken': 'a', 'strokes': [[{'line': [[0.5, 0.1], [0.15, 0.9]]}]]},
+          {'char': 'Ă', 'spoken': 'á', 'strokes': [[{'line': [[0.5, 0.3], [0.15, 0.9]]}]]},
         ],
       }),
       'packs/vocab_animals.json': jsonEncode({

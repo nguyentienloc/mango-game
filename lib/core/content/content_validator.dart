@@ -1,6 +1,10 @@
 import 'dart:convert';
 
-const requiredPacks = ['letters_en'];
+const requiredPacks = ['letters_en', 'letters_vi'];
+
+/// The 29 Vietnamese capitals, in teaching order.
+const viLetters = ['A', 'Ă', 'Â', 'B', 'C', 'D', 'Đ', 'E', 'Ê', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'Ô', 'Ơ', 'P', 'Q', 'R', 'S', 'T', 'U', 'Ư', 'V', 'X', 'Y'];
+
 const requiredFiles = ['phrases', 'castle', 'characters', 'profile_defaults'];
 
 /// Phrase ids the app code refers to directly.
@@ -84,7 +88,8 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
     }
   }
 
-  _checkLetters(docs['packs/letters_en.json']!, errors, checkImage);
+  _checkLetters('letters_en', docs['packs/letters_en.json']!, errors, checkImage);
+  _checkLetters('letters_vi', docs['packs/letters_vi.json']!, errors, checkImage);
   _checkVocab(packs.keys, docs, errors, checkImage);
   _checkPhrases(docs['phrases.json']!, errors);
   final friends = _checkCastle(docs['castle.json']!, errors);
@@ -112,29 +117,38 @@ Map<String, dynamic>? _decode(Map<String, String> files, String path, List<Strin
 bool _nonEmpty(Object? v) => v is String && v.trim().isNotEmpty;
 
 void _checkLetters(
+  String pack,
   Map<String, dynamic> doc,
   List<String> errors,
   void Function(String where, Object? image) checkImage,
 ) {
   final items = doc['items'];
   if (items is! List || items.isEmpty) {
-    errors.add('packs/letters_en.json: "items" phải là danh sách không rỗng');
+    errors.add('packs/$pack.json: "items" phải là danh sách không rỗng');
     return;
   }
+  final vi = pack == 'letters_vi';
   final seen = <String>{};
   for (final (i, item) in items.indexed) {
-    final where = 'packs/letters_en.json items[$i]';
+    final where = 'packs/$pack.json items[$i]';
     if (item is! Map<String, dynamic>) {
       errors.add('$where: phải là object');
       continue;
     }
     final char = item['char'];
-    if (char is! String || !RegExp(r'^[A-Z]$').hasMatch(char)) {
-      errors.add('$where: "char" phải là một chữ in hoa A–Z');
+    final validChar = char is String && (vi ? viLetters.contains(char) : RegExp(r'^[A-Z]$').hasMatch(char));
+    if (!validChar) {
+      errors.add(vi
+          ? '$where: "char" phải là một trong 29 chữ in hoa tiếng Việt'
+          : '$where: "char" phải là một chữ in hoa A–Z');
     } else if (!seen.add(char)) {
       errors.add('$where: chữ "$char" bị trùng');
     }
     _checkStrokes(item['strokes'], where, errors);
+    if (vi) {
+      if (!_nonEmpty(item['spoken'])) errors.add('$where: thiếu "spoken"');
+      continue;
+    }
     final example = item['example'];
     if (example is! Map<String, dynamic> || !_nonEmpty(example['word'])) {
       errors.add('$where: thiếu "example.word"');

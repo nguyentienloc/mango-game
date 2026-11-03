@@ -165,6 +165,60 @@ void main() {
     final errors = validateContent(withJson(validFiles(), 'packs/letters_en.json', letters));
     expect(errors, contains('packs/letters_en.json items[0]: thiếu "strokes"'));
   });
+
+  group('letters_vi', () {
+    Map<String, String> withVi(void Function(List items) edit) {
+      final letters = readJson(validFiles(), 'packs/letters_vi.json');
+      edit(letters['items'] as List);
+      return withJson(validFiles(), 'packs/letters_vi.json', letters);
+    }
+
+    test('the pack is required', () {
+      final manifest = readJson(validFiles(), 'manifest.json');
+      (manifest['packs'] as Map).remove('letters_vi');
+      final errors = validateContent(withJson(validFiles(), 'manifest.json', manifest));
+      expect(errors, contains('manifest.json: thiếu gói "letters_vi"'));
+    });
+
+    test('letters need no example, only a spoken name', () {
+      expect(validateContent(withVi((_) {})), isEmpty);
+    });
+
+    test('a missing or blank spoken name is reported', () {
+      final errors = validateContent(withVi((items) {
+        (items[0] as Map).remove('spoken');
+        (items[1] as Map)['spoken'] = ' ';
+      }));
+      expect(errors, contains('packs/letters_vi.json items[0]: thiếu "spoken"'));
+      expect(errors, contains('packs/letters_vi.json items[1]: thiếu "spoken"'));
+    });
+
+    test('a char outside the 29 Vietnamese capitals is reported', () {
+      final errors = validateContent(withVi((items) {
+        (items[0] as Map)['char'] = 'F'; // Vietnamese has no F
+        (items[1] as Map)['char'] = 'ă'; // lowercase
+      }));
+      expect(errors, contains('packs/letters_vi.json items[0]: "char" phải là một trong 29 chữ in hoa tiếng Việt'));
+      expect(errors, contains('packs/letters_vi.json items[1]: "char" phải là một trong 29 chữ in hoa tiếng Việt'));
+    });
+
+    test('duplicate letters are reported', () {
+      final errors = validateContent(withVi((items) => (items[1] as Map)['char'] = 'A'));
+      expect(errors, contains('packs/letters_vi.json items[1]: chữ "A" bị trùng'));
+    });
+
+    test('letters need strokes', () {
+      final errors = validateContent(withVi((items) => (items[0] as Map).remove('strokes')));
+      expect(errors, contains('packs/letters_vi.json items[0]: thiếu "strokes"'));
+    });
+
+    test('letters_en still requires an example', () {
+      final letters = readJson(validFiles(), 'packs/letters_en.json');
+      ((letters['items'] as List)[0] as Map).remove('example');
+      final errors = validateContent(withJson(validFiles(), 'packs/letters_en.json', letters));
+      expect(errors, contains('packs/letters_en.json items[0]: thiếu "example.word"'));
+    });
+  });
 }
 
 const _vocabImages = {

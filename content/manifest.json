@@ -2,6 +2,7 @@
   "schema": 1,
   "packs": {
     "letters_en": 2,
+    "letters_vi": 1,
     "vocab_animals": 1,
     "vocab_fruits": 1,
     "vocab_vegetables": 1,

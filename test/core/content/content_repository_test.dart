@@ -18,6 +18,8 @@ void main() {
     expect(bundle.lettersEn.map((l) => l.char), ['A', 'B']);
     expect(bundle.lettersEn.first.exampleEmoji, '🍎');
     expect(bundle.lettersEn.first.lower, 'a');
+    expect(bundle.lettersVi.map((l) => l.char), ['A', 'Ă']);
+    expect(bundle.lettersVi.map((l) => l.spoken), ['a', 'á']);
     expect(bundle.phrases['try_again_vi_1']!.allParts.single.lang, 'vi');
     expect(bundle.castle.map((l) => l.snowflakes), [0, 20]);
     expect(bundle.castle[1].friend, 'olaf');

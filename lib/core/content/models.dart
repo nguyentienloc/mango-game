@@ -3,15 +3,24 @@ import 'dart:convert';
 import 'strokes.dart';
 
 class LetterItem {
-  const LetterItem({required this.char, required this.exampleWord, this.exampleEmoji, this.exampleImage, this.strokes = const []});
+  const LetterItem({
+    required this.char,
+    this.exampleWord = '',
+    this.exampleEmoji,
+    this.exampleImage,
+    this.spoken,
+    this.strokes = const [],
+  });
 
   factory LetterItem.fromJson(Map<String, dynamic> json) {
-    final example = json['example'] as Map<String, dynamic>;
+    // Vietnamese letters carry a spoken name instead of an example word.
+    final example = json['example'] as Map<String, dynamic>?;
     return LetterItem(
       char: json['char'] as String,
-      exampleWord: example['word'] as String,
-      exampleEmoji: example['emoji'] as String?,
-      exampleImage: example['image'] as String?,
+      exampleWord: example?['word'] as String? ?? '',
+      exampleEmoji: example?['emoji'] as String?,
+      exampleImage: example?['image'] as String?,
+      spoken: json['spoken'] as String?,
       strokes: [for (final s in (json['strokes'] as List? ?? const [])) Stroke.fromJson(s as List)],
     );
   }
@@ -20,6 +29,9 @@ class LetterItem {
   final String exampleWord;
   final String? exampleEmoji;
   final String? exampleImage;
+
+  /// How the letter is said aloud (letters_vi only), e.g. "bờ" for B.
+  final String? spoken;
   final List<Stroke> strokes;
 
   String get lower => char.toLowerCase();
@@ -133,6 +145,7 @@ class VocabItem {
 class ContentBundle {
   const ContentBundle({
     required this.lettersEn,
+    required this.lettersVi,
     required this.phrases,
     required this.castle,
     required this.characters,
@@ -155,6 +168,9 @@ class ContentBundle {
       lettersEn: [
         for (final j in read('packs/letters_en.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
       ],
+      lettersVi: [
+        for (final j in read('packs/letters_vi.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
+      ],
       phrases: {
         for (final j in read('phrases.json')['items'] as List)
           (j as Map<String, dynamic>)['id'] as String: Phrase.fromJson(j),
@@ -171,6 +187,7 @@ class ContentBundle {
   }
 
   final List<LetterItem> lettersEn;
+  final List<LetterItem> lettersVi;
   final Map<String, Phrase> phrases;
   final List<CastleLevel> castle;
   final Map<String, CharacterDef> characters;
