@@ -30,6 +30,14 @@ class TracePad extends StatefulWidget {
 /// Shortest path (in pad units) that counts as a stroke rather than a tap.
 const _kMinStrokeLength = 0.04;
 
+/// Strokes shorter than this (in pad units, e.g. the Ơ/Ư horns) get no direction arrow:
+/// it would cover the whole stroke. Their start dot is still drawn.
+const _kMinArrowStrokeLength = 0.25;
+
+/// Whether a guide stroke of [length] pad units is long enough to carry a direction arrow.
+@visibleForTesting
+bool shouldDrawArrow(double length) => length >= _kMinArrowStrokeLength;
+
 /// How long a finished stroke's ink takes to melt away.
 const _kFadeDuration = Duration(milliseconds: 300);
 
@@ -287,7 +295,7 @@ class _GuidePainter extends CustomPainter {
           dashed(),
           stroke(IceColors.frost, width * 0.8, dashed: true),
         );
-        _paintArrow(canvas, pts, side);
+        if (shouldDrawArrow(_TracePadState._length(pts))) _paintArrow(canvas, pts, side);
         _paintNumber(canvas, pts.first, i + 1, side);
       } else {
         canvas.drawPath(

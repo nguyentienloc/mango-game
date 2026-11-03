@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../app/reward_controller.dart';
 import '../../../app/theme.dart';
+import '../../../core/content/models.dart';
 import '../../../core/progress/item_stat.dart';
 import '../../../core/progress/question_picker.dart';
 import '../../../core/session/session_store.dart';
@@ -15,12 +16,15 @@ import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
 import '../../../shared/ice_background.dart';
 import '../../reward/reward_screen.dart';
+import '../letter_game_spec.dart';
 import '../pick_session.dart';
 import 'balloon_field.dart';
 import 'balloon_logic.dart';
 
 class BalloonScreen extends ConsumerStatefulWidget {
-  const BalloonScreen({super.key});
+  const BalloonScreen({super.key, this.spec = LetterGameSpec.balloonEn});
+
+  final LetterGameSpec spec;
 
   @override
   ConsumerState<BalloonScreen> createState() => _BalloonScreenState();
@@ -37,13 +41,24 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
   bool _celebrating = false;
 
   VoiceService get _voice => ref.read(voiceProvider);
+  LetterGameSpec get _spec => widget.spec;
+  late final List<LetterItem> _all = _spec.letters(ref.read(contentProvider));
+
+  LetterItem _byChar(String char) => _all.firstWhere((l) => l.char == char);
 
   /// Set when we pop ourselves (🏠 or error): those say their own phrase.
   bool _leavingByUs = false;
 
   /// A system back gesture: say go_home, which also cuts whatever is still being spoken.
   void _onPopInvoked(bool didPop, Object? result) {
-    if (didPop && !_leavingByUs) _voice.say('go_home');
+    if (didPop) {
+      if (!_leavingByUs) _voice.say('go_home');
+    } else if (_spec.popToRootOnExit && !_finishing && _session?.isFinished != true) {
+      // Games from a chooser take the back gesture themselves, to go all the way home.
+      _leavingByUs = true;
+      _voice.say('go_home');
+      _spec.leave(context);
+    }
   }
 
   bool get _finishing {
@@ -66,27 +81,30 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
       if (!mounted) return;
       _leavingByUs = true;
       await _voice.say('error_home');
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) _spec.leave(context);
     }
   }
 
   Future<void> _start() async {
     final random = ref.read(randomProvider);
-    _stats = await ref.read(itemStatsStoreProvider).loadByPrefix('balloon_en_upper:');
+    _stats = await ref.read(itemStatsStoreProvider).loadByPrefix('${_spec.keyPrefix}:');
     final round = buildBalloonRound(
-      letters: ref.read(contentProvider).lettersEn,
+      letters: _all,
       stats: _stats,
       picker: QuestionPicker(random),
+      keyPrefix: _spec.keyPrefix,
     );
     if (!mounted) return;
-    setState(() => _session = PickSession([for (final l in round) BalloonQuestion(l)]));
+    setState(() => _session = PickSession([for (final l in round) BalloonQuestion(l, _spec.keyPrefix)]));
     await _ask();
   }
 
   Future<void> _ask() async {
     setState(() => _busy = false);
-    await _voice.say('balloon_prompt', vars: {'letter': _session!.current.answer});
+    await _sayPrompt();
   }
+
+  Future<void> _sayPrompt() => _voice.say(_spec.promptId, vars: _spec.vars(_session!.current.item));
 
   /// The field asks before it pops a balloon. Locks synchronously, so a second touch in
   /// the same frame is refused (and its balloon stays) instead of being popped unseen.
@@ -103,10 +121,10 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     if (result == TapResult.wrong) {
       // Locked only while the tapped letter is named; "find X" plays on while the child can
       // already tap again (a new tap's speech cuts it).
-      await _voice.say('balloon_wrong_this', vars: {'tapped': letter});
+      await _voice.say(_spec.wrongThisId, vars: _spec.vars(session.current.item, tapped: _byChar(letter)));
       if (!mounted) return;
       setState(() => _busy = false);
-      unawaited(_guard(() => _voice.say('balloon_wrong_find', vars: {'letter': session.current.answer})));
+      unawaited(_guard(() => _voice.say(_spec.wrongFindId, vars: _spec.vars(session.current.item))));
       return;
     }
     if (result != TapResult.correct) {
@@ -124,7 +142,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     // The stats write does not delay Elsa's cheer: both run together.
     await Future.wait([
       ref.read(itemStatsStoreProvider).save(stat),
-      _voice.say('balloon_correct', vars: {'letter': q.answer}),
+      _voice.say(_spec.correctId, vars: _spec.vars(q.item)),
       Future<void>.delayed(const Duration(milliseconds: 800)),
     ]);
     if (!mounted) return;
@@ -142,7 +160,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     final now = ref.read(clockProvider)();
     await ref.read(sessionStoreProvider).add(SessionRecord(
           date: dayKey(_startedAt),
-          game: 'balloon',
+          game: _spec.sessionGame,
           startedAt: _startedAt,
           durationSec: now.difference(_startedAt).inSeconds,
           correct: session.firstTryCount,
@@ -150,7 +168,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
         ));
     final outcome = await ref.read(rewardStateProvider.notifier).completeRound(session.firstTryCount);
     if (!mounted) return;
-    await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome)));
+    await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => RewardScreen(outcome: outcome, popToRoot: _spec.popToRootOnExit)));
   }
 
   @override
@@ -158,14 +176,14 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
     final session = _session;
     if (session == null || session.isFinished) {
       return PopScope(
-        canPop: _session == null,
+        canPop: _session == null && !_spec.popToRootOnExit,
         onPopInvokedWithResult: _onPopInvoked,
         child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
       );
     }
     final q = session.current;
     return PopScope(
-      canPop: !_finishing,
+      canPop: !_finishing && !_spec.popToRootOnExit,
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
         body: IceBackground(
@@ -182,7 +200,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
                         if (_finishing) return;
                         _leavingByUs = true;
                         _voice.say('go_home');
-                        Navigator.of(context).pop();
+                        _spec.leave(context);
                       },
                     ),
                     const Spacer(),
@@ -195,7 +213,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
               ),
               GestureDetector(
                 onTap: () {
-                  if (!_busy) _voice.say('balloon_prompt', vars: {'letter': q.answer});
+                  if (!_busy) _sayPrompt();
                 },
                 child: const CharacterView(id: 'elsa', size: 90),
               ),
@@ -205,6 +223,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
                   onPop: _onPop,
                   hint: session.showHint ? q.answer : null,
                   random: ref.read(randomProvider),
+                  alphabet: [for (final l in _all) l.char],
                 ),
               ),
             ],

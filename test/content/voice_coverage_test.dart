@@ -12,7 +12,7 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 /// Clips bake in the default names from profile_defaults.json; if names ever become
 /// editable, regenerate the clips.
 void main() {
-  test('every part of every fixed, vocabulary, trace and balloon utterance has a generated clip', () async {
+  test('every part of every fixed, vocabulary, trace, balloon and Vietnamese-letter utterance has a generated clip', () async {
     final content = await ContentRepository(FileContentSource('content')).load();
     final defaults = content.profileDefaults;
     final planned = enumerateUtterances(content, Names(en: defaults.nameEn, vi: defaults.nameVi));
@@ -29,6 +29,7 @@ void main() {
           if (!hasPart(part)) part.key,
     };
     expect(planned.where((p) => p.kind == UtteranceKind.balloon), isNotEmpty);
+    expect(planned.where((p) => p.kind == UtteranceKind.viLetters), hasLength(29 * 6));
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
   });
 

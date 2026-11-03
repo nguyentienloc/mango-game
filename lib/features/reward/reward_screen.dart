@@ -10,9 +10,12 @@ import '../../shared/character_view.dart';
 import '../../shared/ice_background.dart';
 
 class RewardScreen extends ConsumerStatefulWidget {
-  const RewardScreen({super.key, required this.outcome});
+  const RewardScreen({super.key, required this.outcome, this.popToRoot = false});
 
   final RewardOutcome outcome;
+
+  /// After a game opened from a chooser: ✅ and back go all the way home, not back to the chooser.
+  final bool popToRoot;
 
   @override
   ConsumerState<RewardScreen> createState() => _RewardScreenState();
@@ -48,13 +51,25 @@ class _RewardScreenState extends ConsumerState<RewardScreen> {
     if (o.friendUnlocked != null) await voice.say('friend_unlocked');
   }
 
+  void _goHome() {
+    _leaving = true;
+    ref.read(voiceProvider).say('go_home');
+    final nav = Navigator.of(context);
+    widget.popToRoot ? nav.popUntil((r) => r.isFirst) : nav.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final o = widget.outcome;
     final friend = o.friendUnlocked;
     return PopScope(
+      canPop: !widget.popToRoot,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) _leaving = true;
+        if (didPop) {
+          _leaving = true;
+        } else {
+          _goHome();
+        }
       },
       child: Scaffold(
         body: IceBackground(
@@ -87,11 +102,7 @@ class _RewardScreenState extends ConsumerState<RewardScreen> {
                 BigButton(
                   emoji: '✅',
                   size: 96,
-                  onTap: () {
-                    _leaving = true;
-                    ref.read(voiceProvider).say('go_home');
-                    Navigator.of(context).pop();
-                  },
+                  onTap: _goHome,
                 ),
               ],
             ),

@@ -12,6 +12,7 @@ const _alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', '
 final _letters = [for (final c in _alphabet) LetterItem(char: c, exampleWord: c, exampleEmoji: '⭐')];
 
 void main() {
+  keyPrefixTests();
   group('buildBalloonRound', () {
     test('picks 5 different letters for a fresh player', () {
       for (var seed = 0; seed < 50; seed++) {
@@ -96,7 +97,7 @@ void main() {
         final b = Balloon.random(id: i, letter: 'A', startTime: 1.5, random: random);
         expect(b.colorIndex, inInclusiveRange(0, kBalloonColors - 1));
         expect(b.x, inInclusiveRange(0.0, 1.0));
-        expect(b.duration, inInclusiveRange(7.0, 9.0));
+        expect(b.duration, inInclusiveRange(11.0, 14.0));
         expect(b.wobblePhase, inInclusiveRange(0.0, 2 * pi));
         expect(b.popped, isFalse);
         expect(b.startTime, 1.5);
@@ -139,5 +140,15 @@ void main() {
       expect(session.tap('B'), TapResult.correct);
       expect(session.outcomes.last, AnswerOutcome.firstTry);
     });
+  });
+}
+
+void keyPrefixTests() {
+  test('balloon keys and rounds follow the key prefix', () {
+    expect(balloonKey(_letters.first, 'balloon_vi_upper'), 'balloon_vi_upper:A');
+    final stats = {balloonKey(_letters.first, 'balloon_vi_upper'): ItemStat(key: 'balloon_vi_upper:A', mastery: 1)};
+    final round = buildBalloonRound(letters: _letters, stats: stats, picker: QuestionPicker(Random(1)), keyPrefix: 'balloon_vi_upper');
+    expect(round, hasLength(5));
+    expect(BalloonQuestion(_letters[1], 'balloon_vi_upper').key, 'balloon_vi_upper:B');
   });
 }

@@ -59,7 +59,7 @@ StrokeScore scoreStroke(List<TracePoint> target, List<TracePoint> drawn, {double
   return StrokeScore(covered / target.length, precise / drawn.length, lengthRatio);
 }
 
-String traceKey(LetterItem l) => 'trace_en_upper:${l.char}';
+String traceKey(LetterItem l, [String keyPrefix = 'trace_en_upper']) => '$keyPrefix:${l.char}';
 
 class TraceLetterSession {
   TraceLetterSession(this.letter)
@@ -95,10 +95,11 @@ List<LetterItem> buildTraceRound({
   required List<LetterItem> letters,
   required Map<String, ItemStat> stats,
   required QuestionPicker picker,
+  String keyPrefix = 'trace_en_upper',
   int count = 3,
   int maxNew = 3,
 }) {
-  final byKey = {for (final l in letters) traceKey(l): l};
+  final byKey = {for (final l in letters) traceKey(l, keyPrefix): l};
   // Pick one letter at a time so a letter never repeats within the round
   // (QuestionPicker only avoids back-to-back repeats), and cap unseen letters.
   final remaining = byKey.keys.toList();

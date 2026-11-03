@@ -18,6 +18,7 @@ void main() {
   testWidgets('a character with a missing image file falls back to its emoji', (tester) async {
     final withImage = ContentBundle(
       lettersEn: content.lettersEn,
+      lettersVi: content.lettersVi,
       phrases: content.phrases,
       castle: content.castle,
       characters: {'olaf': const CharacterDef(id: 'olaf', name: 'Olaf', emoji: '⛄', image: 'missing/olaf.png')},

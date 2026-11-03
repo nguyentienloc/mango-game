@@ -8,6 +8,7 @@ import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
+import 'package:xoai_castle/features/games/letter_game_spec.dart';
 
 import '../../support/fakes.dart';
 
@@ -43,7 +44,10 @@ void main() {
     }
 
     for (final id in content.phrases.keys) {
-      if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id)) continue;
+      if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
+          viLetterPhraseIds.contains(id)) {
+        continue;
+      }
       if (numberPhraseIds.contains(id)) continue;
       await check(id, id);
     }
@@ -70,6 +74,18 @@ void main() {
       await check('balloon_wrong_this', 'balloon_wrong_this', {'tapped': l.char});
       await check('balloon_wrong_find', 'balloon_wrong_find', {'letter': other.char});
       await check('letter_example', 'letter_example', {'letter': l.char, 'word': l.exampleWord});
+    }
+    // Vietnamese letters, with the vars the games build from their specs.
+    const bv = LetterGameSpec.balloonVi;
+    const tv = LetterGameSpec.traceVi;
+    for (final l in content.lettersVi) {
+      final other = content.lettersVi[(content.lettersVi.indexOf(l) + 7) % content.lettersVi.length];
+      await check(bv.promptId, bv.promptId, bv.vars(l));
+      await check(bv.correctId, bv.correctId, bv.vars(l));
+      await check(bv.wrongThisId, bv.wrongThisId, bv.vars(other, tapped: l));
+      await check(bv.wrongFindId, bv.wrongFindId, bv.vars(other));
+      await check(tv.promptId, tv.promptId, tv.vars(l));
+      await check(tv.doneId, tv.doneId, tv.vars(l));
     }
 
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
