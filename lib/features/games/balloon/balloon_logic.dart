@@ -8,7 +8,7 @@ import '../pick_session.dart';
 /// Number of balloon colours in the painter's palette.
 const kBalloonColors = 8;
 
-String balloonKey(LetterItem l) => 'balloon_en_upper:${l.char}';
+String balloonKey(LetterItem l, [String keyPrefix = 'balloon_en_upper']) => '$keyPrefix:${l.char}';
 
 /// Picks [count] different letters for one round, at most [maxNew] unseen ones
 /// (same approach as `buildTraceRound`, since [QuestionPicker] only avoids
@@ -17,10 +17,11 @@ List<LetterItem> buildBalloonRound({
   required List<LetterItem> letters,
   required Map<String, ItemStat> stats,
   required QuestionPicker picker,
+  String keyPrefix = 'balloon_en_upper',
   int count = 5,
   int maxNew = 3,
 }) {
-  final byKey = {for (final l in letters) balloonKey(l): l};
+  final byKey = {for (final l in letters) balloonKey(l, keyPrefix): l};
   final remaining = byKey.keys.toList();
   final round = <LetterItem>[];
   var newCount = 0;
@@ -36,12 +37,13 @@ List<LetterItem> buildBalloonRound({
 }
 
 class BalloonQuestion implements PickQuestion {
-  const BalloonQuestion(this.item);
+  const BalloonQuestion(this.item, [this.keyPrefix = 'balloon_en_upper']);
 
   final LetterItem item;
+  final String keyPrefix;
 
   @override
-  String get key => balloonKey(item);
+  String get key => balloonKey(item, keyPrefix);
 
   @override
   String get answer => item.char;

@@ -135,4 +135,12 @@ void main() {
     }
     expect(traceKey(letters.first), 'trace_en_upper:A');
   });
+
+  test('buildTraceRound and traceKey follow the key prefix', () {
+    final letters = [for (final c in 'ABCDEFGHIJ'.split('')) LetterItem(char: c, strokes: letterT.strokes)];
+    expect(traceKey(letters.first, 'trace_vi_upper'), 'trace_vi_upper:A');
+    final stats = {'trace_vi_upper:A': ItemStat(key: 'trace_vi_upper:A', mastery: 1)};
+    final round = buildTraceRound(letters: letters, stats: stats, picker: QuestionPicker(Random(1)), keyPrefix: 'trace_vi_upper');
+    expect(round, hasLength(3));
+  });
 }
