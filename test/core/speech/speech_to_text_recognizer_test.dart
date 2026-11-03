@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -17,12 +18,16 @@ void main() {
   late bool initAnswer;
   late List<String> locales;
   late List<Object?> listenReplies; // per listen call: true / false / an error to throw
+  Completer<void>? listenGate; // when set, 'listen' waits for it
+  Completer<void>? cancelGate; // when set, 'cancel' waits for it
 
   setUp(() {
     calls = [];
     initAnswer = true;
     locales = ['en_GB:English (UK)', 'en_US:English (US)', 'vi_VN:Vietnamese'];
     listenReplies = [];
+    listenGate = null;
+    cancelGate = null;
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       switch (call.method) {
@@ -30,7 +35,11 @@ void main() {
           return initAnswer;
         case 'locales':
           return locales;
+        case 'cancel':
+          await cancelGate?.future;
+          return null;
         case 'listen':
+          await listenGate?.future;
           final reply = listenReplies.isEmpty ? true : listenReplies.removeAt(0);
           if (reply is Exception) throw reply;
           return reply;
@@ -214,5 +223,145 @@ void main() {
     await hear(['red']);
     expect(first, isEmpty);
     expect(second, [['red']]);
+  });
+
+  group('after stop (fix round 1)', () {
+    test('stop with no partial: doneNoResult comes first, the real final arrives later and is delivered', () async {
+      final r = make();
+      await r.init();
+      final got = <String>[];
+      await r.start(onResult: (t, f) => got.add(fmt(t, f)));
+      await r.stop();
+      await status('notListening');
+      await status('doneNoResult');
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(got, isEmpty, reason: 'must keep waiting for the final result after stop');
+      await hear(['five'], isFinal: true);
+      expect(got, ['five [final]']);
+    });
+
+    test('a language error while the stop is still pending does not listen again (empty final)', () async {
+      // The plugin drops errors that arrive after stop() reached it, so the
+      // interesting case is the stop that is still waiting for the listen call.
+      listenGate = Completer<void>();
+      final r = make();
+      await r.init();
+      final got = <String>[];
+      final started = r.start(onResult: (t, f) => got.add(fmt(t, f)));
+      await Future<void>.delayed(Duration.zero);
+      await r.stop();
+      await error('error_language_unavailable');
+      listenGate!.complete();
+      await started;
+      expect(got, [' [final]']);
+      expect(listens(), hasLength(1));
+    });
+
+    test('released while listen throws on-device: no online retry, empty final', () async {
+      listenGate = Completer<void>();
+      listenReplies = [PlatformException(code: 'listenFailed')];
+      final r = make();
+      await r.init();
+      final got = <String>[];
+      final started = r.start(onResult: (t, f) => got.add(fmt(t, f)));
+      await Future<void>.delayed(Duration.zero);
+      await r.stop();
+      listenGate!.complete();
+      await started;
+      expect(listens(), hasLength(1));
+      expect(got, [' [final]']);
+    });
+
+    test('stop landing during the cancel at the top of start still stops the new listen', () async {
+      cancelGate = Completer<void>();
+      final r = make();
+      await r.init();
+      final got = <String>[];
+      final started = r.start(onResult: (t, f) => got.add(fmt(t, f)));
+      await Future<void>.delayed(Duration.zero);
+      final stopped = r.stop();
+      cancelGate!.complete();
+      await started;
+      await stopped;
+      final methods = calls.map((c) => c.method).toList();
+      expect(methods.lastIndexOf('stop'), greaterThan(methods.lastIndexOf('listen')), reason: 'stop must come after listen: $methods');
+      await hear(['red'], isFinal: true);
+      expect(got, ['red [final]']);
+    });
+
+    test('stop while the listen call is pending is applied once the listen has started', () async {
+      listenGate = Completer<void>();
+      final r = make();
+      await r.init();
+      final started = r.start(onResult: (_, _) {});
+      await Future<void>.delayed(Duration.zero);
+      await r.stop();
+      expect(calls.map((c) => c.method), isNot(contains('stop')));
+      listenGate!.complete();
+      await started;
+      final methods = calls.map((c) => c.method).toList();
+      expect(methods.last, 'stop');
+    });
+
+    test('cancel during the cancel at the top of start: no listen is started', () async {
+      cancelGate = Completer<void>();
+      final r = make();
+      await r.init();
+      final started = r.start(onResult: (_, _) {});
+      await Future<void>.delayed(Duration.zero);
+      final cancelled = r.cancel();
+      cancelGate!.complete();
+      await started;
+      await cancelled;
+      expect(listens(), isEmpty);
+    });
+  });
+
+  test('init reports unavailable after a later permission error', () async {
+    final r = make();
+    expect(await r.init(), isTrue);
+    await r.start(onResult: (_, _) {});
+    await error('error_permission');
+    expect(r.available, isFalse);
+    expect(await r.init(), isFalse);
+  });
+
+  test('on-device failure is remembered: the next session goes straight online', () async {
+    final r = make();
+    await r.init();
+    await r.start(onResult: (_, _) {});
+    await error('error_language_unavailable');
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await hear(['five'], isFinal: true);
+    await r.start(onResult: (_, _) {});
+    final l = listens();
+    expect(l, hasLength(3));
+    expect((l[2].arguments as Map)['onDevice'], isFalse);
+  });
+
+  test('a thrown on-device listen is remembered too', () async {
+    listenReplies = [PlatformException(code: 'listenFailed')];
+    final r = make();
+    await r.init();
+    await r.start(onResult: (_, _) {});
+    await r.start(onResult: (_, _) {});
+    final l = listens();
+    expect(l, hasLength(3));
+    expect((l[2].arguments as Map)['onDevice'], isFalse);
+  });
+
+  test('done without a final and without stop (plugin timeout) still waits, then ends empty via the error', () async {
+    final r = make();
+    await r.init();
+    await r.start(onResult: (_, _) {});
+    await error('error_language_unavailable'); // go online
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    final got = <String>[];
+    await r.start(onResult: (t, f) => got.add(fmt(t, f)));
+    await status('doneNoResult');
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(got, isEmpty, reason: 'an online session cannot be sure nothing more follows');
+    await hear(['blue'], isFinal: true);
+    expect(got, ['blue [final]']);
   });
 }
