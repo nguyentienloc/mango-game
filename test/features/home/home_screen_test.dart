@@ -6,6 +6,7 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/castle/castle_screen.dart';
+import 'package:xoai_castle/features/games/balloon/balloon_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
 import 'package:xoai_castle/features/games/vocab/vocab_screen.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
@@ -91,12 +92,15 @@ void main() {
     expect(find.byType(VocabScreen), findsOneWidget);
   });
 
-  testWidgets('the dog button is gone and the balloon game is a coming-soon entry', (tester) async {
+  testWidgets('the dog button is gone and the balloon game opens', (tester) async {
     final tts = await pumpHome(tester);
     expect(find.text('🐶'), findsNothing);
     await tester.tap(find.text('🎈'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(tts.texts, contains('Đập bong bóng'));
+    expect(find.byType(BalloonScreen), findsOneWidget);
   });
 
   testWidgets('the game opens only after its name has been spoken', (tester) async {

@@ -16,6 +16,7 @@ import '../../shared/ice_background.dart';
 import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
+import '../games/balloon/balloon_screen.dart';
 import '../games/trace/trace_screen.dart';
 import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
@@ -88,7 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hasUpdate = ref.watch(updateCheckProvider).value is UpdateAvailable;
     final games = <_GameEntry>[
       _GameEntry('🐾', 'game_vocab', (_) => const VocabScreen()),
-      const _GameEntry('🎈', 'game_balloon'),
+      _GameEntry('🎈', 'game_balloon', (_) => const BalloonScreen()),
       _GameEntry('✏️', 'game_trace', (_) => const TraceScreen()),
       const _GameEntry('🗣️', 'game_talk'),
       const _GameEntry('🇻🇳', 'game_vi'),
