@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/content/models.dart';
-import 'package:xoai_castle/features/games/find_letter/example_card.dart';
+import 'package:xoai_castle/shared/example_card.dart';
 import 'package:xoai_castle/shared/character_view.dart';
 
 import '../support/fakes.dart';

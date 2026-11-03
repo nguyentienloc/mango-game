@@ -42,10 +42,16 @@ void main() {
     ]));
   });
 
-  test('letters cover upper and lower prompts and small prompts', () {
-    final letters = keys(UtteranceKind.letters).toSet();
-    expect(letters, containsAll(['en|Find the letter B!', 'en|Find the letter b!', 'en|Find the small b!']));
-    expect(letters, hasLength(26 * 3));
+  test('balloon covers prompt, correct and wrong for every letter', () {
+    final balloon = keys(UtteranceKind.balloon).toSet();
+    expect(balloon, containsAll([
+      'vi|Xoài tìm chữ || en|B || vi|nào!',
+      'vi|Đúng rồi! || en|B!',
+      'vi|Chưa đúng rồi, đây là chữ || en|C || vi|Tìm chữ || en|A || vi|nha!',
+      'vi|Chưa đúng rồi, đây là chữ || en|A || vi|Tìm chữ || en|C || vi|nha!',
+    ]));
+    // 26 prompts + 26 corrects + 26 + 26 - 1 (the A/A pair is shared) wrongs.
+    expect(balloon, hasLength(26 + 26 + 51));
   });
 
   test('tracing needs a prompt and an example for every letter', () {

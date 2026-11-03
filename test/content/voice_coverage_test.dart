@@ -8,12 +8,11 @@ import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/utterance.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
-/// Every fixed, vocabulary and trace utterance must have a generated clip before release.
+/// Every fixed, vocabulary, trace and balloon utterance must have a generated clip before release.
 /// Clips bake in the default names from profile_defaults.json; if names ever become
 /// editable, regenerate the clips.
-/// Letter-game clips are optional while that game is hidden: only reported.
 void main() {
-  test('every part of every fixed, vocabulary and trace utterance has a generated clip', () async {
+  test('every part of every fixed, vocabulary, trace and balloon utterance has a generated clip', () async {
     final content = await ContentRepository(FileContentSource('content')).load();
     final defaults = content.profileDefaults;
     final planned = enumerateUtterances(content, Names(en: defaults.nameEn, vi: defaults.nameVi));
@@ -24,19 +23,12 @@ void main() {
       return file != null && File('content/audio/$file').existsSync();
     }
 
-    bool has(PlannedUtterance p) => p.utterance.parts.every(hasPart);
-
     final missing = {
       for (final p in planned)
-        if (p.kind != UtteranceKind.letters)
-          for (final part in p.utterance.parts)
-            if (!hasPart(part)) part.key,
+        for (final part in p.utterance.parts)
+          if (!hasPart(part)) part.key,
     };
-    final missingLetters = planned.where((p) => p.kind == UtteranceKind.letters && !has(p)).length;
-    if (missingLetters > 0) {
-      // ignore: avoid_print
-      print('Note: $missingLetters letter-game utterances have no clip (TTS fallback).');
-    }
+    expect(planned.where((p) => p.kind == UtteranceKind.balloon), isNotEmpty);
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
   });
 

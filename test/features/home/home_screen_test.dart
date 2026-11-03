@@ -91,19 +91,12 @@ void main() {
     expect(find.byType(VocabScreen), findsOneWidget);
   });
 
-  testWidgets('the balloon game is hidden by default and the dog button is gone', (tester) async {
-    await pumpHome(tester);
-    expect(find.text('🎈'), findsNothing);
+  testWidgets('the dog button is gone and the balloon game is a coming-soon entry', (tester) async {
+    final tts = await pumpHome(tester);
     expect(find.text('🐶'), findsNothing);
-  });
-
-  testWidgets('the balloon game shows when the parent switch is on', (tester) async {
-    final tts = FakeTts();
-    await tester.pumpWidget(testApp(
-        content: content, tts: tts, home: const HomeScreen(), profile: MemoryProfileStore(show: true)));
+    await tester.tap(find.text('🎈'));
     await tester.pump();
-    await tester.pump();
-    expect(find.text('🎈'), findsOneWidget);
+    expect(tts.texts, contains('Đập bong bóng'));
   });
 
   testWidgets('the game opens only after its name has been spoken', (tester) async {

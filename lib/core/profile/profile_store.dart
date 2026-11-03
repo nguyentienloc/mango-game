@@ -40,8 +40,10 @@ abstract interface class ProfileStore {
   Future<Names> loadNames(ProfileDefaults defaults);
 
   /// Parent switch: whether the find-letter game is shown on the home screen.
+  // unused since v0.4.0 (column kept so the schema and migrations stay unchanged)
   Future<bool> showFindLetter();
 
+  // unused since v0.4.0
   Future<void> setShowFindLetter(bool value);
 
   Future<VoiceSpeeds> voiceSpeeds();

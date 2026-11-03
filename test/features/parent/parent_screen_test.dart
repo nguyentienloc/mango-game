@@ -61,18 +61,6 @@ void main() {
     expect(find.text('Kiểm tra lại'), findsOneWidget);
   });
 
-  testWidgets('the find-letter switch is off by default and saves when toggled', (tester) async {
-    final profile = MemoryProfileStore();
-    await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const ParentScreen(), profile: profile));
-    await tester.pump();
-    final tile = find.widgetWithText(SwitchListTile, 'Hiện trò Tìm chữ cái');
-    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
-    await tester.tap(tile);
-    await tester.pump();
-    expect(profile.show, isTrue);
-    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
-  });
-
   testWidgets('reset asks for confirmation; cancel keeps data', (tester) async {
     final resetter = FakeProgressResetter();
     await tester.pumpWidget(testApp(content: content, tts: FakeTts(), home: const ParentScreen(), resetter: resetter));
