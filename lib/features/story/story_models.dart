@@ -72,6 +72,9 @@ class Story {
   String get thumbnailUrl => 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg';
 }
 
+/// A story length for parents: "m:ss", e.g. 7:05 or 75:00.
+String formatStoryLength(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+
 enum StoryOverrun { finish, stopNow }
 
 enum StoryViewMode { listen, watch }

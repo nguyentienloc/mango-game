@@ -12,6 +12,7 @@ abstract interface class StoryStore {
   /// Adds the story, or replaces the one with the same videoId (keeps its place in the list).
   Future<void> addUserStory(Story s);
 
+  /// Removes the story and its hidden mark.
   Future<void> deleteUserStory(String videoId);
 
   /// [Story.id] values the parent hid.
@@ -61,10 +62,12 @@ class DriftStoryStore implements StoryStore {
         );
   });
 
+  /// Also drops its hidden mark, so no stale row is left behind.
   @override
-  Future<void> deleteUserStory(String videoId) async {
+  Future<void> deleteUserStory(String videoId) => _db.transaction(() async {
     await (_db.delete(_db.userStories)..where((t) => t.videoId.equals(videoId))).go();
-  }
+    await (_db.delete(_db.hiddenStories)..where((t) => t.storyId.equals('yt:$videoId'))).go();
+  });
 
   @override
   Future<Set<String>> hiddenIds() async => {for (final r in await _db.select(_db.hiddenStories).get()) r.storyId};
@@ -113,7 +116,10 @@ class MemoryStoryStore implements StoryStore {
   Future<void> addUserStory(Story s) async => _user[s.videoId] = s;
 
   @override
-  Future<void> deleteUserStory(String videoId) async => _user.remove(videoId);
+  Future<void> deleteUserStory(String videoId) async {
+    _user.remove(videoId);
+    _hidden.remove('yt:$videoId');
+  }
 
   @override
   Future<Set<String>> hiddenIds() async => {..._hidden};

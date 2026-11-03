@@ -7,6 +7,7 @@ import '../../app/voice_speeds_controller.dart';
 import '../../core/content/vocab.dart';
 import '../../core/profile/profile_store.dart';
 import '../../core/updater/app_updater.dart';
+import 'stories_manage_screen.dart';
 import 'update_download_dialog.dart';
 
 class ParentScreen extends ConsumerWidget {
@@ -31,6 +32,16 @@ class ParentScreen extends ConsumerWidget {
             leading: const Icon(Icons.info_outline),
             title: const Text('Phiên bản app'),
             subtitle: Text(ref.watch(appVersionProvider)),
+          ),
+          ListTile(
+            key: const Key('parent-stories'),
+            leading: const Text('📖', style: TextStyle(fontSize: 24)),
+            title: const Text('Truyện'),
+            subtitle: const Text('Thêm, ẩn hoặc xóa truyện cho 🌙 Nghe chuyện'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const StoriesManageScreen())),
           ),
           const _SpeedSection(),
           const UpdateTile(),

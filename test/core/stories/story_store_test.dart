@@ -58,6 +58,15 @@ void _suite(String name, Future<StoryStore> Function() make) {
       expect(await s.userStories(), isEmpty);
     });
 
+    test('deleting a user story also forgets that it was hidden', () async {
+      final s = await make();
+      await s.addUserStory(_a);
+      await s.setHidden(_a.id, true);
+      await s.setHidden('yt:other', true);
+      await s.deleteUserStory(_a.videoId);
+      expect(await s.hiddenIds(), {'yt:other'});
+    });
+
     test('hides and shows again', () async {
       final s = await make();
       await s.setHidden('yt:x', true);

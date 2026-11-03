@@ -16,6 +16,8 @@ import 'package:xoai_castle/core/speech/speech_recognizer.dart';
 import 'package:xoai_castle/core/stories/story_store.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
+import 'package:xoai_castle/features/story/oembed_client.dart';
+import 'package:xoai_castle/features/story/story_models.dart';
 import 'package:xoai_castle/features/story/story_player.dart';
 
 import 'fakes.dart';
@@ -38,6 +40,7 @@ Widget testApp({
   StoryPlayerFactory? storyPlayer,
   ConnectivityProbe? connectivity,
   ScreenAwake? screenAwake,
+  OEmbedClient? oembed,
 }) {
   const names = Names(en: 'An', vi: 'Xoài');
   return ProviderScope(
@@ -65,7 +68,21 @@ Widget testApp({
       storyPlayerFactoryProvider.overrideWithValue(storyPlayer ?? FakeStoryPlayers().create),
       connectivityProbeProvider.overrideWithValue(connectivity ?? FakeConnectivityProbe()),
       screenAwakeProvider.overrideWithValue(screenAwake ?? FakeScreenAwake()),
+      oembedClientProvider.overrideWithValue(oembed ?? FakeOEmbedClient()),
     ],
     child: MaterialApp(home: home),
   );
 }
+
+/// [content] with its bundled stories replaced by [stories].
+ContentBundle withStories(ContentBundle content, List<Story> stories) => ContentBundle(
+  lettersEn: content.lettersEn,
+  lettersVi: content.lettersVi,
+  phrases: content.phrases,
+  castle: content.castle,
+  characters: content.characters,
+  profileDefaults: content.profileDefaults,
+  vocab: content.vocab,
+  conversation: content.conversation,
+  stories: stories,
+);

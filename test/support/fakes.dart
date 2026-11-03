@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:xoai_castle/core/content/models.dart';
@@ -16,6 +17,7 @@ import 'package:xoai_castle/core/session/session_store.dart';
 import 'package:xoai_castle/core/speech/speech_recognizer.dart';
 import 'package:xoai_castle/core/voice/clip_player.dart';
 import 'package:xoai_castle/core/voice/tts_engine.dart';
+import 'package:xoai_castle/features/story/oembed_client.dart';
 import 'package:xoai_castle/features/story/story_player.dart';
 
 class FakeTts implements TtsEngine {
@@ -328,4 +330,18 @@ class FakeScreenAwake implements ScreenAwake {
 
   @override
   Future<void> disable() async => on = false;
+}
+
+/// Answers every oEmbed lookup with [result] (no network).
+class FakeOEmbedClient extends OEmbedClient {
+  FakeOEmbedClient({this.result = const OEmbedOk('Truyện thử')}) : super(Dio());
+
+  OEmbedResult result;
+  final asked = <String>[];
+
+  @override
+  Future<OEmbedResult> fetch(String videoId) async {
+    asked.add(videoId);
+    return result;
+  }
 }
