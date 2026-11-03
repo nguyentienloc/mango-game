@@ -1,5 +1,209 @@
 {
   "id": "stories",
   "version": 1,
-  "items": []
+  "items": [
+    {
+      "id": "yt:7XFFStC-XqA",
+      "videoId": "7XFFStC-XqA",
+      "title": "Cinderella",
+      "topic": "english",
+      "durationSec": 750
+    },
+    {
+      "id": "yt:OinQKEFJNL0",
+      "videoId": "OinQKEFJNL0",
+      "title": "Frozen: Elsa and Anna",
+      "topic": "english",
+      "durationSec": 242
+    },
+    {
+      "id": "yt:IxVT84N7Mbk",
+      "videoId": "IxVT84N7Mbk",
+      "title": "Goldilocks and the Three Bears",
+      "topic": "english",
+      "durationSec": 501
+    },
+    {
+      "id": "yt:NXRqYECqQu0",
+      "videoId": "NXRqYECqQu0",
+      "title": "The Princess and the Pea",
+      "topic": "english",
+      "durationSec": 339
+    },
+    {
+      "id": "yt:NnQzOZRkhx4",
+      "videoId": "NnQzOZRkhx4",
+      "title": "The Three Little Pigs",
+      "topic": "english",
+      "durationSec": 405
+    },
+    {
+      "id": "yt:T_gyfawT1Vw",
+      "videoId": "T_gyfawT1Vw",
+      "title": "The Ugly Duckling",
+      "topic": "english",
+      "durationSec": 411
+    },
+    {
+      "id": "yt:DD4yaxX3hUs",
+      "videoId": "DD4yaxX3hUs",
+      "title": "Ba chú heo con",
+      "topic": "fairy_vi",
+      "durationSec": 601
+    },
+    {
+      "id": "yt:Zwr5ryPtXGg",
+      "videoId": "Zwr5ryPtXGg",
+      "title": "Chú Cuội cung trăng",
+      "topic": "fairy_vi",
+      "durationSec": 326
+    },
+    {
+      "id": "yt:AVTj01SIYps",
+      "videoId": "AVTj01SIYps",
+      "title": "Con cóc là cậu ông trời",
+      "topic": "fairy_vi",
+      "durationSec": 447
+    },
+    {
+      "id": "yt:7AYkkku854c",
+      "videoId": "7AYkkku854c",
+      "title": "Cây tre trăm đốt",
+      "topic": "fairy_vi",
+      "durationSec": 459
+    },
+    {
+      "id": "yt:rk7unYMPgSc",
+      "videoId": "rk7unYMPgSc",
+      "title": "Cô bé quàng khăn đỏ",
+      "topic": "fairy_vi",
+      "durationSec": 285
+    },
+    {
+      "id": "yt:YFa5q-AeHm8",
+      "videoId": "YFa5q-AeHm8",
+      "title": "Sọ Dừa",
+      "topic": "fairy_vi",
+      "durationSec": 609
+    },
+    {
+      "id": "yt:dIp34UXzofE",
+      "videoId": "dIp34UXzofE",
+      "title": "Sự tích Hồ Gươm",
+      "topic": "fairy_vi",
+      "durationSec": 423
+    },
+    {
+      "id": "yt:Ixa8xG9Ow_I",
+      "videoId": "Ixa8xG9Ow_I",
+      "title": "Sự tích bánh chưng bánh giầy",
+      "topic": "fairy_vi",
+      "durationSec": 567
+    },
+    {
+      "id": "yt:8j9QZ_x1whM",
+      "videoId": "8j9QZ_x1whM",
+      "title": "Sự tích cây vú sữa",
+      "topic": "fairy_vi",
+      "durationSec": 511
+    },
+    {
+      "id": "yt:4G4Z8lL9E2Y",
+      "videoId": "4G4Z8lL9E2Y",
+      "title": "Sự tích dưa hấu",
+      "topic": "fairy_vi",
+      "durationSec": 506
+    },
+    {
+      "id": "yt:G7OAGKu2qw8",
+      "videoId": "G7OAGKu2qw8",
+      "title": "Sự tích trầu cau",
+      "topic": "fairy_vi",
+      "durationSec": 349
+    },
+    {
+      "id": "yt:zA32DWX78Lg",
+      "videoId": "zA32DWX78Lg",
+      "title": "Thánh Gióng",
+      "topic": "fairy_vi",
+      "durationSec": 486
+    },
+    {
+      "id": "yt:MwZ_ovByEnA",
+      "videoId": "MwZ_ovByEnA",
+      "title": "Tấm Cám",
+      "topic": "fairy_vi",
+      "durationSec": 599
+    },
+    {
+      "id": "yt:A1OzVM9-N0s",
+      "videoId": "A1OzVM9-N0s",
+      "title": "Ăn khế trả vàng",
+      "topic": "fairy_vi",
+      "durationSec": 547
+    },
+    {
+      "id": "yt:f9TjldEDlZ4",
+      "videoId": "f9TjldEDlZ4",
+      "title": "Cô bé Lọ Lem",
+      "topic": "princess",
+      "durationSec": 691
+    },
+    {
+      "id": "yt:1bebyzPHbXw",
+      "videoId": "1bebyzPHbXw",
+      "title": "Công chúa ngủ trong rừng",
+      "topic": "princess",
+      "durationSec": 346
+    },
+    {
+      "id": "yt:qij-b-wrlcI",
+      "videoId": "qij-b-wrlcI",
+      "title": "Công chúa và hạt đậu",
+      "topic": "princess",
+      "durationSec": 328
+    },
+    {
+      "id": "yt:zWzlZs2_w08",
+      "videoId": "zWzlZs2_w08",
+      "title": "Nàng Bạch Tuyết và bảy chú lùn",
+      "topic": "princess",
+      "durationSec": 608
+    },
+    {
+      "id": "yt:jKBusuT5DLg",
+      "videoId": "jKBusuT5DLg",
+      "title": "Nàng tiên cá nhỏ",
+      "topic": "princess",
+      "durationSec": 796
+    },
+    {
+      "id": "yt:8ul35CIyGoE",
+      "videoId": "8ul35CIyGoE",
+      "title": "Nữ hoàng băng giá và hoàng tử dũng cảm",
+      "topic": "princess",
+      "durationSec": 516
+    },
+    {
+      "id": "yt:OhfxykDkaHA",
+      "videoId": "OhfxykDkaHA",
+      "title": "Nữ hoàng băng giá và ngôi sao lấp lánh",
+      "topic": "princess",
+      "durationSec": 1273
+    },
+    {
+      "id": "yt:OvRNemXbFtY",
+      "videoId": "OvRNemXbFtY",
+      "title": "Nữ hoàng tuyết",
+      "topic": "princess",
+      "durationSec": 924
+    },
+    {
+      "id": "yt:Fv_nY0zySsM",
+      "videoId": "Fv_nY0zySsM",
+      "title": "Rapunzel",
+      "topic": "princess",
+      "durationSec": 1000
+    }
+  ]
 }
