@@ -18,6 +18,7 @@ const _names = Names(en: 'An', vi: 'Xoài');
 const _again = 'Hmm, can you say it again?';
 const _hint = 'Bấm giữ nút micro rồi nói nha!';
 const _sayAfterVi = 'Con nói theo Elsa nhé:';
+const _moveOn = 'Không sao, mình học câu tiếp nhé!';
 const _praise = ['Great job!', 'Wonderful, An!', 'You did it!', 'Giỏi quá Xoài ơi!', 'Xoài làm đúng rồi!'];
 final _mic = find.byKey(const Key('mic-button'));
 final _confirm = find.byKey(const Key('confirm-button'));
@@ -140,7 +141,7 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  testWidgets('a second miss says the model answer; a third attempt always passes (hinted)', (tester) async {
+  testWidgets('a second miss says the model answer; a third miss moves on without praise (hinted)', (tester) async {
     final (tts, speech, _, _, stats) = await pumpTalk(tester);
     final item = current(tts);
     await speak(tester, speech, ['banana']);
@@ -150,7 +151,8 @@ void main() {
     expect(tts.spoken, contains((text: model(item), lang: 'en')));
     expect(find.text('1/5'), findsOneWidget);
     await speak(tester, speech, ['banana']);
-    expect(praises(tts), 1);
+    expect(praises(tts), 0);
+    expect(count(tts, _moveOn), 1);
     expect(find.text('2/5'), findsOneWidget);
     expect(stats.stats['conv:${item.id}']!.mastery, 0);
     expect(stats.stats['conv:${item.id}']!.wrong, 1);
@@ -189,14 +191,15 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  testWidgets('three silent releases in a row pass the turn without a snowflake and move on', (tester) async {
+  testWidgets('three silent releases in a row move on without praise or a snowflake', (tester) async {
     final (tts, speech, _, _, stats) = await pumpTalk(tester);
     final item = current(tts);
     await speak(tester, speech, const []);
     await speak(tester, speech, const []);
     expect(find.text('1/5'), findsOneWidget);
     await speak(tester, speech, const []);
-    expect(praises(tts), 1);
+    expect(praises(tts), 0);
+    expect(count(tts, _moveOn), 1);
     expect(find.text('+1 ❄️'), findsNothing);
     expect(find.text('2/5'), findsOneWidget);
     expect(current(tts).id, isNot(item.id));

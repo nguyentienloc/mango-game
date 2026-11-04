@@ -35,6 +35,7 @@ RewardOutcome applyRound(
   }
   return RewardOutcome(
     earned: earned,
+    questBonus: questCompleted ? kQuestBonus : 0,
     questCompleted: questCompleted,
     previousLevel: s.castleLevel,
     newLevel: newLevel,

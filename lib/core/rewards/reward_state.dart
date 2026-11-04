@@ -19,6 +19,7 @@ class RewardState {
 class RewardOutcome {
   const RewardOutcome({
     required this.earned,
+    this.questBonus = 0,
     required this.questCompleted,
     required this.previousLevel,
     required this.newLevel,
@@ -26,7 +27,12 @@ class RewardOutcome {
     required this.state,
   });
 
+  /// Snowflakes in total for the round, the quest gift included.
   final int earned;
+
+  /// The part of [earned] that is the daily-quest gift (0 without a quest);
+  /// the reward screen shows it inside the gift box until it is opened.
+  final int questBonus;
   final bool questCompleted;
   final int previousLevel;
   final int newLevel;

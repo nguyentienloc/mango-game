@@ -10,7 +10,8 @@ import '../../support/fakes.dart';
 import '../../support/test_app.dart';
 
 const _all = RewardOutcome(
-  earned: 13,
+  earned: 33,
+  questBonus: 20,
   questCompleted: true,
   previousLevel: 1,
   newLevel: 2,
@@ -67,6 +68,74 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(tts.texts, hasLength(4));
     expect(tts.texts.last, 'Có bạn mới đến chơi với Xoài nè!');
+  });
+
+  group('daily quest gift', () {
+    const questOnly = RewardOutcome(
+      earned: 30,
+      questBonus: 20,
+      questCompleted: true,
+      previousLevel: 1,
+      newLevel: 1,
+      friendUnlocked: null,
+      state: RewardState(),
+    );
+    const gift = Key('reward-gift');
+
+    Widget open(FakeTts tts, RewardOutcome o) => testApp(content: content, tts: tts, home: RewardScreen(outcome: o));
+
+    testWidgets('the gift holds the quest bonus: tapping it opens it and adds the bonus to the count', (tester) async {
+      final tts = FakeTts();
+      await tester.pumpWidget(open(tts, questOnly));
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byKey(gift), findsOneWidget);
+      expect(find.text('+10 ❄️'), findsOneWidget);
+      expect(find.text('+20 ❄️'), findsNothing);
+
+      await tester.tap(find.byKey(gift));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.text('+20 ❄️'), findsOneWidget);
+      expect(find.text('+30 ❄️'), findsOneWidget);
+      expect(tts.texts.last, 'Oa! Quà là thật nhiều bông tuyết cho Xoài nè!');
+
+      // A second tap does nothing more.
+      await tester.tap(find.byKey(gift));
+      await tester.pump(const Duration(seconds: 2));
+      expect(tts.texts.where((t) => t.startsWith('Oa! Quà')), hasLength(1));
+    });
+
+    testWidgets('a gift opened before Elsa asks for it skips "open the gift" and is spoken right after the current line', (tester) async {
+      final tts = GatedTts();
+      await tester.pumpWidget(open(tts, questOnly));
+      await tester.pump();
+      expect(tts.texts, ['Hoàn thành rồi! Xoài giỏi quá!']);
+
+      await tester.tap(find.byKey(gift));
+      await tester.pump();
+      tts.release();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tts.texts, ['Hoàn thành rồi! Xoài giỏi quá!', 'Oa! Quà là thật nhiều bông tuyết cho Xoài nè!']);
+      tts.release();
+      await tester.pump(const Duration(seconds: 1));
+      expect(tts.texts, hasLength(2));
+    });
+
+    testWidgets('no quest, no gift, the full count at once', (tester) async {
+      const plain = RewardOutcome(
+        earned: 8,
+        questCompleted: false,
+        previousLevel: 1,
+        newLevel: 1,
+        friendUnlocked: null,
+        state: RewardState(),
+      );
+      await tester.pumpWidget(open(FakeTts(), plain));
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byKey(gift), findsNothing);
+      expect(find.text('+8 ❄️'), findsOneWidget);
+    });
   });
 
   for (final size in const [Size(1080, 1920), Size(1080, 1704)]) {
