@@ -28,13 +28,20 @@ void main() {
       expect(ok('name', ['my name is an']), isTrue);
       expect(ok('name', ['my name is and']), isTrue);
       expect(ok('name', ['Ann']), isTrue);
-      expect(ok('name', ["I'm en"]), isTrue);
+      expect(ok('name', ['Anne']), isTrue);
       expect(ok('name', ['swine']), isTrue);
       expect(ok('name', ['xoài']), isTrue);
     });
     test('rejects unrelated speech', () {
       expect(ok('name', ['banana']), isFalse);
       expect(ok('name', ['my name is']), isFalse);
+    });
+    test('common words that sound like An only count after "my name is"', () {
+      expect(ok('name', ['cats and dogs']), isFalse);
+      expect(ok('name', ['and']), isFalse);
+      expect(ok('name', ["I'm en"]), isFalse);
+      expect(ok('name', ['my name is un']), isFalse);
+      expect(ok('name', ['my name is banana']), isFalse);
     });
     test('accepts a custom child name when given', () {
       expect(ok('name', ['my name is Lily']), isFalse);
@@ -48,8 +55,13 @@ void main() {
       expect(ok('age', ["I'm five"]), isTrue);
       expect(ok('age', ['I am 5']), isTrue);
       expect(ok('age', ['four']), isTrue);
-      expect(ok('age', ['I am for']), isTrue);
-      expect(ok('age', ['fine']), isTrue);
+      expect(ok('age', ['I am fourth']), isTrue);
+    });
+    test('does not take look-alike common words for the number', () {
+      expect(ok('age', ['fine']), isFalse);
+      expect(ok('age', ["I'm fine thank you"]), isFalse);
+      expect(ok('age', ['this is for you']), isFalse);
+      expect(ok('age', ['I am six']), isFalse);
     });
     test('rejects other answers', () {
       expect(ok('age', ['six']), isFalse);
@@ -67,6 +79,7 @@ void main() {
       expect(ok('how_are_you', ['great!']), isTrue);
       expect(ok('how_are_you', ['Okay']), isTrue);
       expect(ok('how_are_you', ['i am find']), isTrue);
+      expect(ok('how_are_you', ['fun']), isFalse);
       expect(ok('how_are_you', ['happy']), isTrue);
     });
     test('rejects other answers', () {
@@ -77,13 +90,14 @@ void main() {
 
   test('hello and goodbye', () {
     expect(ok('hello', ['Hello Elsa']), isTrue);
-    expect(ok('hello', ['yellow']), isTrue);
+    expect(ok('hello', ['yellow']), isFalse);
     expect(ok('hello', ['hi']), isTrue);
     expect(ok('hello', ['bye']), isFalse);
     expect(ok('goodbye', ['bye bye']), isTrue);
     expect(ok('goodbye', ['good bye']), isTrue);
     expect(ok('goodbye', ['goodbye']), isTrue);
-    expect(ok('goodbye', ['buy']), isTrue);
+    expect(ok('goodbye', ['buy']), isFalse);
+    expect(ok('goodbye', ['by the way']), isFalse);
     expect(ok('goodbye', ['hello']), isFalse);
   });
 
@@ -102,6 +116,8 @@ void main() {
     expect(ok('apples', ['No!']), isTrue);
     expect(ok('apples', ['I like apples']), isTrue);
     expect(ok('apples', ['banana']), isFalse);
+    expect(ok('apples', ['I like bananas']), isFalse);
+    expect(ok('apples', ['I like apple']), isTrue);
   });
 
   test('flower accepts thank you', () {
@@ -118,8 +134,9 @@ void main() {
       expect(ok('age', ['']), isFalse);
       expect(ok('age', ['   ', '...']), isFalse);
     });
-    test('any alternate may match', () {
+    test('the best two alternates may match, later guesses do not', () {
       expect(ok('age', ['banana', 'I am five']), isTrue);
+      expect(ok('age', ['I am six', 'I am sex', 'I am five']), isFalse);
     });
     test('case, punctuation and apostrophes are ignored', () {
       expect(ok('how_are_you', ['  I’M   FINE!!! ']), isTrue);

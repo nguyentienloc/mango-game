@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "items": [
     { "id": "greet_vi", "lang": "vi", "text": "Chào {name_vi}! Hôm nay mình chơi gì nào?", "group": "greet" },
     { "id": "greet_en", "lang": "en", "text": "Hi {name_en}! Let's play!", "group": "greet" },
@@ -22,6 +22,7 @@
     { "id": "talk_again", "lang": "en", "text": "Hmm, can you say it again?", "group": "talk" },
     { "id": "talk_say_after", "group": "talk", "parts": [ { "lang": "vi", "text": "Con nói theo Elsa nhé:" }, { "lang": "en", "text": "{model}" } ] },
     { "id": "talk_hold_hint", "lang": "vi", "text": "Bấm giữ nút micro rồi nói nha!", "group": "talk" },
+    { "id": "talk_move_on", "lang": "vi", "text": "Không sao, mình học câu tiếp nhé!", "group": "talk" },
     { "id": "game_talk", "lang": "vi", "text": "Nói chuyện với Elsa", "group": "menu" },
     { "id": "game_vi", "lang": "vi", "text": "Chữ cái tiếng Việt", "group": "menu" },
     { "id": "game_vocab", "lang": "vi", "text": "Nhìn hình đoán từ", "group": "menu" },
@@ -32,7 +33,8 @@
     { "id": "go_home", "lang": "vi", "text": "Về lâu đài nào!", "group": "menu" },
     { "id": "coming_soon", "lang": "vi", "text": "Trò này sắp có rồi nha!", "group": "system" },
     { "id": "round_done", "lang": "vi", "text": "Hoàn thành rồi! {name_vi} giỏi quá!", "group": "reward", "priority": true },
-    { "id": "quest_done", "lang": "vi", "text": "Xong nhiệm vụ hôm nay rồi! Mở quà nào!", "group": "reward" },
+    { "id": "quest_done", "lang": "vi", "text": "Xong nhiệm vụ hôm nay rồi! Bấm vào hộp quà nào!", "group": "reward" },
+    { "id": "gift_open", "lang": "vi", "text": "Oa! Quà là thật nhiều bông tuyết cho {name_vi} nè!", "group": "reward" },
     { "id": "snowflake_count", "group": "reward", "parts": [ { "lang": "vi", "text": "{name_vi} đã kiếm được" }, { "lang": "vi", "text": "{count}" }, { "lang": "vi", "text": "bông tuyết rồi, giỏi quá nè!" } ] },
     { "id": "castle_level_up", "lang": "vi", "text": "Lâu đài lớn thêm rồi nè!", "group": "reward" },
     { "id": "friend_unlocked", "lang": "vi", "text": "Có bạn mới đến chơi với {name_vi} nè!", "group": "reward" },

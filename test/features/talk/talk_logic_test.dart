@@ -62,7 +62,7 @@ void main() {
       expect(f.correct, isTrue);
       expect(f.tryAgain, isFalse);
       expect(f.sayAfter, isFalse);
-      expect(f.passAfterHelp, isFalse);
+      expect(f.moveOn, isFalse);
       expect(t.isDone, isTrue);
       expect(t.outcome, AnswerOutcome.firstTry);
       expect(t.earnsSnowflake, isTrue);
@@ -72,7 +72,7 @@ void main() {
     test('wrong once then right: retry, no snowflake', () {
       final t = TalkTurn(age);
       final f1 = t.submit(['banana']);
-      expect((f1.correct, f1.tryAgain, f1.sayAfter, f1.passAfterHelp), (false, true, false, false));
+      expect((f1.correct, f1.tryAgain, f1.sayAfter, f1.moveOn), (false, true, false, false));
       expect(t.isDone, isFalse);
       expect(t.outcome, isNull);
       final f2 = t.submit(['five']);
@@ -85,22 +85,22 @@ void main() {
       final t = TalkTurn(age);
       t.submit(['x']);
       final f2 = t.submit(['y']);
-      expect((f2.correct, f2.tryAgain, f2.sayAfter, f2.passAfterHelp), (false, false, true, false));
+      expect((f2.correct, f2.tryAgain, f2.sayAfter, f2.moveOn), (false, false, true, false));
       expect(t.isDone, isFalse);
       final f3 = t.submit(['five']);
       expect(f3.correct, isTrue);
-      expect(f3.passAfterHelp, isFalse);
+      expect(f3.moveOn, isFalse);
       expect(t.isDone, isTrue);
       expect(t.outcome, AnswerOutcome.hinted);
     });
 
-    test('third attempt always passes, even if wrong or empty', () {
+    test('a third miss ends the turn without passing it, even if empty', () {
       final t = TalkTurn(age);
       t.submit(['x']);
       t.submit(['y']);
       final f3 = t.submit(const []);
-      expect((f3.correct, f3.tryAgain, f3.sayAfter, f3.passAfterHelp), (false, false, false, true));
-      expect(f3.passed, isTrue);
+      expect((f3.correct, f3.tryAgain, f3.sayAfter, f3.moveOn), (false, false, false, true));
+      expect(f3.correct, isFalse);
       expect(t.isDone, isTrue);
       expect(t.outcome, AnswerOutcome.hinted);
       expect(t.earnsSnowflake, isFalse);
@@ -111,8 +111,7 @@ void main() {
       final t = TalkTurn(age);
       t.submit(['five']);
       final f = t.submit(['x']);
-      expect((f.correct, f.tryAgain, f.sayAfter, f.passAfterHelp), (false, false, false, false));
-      expect(f.passed, isFalse);
+      expect((f.correct, f.tryAgain, f.sayAfter, f.moveOn), (false, false, false, false));
       expect(t.outcome, AnswerOutcome.firstTry);
       expect(t.attempts, 1);
     });
@@ -147,7 +146,7 @@ void main() {
     test('submit is ignored', () {
       final t = TalkTurn(age, mode: TalkMode.followAlong);
       final f = t.submit(['five']);
-      expect(f.passed, isFalse);
+      expect(f.correct, isFalse);
       expect(t.isDone, isFalse);
     });
 

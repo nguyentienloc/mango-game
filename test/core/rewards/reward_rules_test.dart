@@ -31,6 +31,7 @@ void main() {
   test('a round earns one per first-try answer plus the round bonus', () {
     final o = applyRound(const RewardState(), firstTryCorrect: 6, today: '2026-11-02', levels: levels);
     expect(o.earned, 11);
+    expect(o.questBonus, 0);
     expect(o.questCompleted, isFalse);
     expect(o.state.snowflakesTotal, 11);
     expect(o.state.dailyRoundsDone, 1);
@@ -43,6 +44,7 @@ void main() {
     final o = applyRound(s, firstTryCorrect: 8, today: '2026-11-02', levels: levels);
     expect(o.questCompleted, isTrue);
     expect(o.earned, 8 + kRoundBonus + kQuestBonus);
+    expect(o.questBonus, kQuestBonus);
     expect(o.state.dailyRoundsDone, 3);
   });
 

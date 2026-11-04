@@ -42,7 +42,9 @@ void main() {
     final name = bundle.conversation.first;
     expect(name.id, 'name');
     expect(name.accept.first, ['name', 'an']);
-    expect(name.aliases['an'], contains('and'));
+    // "and" is only accepted after "name", never as a lone alias of "an".
+    expect(name.aliases['an'], isNot(contains('and')));
+    expect(name.accept, anyElement(equals(['name', 'and'])));
     expect(bundle.conversation.last.aliases['thank'], contains('tank'));
   });
 }

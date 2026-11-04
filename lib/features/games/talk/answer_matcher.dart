@@ -15,16 +15,20 @@ class AnswerMatcher {
       .where((w) => w.isNotEmpty)
       .join(' ');
 
-  /// True if any of [transcripts] contains, for at least one accept group of
-  /// [item], every word of the group (or one of that word's aliases).
-  /// [childName] is also accepted as an answer to the `name` question.
+  /// Only the recogniser's best [maxAlternates] guesses are judged: later
+  /// alternates are long shots that let wrong answers through.
+  static const maxAlternates = 2;
+
+  /// True if one of the first [maxAlternates] [transcripts] contains, for at
+  /// least one accept group of [item], every word of the group (or one of that
+  /// word's aliases). [childName] is also accepted as an answer to the `name` question.
   static bool matches(
     ConversationItem item,
     List<String> transcripts, {
     String? childName,
   }) {
     final heard = [
-      for (final t in transcripts)
+      for (final t in transcripts.take(maxAlternates))
         if (normalize(t).isNotEmpty) ' ${normalize(t)} ',
     ];
     if (heard.isEmpty) return false;

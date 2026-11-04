@@ -40,7 +40,7 @@ class TalkFeedback {
     this.correct = false,
     this.tryAgain = false,
     this.sayAfter = false,
-    this.passAfterHelp = false,
+    this.moveOn = false,
   });
 
   /// The answer was understood: praise.
@@ -52,14 +52,12 @@ class TalkFeedback {
   /// Second miss: Elsa says the model answer for the child to repeat.
   final bool sayAfter;
 
-  /// Third attempt that still missed: let the child pass anyway, with praise.
-  final bool passAfterHelp;
-
-  /// The turn is over and the child gets praised.
-  bool get passed => correct || passAfterHelp;
+  /// Third attempt that still missed: the turn ends WITHOUT praise (a wrong
+  /// answer must never sound right), and the round moves on.
+  final bool moveOn;
 }
 
-/// One question: up to three spoken attempts, the third always passes.
+/// One question: up to three spoken attempts; after the third the turn ends either way.
 class TalkTurn {
   TalkTurn(this.item, {this.mode = TalkMode.normal, this.childName});
 
@@ -98,7 +96,7 @@ class TalkTurn {
     );
     if (_attempts >= 3) {
       _finish(AnswerOutcome.hinted);
-      return TalkFeedback(correct: matched, passAfterHelp: !matched);
+      return TalkFeedback(correct: matched, moveOn: !matched);
     }
     if (matched) {
       _finish(_attempts == 1 ? AnswerOutcome.firstTry : AnswerOutcome.retry);
@@ -117,8 +115,8 @@ class TalkTurn {
     return true;
   }
 
-  /// Nothing was heard three releases in a row: pass the turn anyway (hinted,
-  /// no snowflake) so the child is never stuck. False if already done.
+  /// Nothing was heard three releases in a row: end the turn (hinted, no
+  /// snowflake, no praise) so the child is never stuck. False if already done.
   bool passUnheard() {
     if (_done || mode == TalkMode.followAlong) return false;
     _finish(AnswerOutcome.hinted);

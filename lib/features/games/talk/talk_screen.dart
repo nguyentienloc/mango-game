@@ -219,7 +219,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
       // child must never be stuck, so the third silence passes the turn.
       _silent++;
       if (_silent >= 3 && turn.passUnheard()) {
-        await _pass(turn);
+        await _next(turn, praise: false);
         return;
       }
       if (_silent == 2) {
@@ -232,8 +232,8 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     }
     _silent = 0;
     final feedback = turn.submit(heard);
-    if (feedback.passed) {
-      await _pass(turn);
+    if (feedback.correct || feedback.moveOn) {
+      await _next(turn, praise: feedback.correct);
       return;
     }
     if (feedback.sayAfter) {
@@ -249,11 +249,12 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
     final turn = _turn;
     if (!turn.confirm()) return;
     setState(() => _busy = true);
-    await _pass(turn);
+    await _next(turn, praise: true);
   }
 
-  /// The turn is over and passed: remember it, praise, move on.
-  Future<void> _pass(TalkTurn turn) async {
+  /// The turn is over: remember it, praise a right answer (or a confirmed
+  /// follow-along) or comfort after a miss, and go to the next question.
+  Future<void> _next(TalkTurn turn, {required bool praise}) async {
     setState(() => _celebrating = true);
     final outcome = turn.outcome;
     if (outcome != null) {
@@ -262,7 +263,10 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
       _stats[key] = stat;
       await ref.read(itemStatsStoreProvider).save(stat);
     }
-    await Future.wait([_voice.sayGroup('praise'), Future<void>.delayed(const Duration(milliseconds: 800))]);
+    await Future.wait([
+      praise ? _voice.sayGroup('praise') : _voice.say('talk_move_on'),
+      Future<void>.delayed(const Duration(milliseconds: 800)),
+    ]);
     if (!mounted) return;
     setState(() {
       _index++;
