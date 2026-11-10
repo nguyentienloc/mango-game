@@ -185,6 +185,7 @@ class ContentBundle {
   const ContentBundle({
     required this.lettersEn,
     required this.lettersVi,
+    required this.digits,
     required this.phrases,
     required this.castle,
     required this.characters,
@@ -212,6 +213,9 @@ class ContentBundle {
       lettersVi: [
         for (final j in read('packs/letters_vi.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
       ],
+      digits: [
+        for (final j in read('packs/digits.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
+      ],
       phrases: {
         for (final j in read('phrases.json')['items'] as List)
           (j as Map<String, dynamic>)['id'] as String: Phrase.fromJson(j),
@@ -235,6 +239,9 @@ class ContentBundle {
 
   final List<LetterItem> lettersEn;
   final List<LetterItem> lettersVi;
+
+  /// The ten digits "0"–"9" with their tracing strokes (no example).
+  final List<LetterItem> digits;
   final Map<String, Phrase> phrases;
   final List<CastleLevel> castle;
   final Map<String, CharacterDef> characters;

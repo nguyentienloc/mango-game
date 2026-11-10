@@ -19,6 +19,7 @@ void main() {
     final withImage = ContentBundle(
       lettersEn: content.lettersEn,
       lettersVi: content.lettersVi,
+      digits: content.digits,
       phrases: content.phrases,
       castle: content.castle,
       characters: {'olaf': const CharacterDef(id: 'olaf', name: 'Olaf', emoji: '⛄', image: 'missing/olaf.png')},

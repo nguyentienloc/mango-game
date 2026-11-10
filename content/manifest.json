@@ -3,6 +3,7 @@
   "packs": {
     "letters_en": 2,
     "letters_vi": 2,
+    "digits": 1,
     "conversation": 2,
     "stories": 1,
     "vocab_animals": 1,

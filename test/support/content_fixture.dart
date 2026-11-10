@@ -5,7 +5,7 @@ import 'package:xoai_castle/core/content/content_validator.dart';
 Map<String, String> validFiles() => {
       'manifest.json': jsonEncode({
         'schema': 1,
-        'packs': {'letters_en': 1, 'letters_vi': 1, 'conversation': 1, 'stories': 1, 'vocab_animals': 1},
+        'packs': {'letters_en': 1, 'letters_vi': 1, 'digits': 1, 'conversation': 1, 'stories': 1, 'vocab_animals': 1},
         'files': {'phrases': 1, 'castle': 1, 'characters': 1, 'profile_defaults': 1},
       }),
       'packs/letters_en.json': jsonEncode({
@@ -22,6 +22,13 @@ Map<String, String> validFiles() => {
         'items': [
           {'char': 'A', 'spoken': 'a', 'strokes': [[{'line': [[0.5, 0.1], [0.15, 0.9]]}]]},
           {'char': 'Ă', 'spoken': 'á', 'strokes': [[{'line': [[0.5, 0.3], [0.15, 0.9]]}]]},
+        ],
+      }),
+      'packs/digits.json': jsonEncode({
+        'id': 'digits',
+        'version': 1,
+        'items': [
+          for (var d = 0; d < 10; d++) {'char': '$d', 'strokes': [[{'line': [[0.5, 0.1], [0.5, 0.9]]}]]},
         ],
       }),
       'packs/conversation.json': jsonEncode({

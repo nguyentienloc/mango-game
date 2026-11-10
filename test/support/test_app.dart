@@ -78,6 +78,7 @@ Widget testApp({
 ContentBundle withStories(ContentBundle content, List<Story> stories) => ContentBundle(
   lettersEn: content.lettersEn,
   lettersVi: content.lettersVi,
+  digits: content.digits,
   phrases: content.phrases,
   castle: content.castle,
   characters: content.characters,

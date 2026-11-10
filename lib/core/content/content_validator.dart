@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-const requiredPacks = ['letters_en', 'letters_vi', 'conversation', 'stories'];
+const requiredPacks = ['letters_en', 'letters_vi', 'digits', 'conversation', 'stories'];
 
 /// The 29 Vietnamese capitals, in teaching order.
 const viLetters = ['A', 'Ă', 'Â', 'B', 'C', 'D', 'Đ', 'E', 'Ê', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'Ô', 'Ơ', 'P', 'Q', 'R', 'S', 'T', 'U', 'Ư', 'V', 'X', 'Y'];
@@ -109,6 +109,7 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
 
   _checkLetters('letters_en', docs['packs/letters_en.json']!, errors, checkImage);
   _checkLetters('letters_vi', docs['packs/letters_vi.json']!, errors, checkImage);
+  _checkDigits(docs['packs/digits.json']!, errors);
   _checkConversation(docs['packs/conversation.json']!, errors);
   _checkStories(docs['packs/stories.json']!, errors);
   _checkVocab(packs.keys, docs, errors, checkImage);
@@ -179,6 +180,25 @@ void _checkLetters(
       errors.add('$where: cần "example.emoji" hoặc "example.image"');
     }
     checkImage(where, example['image']);
+  }
+}
+
+/// digits.json: exactly the ten digits "0"–"9", in order, each with strokes.
+void _checkDigits(Map<String, dynamic> doc, List<String> errors) {
+  const where = 'packs/digits.json';
+  final items = doc['items'];
+  if (items is! List || items.length != 10) {
+    errors.add('$where: cần đúng 10 chữ số "0"–"9" theo thứ tự');
+    if (items is! List) return;
+  }
+  for (final (i, item) in items.indexed) {
+    final w = '$where items[$i]';
+    if (item is! Map<String, dynamic>) {
+      errors.add('$w: phải là object');
+      continue;
+    }
+    if (i < 10 && item['char'] != '$i') errors.add('$w: "char" phải là "$i"');
+    _checkStrokes(item['strokes'], w, errors);
   }
 }
 
