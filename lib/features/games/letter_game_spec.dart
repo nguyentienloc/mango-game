@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import '../../core/content/models.dart';
+import '../../core/progress/item_stat.dart';
+import 'trace/number_face.dart';
+import 'trace/number_trace.dart';
 
 /// Everything that differs between the English and the Vietnamese version of the
 /// balloon and trace games: which letters, how mastery is keyed, what is said.
@@ -18,9 +21,25 @@ class LetterGameSpec {
     this.tryAgainId,
     this.showExampleCard = true,
     this.popToRootOnExit = false,
+    this.available,
+    this.level,
+    this.levelUpId = '',
+    this.doneView,
   });
 
   final List<LetterItem> Function(ContentBundle content) letters;
+
+  /// Trace only: the part of [letters] open to the child, given the stats keyed
+  /// `<keyPrefix>:` (e.g. numbers of the unlocked levels). Null: all of them.
+  final List<LetterItem> Function(List<LetterItem> letters, Map<String, ItemStat> stats)? available;
+
+  /// Trace only: the child's level given the same stats. When a round ends on a
+  /// higher level than it started, [levelUpId] is said before the reward. Null: no levels.
+  final int Function(Map<String, ItemStat> stats)? level;
+  final String levelUpId;
+
+  /// Trace only: shown over the pad once an item is traced. Null: [showExampleCard] decides.
+  final Widget Function(LetterItem item)? doneView;
 
   /// Mastery keys are `<keyPrefix>:<char>`, e.g. `balloon_en_upper`.
   final String keyPrefix;
@@ -92,6 +111,32 @@ class LetterGameSpec {
     vars: _varsEn,
   );
 
+  /// [traceEn] opened from the tracing chooser: leaving goes all the way home.
+  static const traceEnFromChooser = LetterGameSpec(
+    letters: _lettersEn,
+    keyPrefix: 'trace_en_upper',
+    sessionGame: 'trace',
+    promptId: 'trace_prompt',
+    doneId: 'letter_example',
+    vars: _varsEn,
+    popToRootOnExit: true,
+  );
+
+  /// Numbers 0–99, opened level by level; each traced number shows its [NumberFace].
+  static const traceNumbers = LetterGameSpec(
+    letters: _numbers,
+    available: unlockedNumbers,
+    level: unlockedNumberLevel,
+    levelUpId: 'trace_num_unlock',
+    keyPrefix: 'trace_num',
+    sessionGame: 'trace_num',
+    promptId: 'trace_num_prompt',
+    doneId: 'trace_num_done',
+    vars: _varsNumber,
+    doneView: _numberFace,
+    popToRootOnExit: true,
+  );
+
   static const traceVi = LetterGameSpec(
     letters: _lettersVi,
     keyPrefix: 'trace_vi_upper',
@@ -107,6 +152,11 @@ class LetterGameSpec {
 
 List<LetterItem> _lettersEn(ContentBundle c) => c.lettersEn;
 List<LetterItem> _lettersVi(ContentBundle c) => c.lettersVi;
+List<LetterItem> _numbers(ContentBundle c) => buildNumberItems(c.digits);
+
+Map<String, String> _varsNumber(LetterItem target, {LetterItem? tapped}) => {'number': target.char};
+
+Widget _numberFace(LetterItem item) => NumberFace(int.parse(item.char));
 
 Map<String, String> _varsEn(LetterItem target, {LetterItem? tapped}) => {
   'letter': target.char,

@@ -8,6 +8,7 @@ import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/castle/castle_screen.dart';
 import 'package:xoai_castle/features/games/balloon/balloon_screen.dart';
 import 'package:xoai_castle/features/games/talk/talk_screen.dart';
+import 'package:xoai_castle/features/games/trace/trace_chooser_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
 import 'package:xoai_castle/features/games/vocab/vocab_screen.dart';
 import 'package:xoai_castle/features/home/home_screen.dart';
@@ -79,12 +80,14 @@ void main() {
     expect(find.byType(TalkScreen), findsOneWidget);
   });
 
-  testWidgets('the pencil button opens the tracing game', (tester) async {
-    await pumpHome(tester);
+  testWidgets('the pencil button opens the letters/numbers tracing chooser', (tester) async {
+    final tts = await pumpHome(tester);
     await tester.tap(find.text('✏️'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byType(TraceScreen), findsOneWidget);
+    expect(tts.texts, contains('Tô chữ'));
+    expect(find.byType(TraceChooserScreen), findsOneWidget);
+    expect(find.byType(TraceScreen), findsNothing);
   });
 
   testWidgets('the paw button opens the vocabulary game', (tester) async {

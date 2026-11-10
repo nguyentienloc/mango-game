@@ -9,6 +9,7 @@ import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
 import 'package:xoai_castle/features/games/letter_game_spec.dart';
+import 'package:xoai_castle/features/games/trace/number_trace.dart';
 
 import '../../support/fakes.dart';
 
@@ -45,7 +46,7 @@ void main() {
 
     for (final id in content.phrases.keys) {
       if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
-          viLetterPhraseIds.contains(id) || talkPhraseIds.contains(id)) {
+          viLetterPhraseIds.contains(id) || talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id)) {
         continue;
       }
       if (numberPhraseIds.contains(id)) continue;
@@ -87,6 +88,25 @@ void main() {
       await check(tv.promptId, tv.promptId, tv.vars(l));
       await check(tv.doneId, tv.doneId, tv.vars(l));
     }
+
+    // Number tracing 0..99, with the items and vars the numbers game builds from its spec.
+    // Three parts each with gaps in between make say() slow, so like the counts they are
+    // checked by key, and one number of each kind goes through say().
+    const tn = LetterGameSpec.traceNumbers;
+    final numbers = buildNumberItems(content.digits);
+    expect(numbers, hasLength(100));
+    for (final item in numbers) {
+      for (final id in [tn.promptId, tn.doneId]) {
+        for (final part in voice.utterance(id, vars: tn.vars(item)).parts) {
+          if (clips.assetFor(part) == null) missing.add(part.key);
+        }
+      }
+    }
+    for (final n in [7, 23]) {
+      await check(tn.promptId, tn.promptId, tn.vars(numbers[n]));
+      await check(tn.doneId, tn.doneId, tn.vars(numbers[n]));
+    }
+    await check(tn.levelUpId, tn.levelUpId);
 
     // Talk: exactly as the talk screen says them, with the item's text rendered first.
     final names = Names(en: defaults.nameEn, vi: defaults.nameVi);

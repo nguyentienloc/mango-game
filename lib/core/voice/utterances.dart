@@ -3,7 +3,7 @@ import '../content/vocab.dart';
 import '../profile/names.dart';
 import 'utterance.dart';
 
-enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk }
+enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk, traceNumbers }
 
 class PlannedUtterance {
   const PlannedUtterance(this.utterance, this.kind);
@@ -14,6 +14,9 @@ class PlannedUtterance {
 
 const vocabPhraseIds = ['vocab_prompt', 'vocab_correct', 'vocab_hint'];
 const tracePhraseIds = ['trace_prompt'];
+/// Number tracing: the number ({number}, e.g. `23`) said in Vietnamese then English, for 0..[maxTracedNumber].
+const traceNumberPhraseIds = ['trace_num_prompt', 'trace_num_done'];
+const maxTracedNumber = 99;
 /// Spoken for every snowflake total 0..[maxSpokenCount]; bigger totals fall back
 /// to device TTS for the number part only.
 const numberPhraseIds = ['snowflake_count'];
@@ -56,7 +59,7 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   for (final id in content.phrases.keys) {
     if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
         balloonPhraseIds.contains(id) || numberPhraseIds.contains(id) || viLetterPhraseIds.contains(id) ||
-        talkPhraseIds.contains(id)) {
+        talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id)) {
       continue;
     }
     add(id, const {}, UtteranceKind.fixed);
@@ -92,6 +95,12 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   for (final item in content.conversation) {
     add('talk_question', talkQuestionVars(item, names), UtteranceKind.talk);
     add('talk_say_after', talkModelVars(item, names), UtteranceKind.talk);
+  }
+  // Number tracing: as LetterGameSpec.traceNumbers says them, {number} being the decimal number.
+  for (var n = 0; n <= maxTracedNumber; n++) {
+    for (final id in traceNumberPhraseIds) {
+      add(id, {'number': '$n'}, UtteranceKind.traceNumbers);
+    }
   }
   for (var n = 0; n <= maxSpokenCount; n++) {
     add('snowflake_count', {'count': '$n'}, UtteranceKind.numbers);

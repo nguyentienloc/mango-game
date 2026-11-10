@@ -103,4 +103,20 @@ void main() {
     final parts = distinctParts([for (final p in planned.where((p) => p.kind == UtteranceKind.numbers)) p.utterance]);
     expect(parts, hasLength(1002));
   });
+
+  test('number tracing: prompt and done for 0..99, the number said in vi then en', () {
+    final nums = keys(UtteranceKind.traceNumbers).toList();
+    expect(nums, hasLength(100 * 2));
+    expect(nums, containsAll([
+      'vi|Mình cùng viết số || vi|0 || en|0',
+      'vi|Mình cùng viết số || vi|23 || en|23',
+      'vi|Giỏi quá! Số || vi|99 || en|99',
+    ]));
+    final fixed = keys(UtteranceKind.fixed);
+    expect(fixed, containsAll(['vi|Mở khóa số mới rồi nè!', 'vi|Chữ cái', 'vi|Chữ số']));
+    expect(fixed.any((k) => k.contains('{number}')), isFalse);
+    final parts = distinctParts([for (final p in planned.where((p) => p.kind == UtteranceKind.traceNumbers)) p.utterance]);
+    // Two fixed openings, 100 vi numbers (shared with the snowflake count) and 100 en numbers.
+    expect(parts, hasLength(202));
+  });
 }
