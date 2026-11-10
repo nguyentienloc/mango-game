@@ -337,6 +337,63 @@ void main() {
       expect(errors, contains('packs/letters_en.json items[0]: thiếu "example.word"'));
     });
   });
+
+  group('digits', () {
+    Map<String, String> withDigits(void Function(List items) edit) {
+      final digits = readJson(validFiles(), 'packs/digits.json');
+      edit(digits['items'] as List);
+      return withJson(validFiles(), 'packs/digits.json', digits);
+    }
+
+    test('the pack is required', () {
+      final manifest = readJson(validFiles(), 'manifest.json');
+      (manifest['packs'] as Map).remove('digits');
+      final errors = validateContent(withJson(validFiles(), 'manifest.json', manifest));
+      expect(errors, contains('manifest.json: thiếu gói "digits"'));
+    });
+
+    test('ten digits 0-9 in order with strokes are valid', () {
+      expect(validateContent(withDigits((_) {})), isEmpty);
+    });
+
+    test('fewer or more than ten digits are reported', () {
+      expect(
+        validateContent(withDigits((items) => items.removeLast())),
+        contains('packs/digits.json: cần đúng 10 chữ số "0"–"9" theo thứ tự'),
+      );
+      expect(
+        validateContent(withDigits((items) => items.add({...items.last as Map}))),
+        contains('packs/digits.json: cần đúng 10 chữ số "0"–"9" theo thứ tự'),
+      );
+    });
+
+    test('a digit out of order or not a digit is reported', () {
+      final errors = validateContent(withDigits((items) {
+        (items[1] as Map)['char'] = '2';
+        (items[2] as Map)['char'] = '1';
+        (items[3] as Map)['char'] = 'A';
+      }));
+      expect(errors, contains('packs/digits.json items[1]: "char" phải là "1"'));
+      expect(errors, contains('packs/digits.json items[2]: "char" phải là "2"'));
+      expect(errors, contains('packs/digits.json items[3]: "char" phải là "3"'));
+    });
+
+    test('digits need valid strokes', () {
+      final errors = validateContent(withDigits((items) {
+        (items[0] as Map).remove('strokes');
+        (items[1] as Map)['strokes'] = [
+          [ {'line': [[0.5, 1.5], [0.2, 0.2]]} ],
+        ];
+      }));
+      expect(errors, contains('packs/digits.json items[0]: thiếu "strokes"'));
+      expect(errors, contains('packs/digits.json items[1] strokes[0][0]: tọa độ phải trong khoảng 0–1'));
+    });
+
+    test('items must be objects', () {
+      final errors = validateContent(withDigits((items) => items[4] = 'four'));
+      expect(errors, contains('packs/digits.json items[4]: phải là object'));
+    });
+  });
 }
 
 const _vocabImages = {

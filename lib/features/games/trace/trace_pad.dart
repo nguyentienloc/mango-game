@@ -15,6 +15,7 @@ class TracePad extends StatefulWidget {
     required this.current,
     required this.onStrokeDrawn,
     this.enabled = true,
+    this.showStrokeNumbers = true,
   });
 
   /// Sampled target points of every stroke of the letter.
@@ -22,6 +23,10 @@ class TracePad extends StatefulWidget {
   final int current;
   final ValueChanged<List<TracePoint>> onStrokeDrawn;
   final bool enabled;
+
+  /// Whether the start dot carries the stroke's order number (1, 2, ...). Without it only the dot
+  /// and the arrow show.
+  final bool showStrokeNumbers;
 
   @override
   State<TracePad> createState() => _TracePadState();
@@ -160,7 +165,7 @@ class _TracePadState extends State<TracePad> with SingleTickerProviderStateMixin
                   key: const Key('trace-guide'),
                   child: CustomPaint(
                     size: Size.square(side),
-                    painter: _GuidePainter(widget.strokes, widget.current, _dashCache),
+                    painter: _GuidePainter(widget.strokes, widget.current, _dashCache, widget.showStrokeNumbers),
                   ),
                 ),
                 // Live ink: repaints on every pointer move and fade frame.
@@ -238,11 +243,12 @@ class TraceInkPainter extends CustomPainter {
 
 /// The white board, the letter's strokes, the number dot and the arrow.
 class _GuidePainter extends CustomPainter {
-  _GuidePainter(this.strokes, this.current, this.dashCache);
+  _GuidePainter(this.strokes, this.current, this.dashCache, this.showStrokeNumbers);
 
   final List<List<TracePoint>> strokes;
   final int current;
   final _DashCache dashCache;
+  final bool showStrokeNumbers;
 
   Offset _o(TracePoint p, double side) => Offset(p.x * side, p.y * side);
 
@@ -309,6 +315,7 @@ class _GuidePainter extends CustomPainter {
   void _paintNumber(Canvas canvas, TracePoint at, int n, double side) {
     final center = _o(at, side);
     canvas.drawCircle(center, 0.045 * side, Paint()..color = IceColors.deep);
+    if (!showStrokeNumbers) return;
     final tp = TextPainter(
       text: TextSpan(
         text: '$n',
@@ -349,5 +356,5 @@ class _GuidePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GuidePainter old) =>
-      !identical(old.strokes, strokes) || old.current != current;
+      !identical(old.strokes, strokes) || old.current != current || old.showStrokeNumbers != showStrokeNumbers;
 }

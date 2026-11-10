@@ -20,6 +20,8 @@ void main() {
     expect(bundle.lettersEn.first.lower, 'a');
     expect(bundle.lettersVi.map((l) => l.char), ['A', 'Ă']);
     expect(bundle.lettersVi.map((l) => l.spoken), ['a', 'á']);
+    expect(bundle.digits.map((l) => l.char), [for (var d = 0; d < 10; d++) '$d']);
+    expect(bundle.digits.first.strokes, isNotEmpty);
     expect(bundle.phrases['try_again_vi_1']!.allParts.single.lang, 'vi');
     expect(bundle.castle.map((l) => l.snowflakes), [0, 20]);
     expect(bundle.castle[1].friend, 'olaf');
@@ -40,6 +42,7 @@ void main() {
   test('loads the shipped content directory', () async {
     final bundle = await ContentRepository(FileContentSource('content')).load();
     expect(bundle.lettersEn, hasLength(26));
+    expect(bundle.digits, hasLength(10));
     expect(bundle.castle, hasLength(8));
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -13,12 +14,14 @@ import '../../../core/progress/question_picker.dart';
 import '../../../core/session/session_store.dart';
 import '../../../core/time.dart';
 import '../../../core/voice/voice_service.dart';
+import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
 import '../../../shared/ice_background.dart';
 import '../../reward/reward_screen.dart';
 import '../../../shared/example_card.dart';
 import '../letter_game_spec.dart';
+import 'sparkle_letter.dart';
 import 'trace_logic.dart';
 import 'trace_pad.dart';
 
@@ -41,6 +44,9 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
   bool _busy = true;
   bool _celebrating = false;
   bool _done = false;
+
+  /// The spec's level when the round started (null: the spec has no levels).
+  int? _levelAtStart;
 
   VoiceService get _voice => ref.read(voiceProvider);
   LetterGameSpec get _spec => widget.spec;
@@ -87,8 +93,10 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
   Future<void> _start() async {
     final random = ref.read(randomProvider);
     _stats = await ref.read(itemStatsStoreProvider).loadByPrefix('${_spec.keyPrefix}:');
+    final all = _spec.letters(ref.read(contentProvider));
+    _levelAtStart = _spec.level?.call(_stats);
     final letters = buildTraceRound(
-      letters: _spec.letters(ref.read(contentProvider)),
+      letters: _spec.available?.call(all, _stats) ?? all,
       stats: _stats,
       picker: QuestionPicker(random),
       keyPrefix: _spec.keyPrefix,
@@ -144,6 +152,9 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
     ]);
     if (!mounted) return;
     if (_index == _letters!.length - 1) {
+      // Still celebrating, so the traced item stays up while a new level is announced.
+      await _sayLevelUp();
+      if (!mounted) return;
       setState(() {
         _celebrating = false;
         _done = true;
@@ -157,6 +168,15 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
       });
       await _ask();
     }
+  }
+
+  /// Says the spec's level-up line when the stats saved this round opened a new
+  /// level; waits at most 3 s so a broken TTS can't hold back the reward.
+  Future<void> _sayLevelUp() async {
+    final level = _spec.level;
+    final before = _levelAtStart;
+    if (level == null || before == null || level(_stats) <= before) return;
+    await sayCapped(_voice, _spec.levelUpId);
   }
 
   Future<void> _finish() async {
@@ -241,50 +261,16 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
                           current: session.strokeIndex,
                           onStrokeDrawn: _onStrokeDrawn,
                           enabled: !_busy,
+                          showStrokeNumbers: _spec.strokeNumbers,
                         ),
                         if (_celebrating)
-                          _spec.showExampleCard ? ExampleCard(item: _letter) : _SparkleLetter(letter: _letter.char),
+                          _spec.doneView?.call(_letter) ??
+                              (_spec.showExampleCard ? ExampleCard(item: _letter) : SparkleLetter(letter: _letter.char)),
                       ],
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shown instead of an example card when a letter is done: the letter itself, big and sparkling.
-class _SparkleLetter extends StatelessWidget {
-  const _SparkleLetter({required this.letter});
-
-  final String letter;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      key: const Key('trace-done-letter'),
-      tween: Tween(begin: 0.5, end: 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutBack,
-      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-      child: Card(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('✨', style: TextStyle(fontSize: 40)),
-              Text(
-                letter,
-                style: const TextStyle(fontSize: 120, fontWeight: FontWeight.bold, color: IceColors.deep),
-              ),
-              const Text('✨', style: TextStyle(fontSize: 40)),
             ],
           ),
         ),
