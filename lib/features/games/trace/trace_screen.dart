@@ -261,6 +261,7 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
                           current: session.strokeIndex,
                           onStrokeDrawn: _onStrokeDrawn,
                           enabled: !_busy,
+                          showStrokeNumbers: _spec.strokeNumbers,
                         ),
                         if (_celebrating)
                           _spec.doneView?.call(_letter) ??

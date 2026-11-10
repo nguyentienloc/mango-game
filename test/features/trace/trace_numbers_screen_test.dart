@@ -93,8 +93,8 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(RewardScreen), findsOneWidget);
     expect(find.text('+8 ❄️'), findsOneWidget);
-    expect(sessions.records.single.game, 'trace_num');
-    expect(stats.stats.keys, everyElement(startsWith('trace_num:')));
+    expect(sessions.records.single.game, numberTracePrefix);
+    expect(stats.stats.keys, everyElement(startsWith('$numberTracePrefix:')));
     expect(stats.stats.values.map((s) => s.mastery), everyElement(1));
     expect(tts.texts, isNot(contains(_unlock)));
   });
@@ -125,6 +125,32 @@ void main() {
     expect(find.byType(RewardScreen), findsOneWidget);
     expect(tts.texts.where((t) => t == _unlock), hasLength(1));
     expect(tts.texts.indexOf(_unlock), lessThan(tts.texts.indexOf(_roundDone)));
+    expect(unlockedNumberLevel(stats.stats), 2);
+  });
+
+  testWidgets('an unlock line that never ends holds the reward back by at most 3 s', (tester) async {
+    final tts = GatedTts();
+    final stats = MemoryItemStatsStore();
+    for (var n = 0; n <= 8; n++) {
+      stats.stats[numberTraceKey(n)] = ItemStat(key: numberTraceKey(n), mastery: 2);
+    }
+    await open(tester, tts, spec: _onlyMissing(9), stats: stats);
+    tts.release();
+    for (final s in numbers[9].strokes) {
+      await drawPoints(tester, s.sample(step: 0.05));
+    }
+    // Let the done line finish (each part waits for its release), up to the unlock line.
+    for (var i = 0; i < 40 && !tts.texts.contains(_unlock); i++) {
+      tts.release();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(tts.texts, contains(_unlock), reason: 'the unlock line is started');
+    // From here the TTS never completes anything.
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(RewardScreen), findsNothing);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(RewardScreen), findsOneWidget);
     expect(unlockedNumberLevel(stats.stats), 2);
   });
 
@@ -184,6 +210,37 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     });
   }
+
+  group('stroke-order badges', () {
+    Future<void> pumpGuide(WidgetTester tester, LetterGameSpec spec) async {
+      await open(tester, FakeTts(), spec: spec);
+    }
+
+    RenderObject guide(WidgetTester tester) => tester.renderObject(
+      find.descendant(of: find.byKey(const Key('trace-guide')), matching: find.byType(CustomPaint)),
+    );
+
+    testWidgets('the numbers pad paints the start dot but no numeral on it', (tester) async {
+      await pumpGuide(tester, LetterGameSpec.traceNumbers);
+      expect(guide(tester), isNot(paints..paragraph()));
+      expect(guide(tester), paints..circle());
+      expect(LetterGameSpec.traceNumbers.strokeNumbers, isFalse);
+    });
+
+    testWidgets('the English letters pad still paints the numeral on the start dot', (tester) async {
+      await pumpGuide(tester, LetterGameSpec.traceEn);
+      expect(guide(tester), paints..circle()..paragraph());
+      expect(LetterGameSpec.traceEn.strokeNumbers, isTrue);
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('the Vietnamese letters pad still paints the numeral on the start dot', (tester) async {
+      await pumpGuide(tester, LetterGameSpec.traceVi);
+      expect(guide(tester), paints..circle()..paragraph());
+      expect(LetterGameSpec.traceVi.strokeNumbers, isTrue);
+      await tester.pump(const Duration(seconds: 2));
+    });
+  });
 
   group('NumberFace', () {
     Future<void> pumpFace(WidgetTester tester, int n) => tester.pumpWidget(MaterialApp(home: Scaffold(body: Center(child: NumberFace(n)))));

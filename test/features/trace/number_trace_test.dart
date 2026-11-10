@@ -65,22 +65,22 @@ void main() {
       }
     });
 
-    test('37 is the 3 moved to (0.28, 0.5) then the 7 moved to (0.72, 0.5), scaled 0.75', () {
+    test('37 is the 3 moved to (0.27, 0.5) then the 7 moved to (0.73, 0.5), scaled 0.7', () {
       expect(numbers[37].strokes, hasLength(4));
-      // 3: line x 0.36 -> 0.28 + (0.36 - 0.5) * 0.75 = 0.175; y 0.1 -> 0.2, 0.9 -> 0.8.
-      // 3: arc centre (0.5, 0.43) -> (0.28, 0.4475), radii 0.15 x 0.225, angles unchanged.
-      // 7: line x 0.44 -> 0.72 - 0.045 = 0.675; arc centre (0.5, 0.47) -> (0.72, 0.4775).
+      // 3: line x 0.36 -> 0.27 + (0.36 - 0.5) * 0.7 = 0.172; y 0.1 -> 0.22, 0.9 -> 0.78.
+      // 3: arc centre (0.5, 0.43) -> (0.27, 0.451), radii 0.14 x 0.21, angles unchanged.
+      // 7: line x 0.44 -> 0.73 - 0.042 = 0.688; arc centre (0.5, 0.47) -> (0.73, 0.479).
       expect(
         _strokes(numbers[37]),
-        'line 0.175,0.2 0.175,0.8 | arc 0.28 0.4475 0.15 0.225 -90.0 183.0 | '
-        'line 0.675,0.2 0.675,0.8 | arc 0.72 0.4775 0.15 0.225 -90.0 187.0',
+        'line 0.172,0.22 0.172,0.78 | arc 0.27 0.451 0.14 0.21 -90.0 183.0 | '
+        'line 0.688,0.22 0.688,0.78 | arc 0.73 0.479 0.14 0.21 -90.0 187.0',
       );
     });
 
     test('10 is the 1 then the 0', () {
       expect(numbers[10].strokes, hasLength(4));
-      expect(_stroke(numbers[10].strokes[0]), 'line 0.145,0.2 0.145,0.8');
-      expect(_stroke(numbers[10].strokes[2]), 'line 0.57,0.2 0.57,0.8');
+      expect(_stroke(numbers[10].strokes[0]), 'line 0.144,0.22 0.144,0.78');
+      expect(_stroke(numbers[10].strokes[2]), 'line 0.59,0.22 0.59,0.78');
     });
   });
 
@@ -88,6 +88,7 @@ void main() {
     test('numberLevels and keys', () {
       expect(numberLevels, [(0, 9), (10, 19), (20, 39), (40, 69), (70, 99)]);
       expect(numberTraceKey(23), 'trace_num:23');
+      expect(numberTracePrefix, 'trace_num');
     });
 
     test('no stats: level 1', () {
@@ -139,13 +140,13 @@ void main() {
         letters: numbers,
         stats: const {},
         picker: QuestionPicker(Random(1)),
-        keyPrefix: 'trace_num',
+        keyPrefix: numberTracePrefix,
       );
       expect(round, hasLength(3));
       expect(round.map((l) => l.char).toSet(), hasLength(3));
       for (final l in round) {
         expect(int.parse(l.char), inInclusiveRange(0, 9));
-        expect(traceKey(l, 'trace_num'), numberTraceKey(int.parse(l.char)));
+        expect(traceKey(l, numberTracePrefix), numberTraceKey(int.parse(l.char)));
       }
     });
   });
@@ -181,6 +182,24 @@ void main() {
       }
     });
 
+    test('in 10-99 the ink of the tens and of the units is at least 0.1 apart', () {
+      for (var n = 10; n < 100; n++) {
+        final tensStrokes = numbers[n ~/ 10].strokes.length;
+        var tensMax = double.negativeInfinity;
+        var unitsMin = double.infinity;
+        for (final (i, s) in numbers[n].strokes.indexed) {
+          for (final p in s.sample(step: 0.002)) {
+            if (i < tensStrokes) {
+              tensMax = max(tensMax, p.x);
+            } else {
+              unitsMin = min(unitsMin, p.x);
+            }
+          }
+        }
+        expect(unitsMin - tensMax, greaterThanOrEqualTo(0.1), reason: '$n gap ${unitsMin - tensMax}');
+      }
+    });
+
     test('every stroke is long enough to get a direction arrow', () {
       for (final l in numbers) {
         for (final (i, s) in l.strokes.indexed) {
@@ -200,9 +219,9 @@ void main() {
       expect(session.outcome, AnswerOutcome.firstTry);
     }
 
-    final traced = [for (var d = 0; d < 10; d++) d, 10, 23, 88];
+    final traced = [for (var d = 0; d < 10; d++) d, 10, 22, 23, 44, 77, 88];
 
-    test('tracing right along each guide scores correct (0-9, 10, 23, 88)', () {
+    test('tracing right along each guide scores correct (0-9, 10, 22, 23, 44, 77, 88)', () {
       for (final n in traced) {
         expectTraceable(numbers[n], (guide) => guide, 'on the guide');
       }

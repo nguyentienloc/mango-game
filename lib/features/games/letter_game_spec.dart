@@ -25,6 +25,7 @@ class LetterGameSpec {
     this.level,
     this.levelUpId = '',
     this.doneView,
+    this.strokeNumbers = true,
   });
 
   final List<LetterItem> Function(ContentBundle content) letters;
@@ -40,6 +41,10 @@ class LetterGameSpec {
 
   /// Trace only: shown over the pad once an item is traced. Null: [showExampleCard] decides.
   final Widget Function(LetterItem item)? doneView;
+
+  /// Trace only: whether the guide shows the stroke-order numeral on each stroke's start dot.
+  /// False for numbers, where a "1" on a dot would read as a digit of the number.
+  final bool strokeNumbers;
 
   /// Mastery keys are `<keyPrefix>:<char>`, e.g. `balloon_en_upper`.
   final String keyPrefix;
@@ -128,12 +133,13 @@ class LetterGameSpec {
     available: unlockedNumbers,
     level: unlockedNumberLevel,
     levelUpId: 'trace_num_unlock',
-    keyPrefix: 'trace_num',
-    sessionGame: 'trace_num',
+    keyPrefix: numberTracePrefix,
+    sessionGame: numberTracePrefix,
     promptId: 'trace_num_prompt',
     doneId: 'trace_num_done',
     vars: _varsNumber,
     doneView: _numberFace,
+    strokeNumbers: false,
     popToRootOnExit: true,
   );
 

@@ -5,13 +5,16 @@ import '../../../core/progress/item_stat.dart';
 /// Numbers per level: level k (1-based) is `numberLevels[k - 1]`, inclusive.
 const numberLevels = [(0, 9), (10, 19), (20, 39), (40, 69), (70, 99)];
 
+/// Mastery key prefix and session game of the number tracing game.
+const numberTracePrefix = 'trace_num';
+
 /// Progress key of number [n] in the number tracing game.
-String numberTraceKey(int n) => 'trace_num:$n';
+String numberTraceKey(int n) => '$numberTracePrefix:$n';
 
 /// How much each digit of a two-digit number is shrunk.
-const _kDigitScale = 0.75;
-const _kTensCentre = TracePoint(0.28, 0.5);
-const _kUnitsCentre = TracePoint(0.72, 0.5);
+const _kDigitScale = 0.7;
+const _kTensCentre = TracePoint(0.27, 0.5);
+const _kUnitsCentre = TracePoint(0.73, 0.5);
 
 TracePoint _move(TracePoint p, TracePoint c) =>
     TracePoint(c.x + (p.x - 0.5) * _kDigitScale, c.y + (p.y - 0.5) * _kDigitScale);

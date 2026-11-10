@@ -19,7 +19,7 @@
   - 7: nét ngang trên → nét xiên xuống đáy.
   - 8: một nét S từ đỉnh xuống rồi vòng ngược về đỉnh (có thể tách 2 stroke nếu chấm điểm cần).
   - 9: vòng kín trên (ngược chiều kim đồng hồ) rồi nét thẳng/cong xuống đáy.
-- **Số 2 chữ số** `n = 10a + b`: nét của chữ số `a` rồi `b`, mỗi chữ số biến đổi đều `p' = c + (p − (0.5, 0.5)) × 0.75` với tâm `c = (0.28, 0.5)` cho hàng chục và `(0.72, 0.5)` cho hàng đơn vị (arc: tâm biến đổi như điểm, `rx`, `ry` × 0,75, góc giữ nguyên). Số 0–9: nét gốc, không biến đổi.
+- **Số 2 chữ số** `n = 10a + b`: nét của chữ số `a` rồi `b`, mỗi chữ số biến đổi đều `p' = c + (p − (0.5, 0.5)) × 0.7` với tâm `c = (0.27, 0.5)` cho hàng chục và `(0.73, 0.5)` cho hàng đơn vị (arc: tâm biến đổi như điểm, `rx`, `ry` × 0,7, góc giữ nguyên). Số 0–9: nét gốc, không biến đổi.
 - **Cấp**: 1 = 0–9, 2 = 10–19, 3 = 20–39, 4 = 40–69, 5 = 70–99. Cấp 1 luôn mở; cấp k+1 mở khi **mọi** số của cấp k có `mastery ≥ 1` (khóa `trace_num:<n>`). Tập số của lượt = mọi số thuộc các cấp đã mở.
 - Lượt: 3 số khác nhau (`buildTraceRound`, `maxNew 3`, keyPrefix `trace_num`); phiên `game: 'trace_num'`; +1 ❄️/firstTry, +5/lượt, nhiệm vụ ngày — như trò tô chữ.
 - **Câu nói** (tất cả `group` "trace_numbers"):
@@ -49,7 +49,7 @@ int unlockedNumberLevel(Map<String, ItemStat> stats);
 /// Items of all unlocked levels.
 List<LetterItem> unlockedNumbers(List<LetterItem> numbers, Map<String, ItemStat> stats);
 ```
-- [ ] Test trước: 100 item, char '0'..'99'; số 0–9 nét trùng digits; số 37 = nét '3' biến đổi về tâm (0.28,0.5) rồi nét '7' về (0.72,0.5), mọi điểm trong [0,1], hai nửa không chồng nhau (x hàng chục < 0.5 < x hàng đơn vị, kể cả biên arc); cấp: rỗng → 1; mọi 0–9 mastery ≥1 → 2; thiếu một số → vẫn 1; nhảy cấp không bỏ qua (cấp 3 cần cả cấp 2 xong); `unlockedNumbers` đúng tập.
+- [ ] Test trước: 100 item, char '0'..'99'; số 0–9 nét trùng digits; số 37 = nét '3' biến đổi về tâm (0.27,0.5) rồi nét '7' về (0.73,0.5), mọi điểm trong [0,1], hai nửa không chồng nhau (x hàng chục < 0.5 < x hàng đơn vị, kể cả biên arc); cấp: rỗng → 1; mọi 0–9 mastery ≥1 → 2; thiếu một số → vẫn 1; nhảy cấp không bỏ qua (cấp 3 cần cả cấp 2 xong); `unlockedNumbers` đúng tập.
 - [ ] `digits.json` (`{"id":"digits","version":1,"items":[{"char":"0","strokes":[...]}, ...]}`) theo Global Constraints; validator: gói bắt buộc, đúng 10 item '0'..'9' theo thứ tự, nét hợp lệ như letters (dùng lại hàm kiểm nét). In ASCII render 10 chữ số + vài số 2 chữ số (10, 23, 88) vào report để kiểm tra bằng mắt.
 - [ ] `flutter test`, analyze, `dart run tool/validate_content.dart`. Commit `feat: digit strokes, numbers 0-99 and unlock levels`.
 
