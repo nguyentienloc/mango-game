@@ -8,6 +8,7 @@ import '../../app/reward_controller.dart';
 import '../../core/rewards/reward_rules.dart';
 import '../../core/rewards/reward_state.dart';
 import '../../core/time.dart';
+import '../../core/voice/say_capped.dart';
 import '../../core/updater/app_updater.dart';
 import '../../shared/big_button.dart';
 import '../../shared/castle_view.dart';
@@ -58,13 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       // Name the game first so the game's own first prompt doesn't cut it off,
       // but wait at most 3 s so a broken TTS can't stall the menu.
-      final cap = Completer<void>();
-      final timer = Timer(const Duration(seconds: 3), cap.complete);
-      try {
-        await Future.any([voice.say(game.phraseId), cap.future]);
-      } finally {
-        timer.cancel();
-      }
+      await sayCapped(voice, game.phraseId);
       if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: game.builder));
     } finally {

@@ -56,6 +56,9 @@ void main() {
     expect(spec.promptId, LetterGameSpec.traceEn.promptId);
     expect(spec.doneId, LetterGameSpec.traceEn.doneId);
     expect(spec.showExampleCard, isTrue);
+    expect(spec.letters, same(LetterGameSpec.traceEn.letters));
+    expect(spec.vars, same(LetterGameSpec.traceEn.vars));
+    expect(spec.tryAgainId, LetterGameSpec.traceEn.tryAgainId);
   });
 
   testWidgets('the numbers button names the game and opens the number tracing game', (tester) async {

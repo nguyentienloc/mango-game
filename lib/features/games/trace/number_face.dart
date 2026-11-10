@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import 'pop_in_card.dart';
 import 'sparkle_letter.dart';
 
 /// The thing to count for each number 1–9 (index n − 1).
@@ -46,28 +47,18 @@ class NumberFace extends StatelessWidget {
         ],
       );
     }
-    return TweenAnimationBuilder<double>(
+    return PopInCard(
       key: Key('number-face-$n'),
-      tween: Tween(begin: 0.5, end: 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutBack,
-      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-      child: Card(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$n',
-                style: const TextStyle(fontSize: 96, height: 1.1, fontWeight: FontWeight.bold, color: IceColors.deep),
-              ),
-              below,
-            ],
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$n',
+            style: const TextStyle(fontSize: 96, height: 1.1, fontWeight: FontWeight.bold, color: IceColors.deep),
           ),
-        ),
+          below,
+        ],
       ),
     );
   }

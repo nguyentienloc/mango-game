@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
 import '../../../shared/ice_background.dart';
@@ -27,13 +28,7 @@ class _TraceChooserScreenState extends ConsumerState<TraceChooserScreen> {
     _opening = true;
     try {
       // Name the game first, but wait at most 3 s so a broken TTS can't stall the menu.
-      final cap = Completer<void>();
-      final timer = Timer(const Duration(seconds: 3), cap.complete);
-      try {
-        await Future.any([ref.read(voiceProvider).say(phraseId), cap.future]);
-      } finally {
-        timer.cancel();
-      }
+      await sayCapped(ref.read(voiceProvider), phraseId);
       if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: builder));
     } finally {

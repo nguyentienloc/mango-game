@@ -108,7 +108,8 @@ void main() {
     final segs = d(6).strokes.single.segments;
     expect(first(d(6)).y, lessThan(0.2));
     final loop = segs.last as ArcSegment;
-    expect(loop.sweepDeg.abs(), 360);
+    expect(loop.sweepDeg, -360); // counter-clockwise, like 0 and 9
+    expect((segs.first as ArcSegment).sweepDeg, isNegative, reason: 'the left curve is counter-clockwise too');
     expect(loop.cy, greaterThan(0.5));
   });
 
@@ -125,6 +126,9 @@ void main() {
     final l = d(8);
     expect(first(l).y, lessThan(0.2));
     expect(last(l.strokes.last).distanceTo(first(l)), lessThan(0.02));
+    final arcs = l.strokes.expand((s) => s.segments).whereType<ArcSegment>().toList();
+    // Top loop counter-clockwise, the bottom loop clockwise, back up counter-clockwise.
+    expect(arcs.map((a) => a.sweepDeg.sign), [-1, 1, -1]);
   });
 
   test('9 is a counter-clockwise closed top loop, then a stem to the bottom', () {

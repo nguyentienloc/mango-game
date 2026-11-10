@@ -124,6 +124,15 @@ void main() {
       expect(chars(_mastered(_range(0, 69))), [for (var n = 0; n <= 99; n++) '$n']);
     });
 
+    test('unlockedNumbers skips an item whose char is not a number instead of throwing', () {
+      final numbers = [
+        ...buildNumberItems(_fakeDigits).take(3),
+        LetterItem(char: 'x', strokes: _fakeDigits.first.strokes),
+        LetterItem(char: '', strokes: _fakeDigits.first.strokes),
+      ];
+      expect(unlockedNumbers(numbers, {}).map((l) => l.char), ['0', '1', '2']);
+    });
+
     test('unlocked numbers feed buildTraceRound with the trace_num prefix', () {
       final numbers = unlockedNumbers(buildNumberItems(_fakeDigits), {});
       final round = buildTraceRound(

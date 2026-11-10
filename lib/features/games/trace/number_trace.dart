@@ -63,8 +63,11 @@ int unlockedNumberLevel(Map<String, ItemStat> stats) {
   return level;
 }
 
-/// Items of all unlocked levels.
+/// Items of all unlocked levels; an item whose char isn't a number is skipped.
 List<LetterItem> unlockedNumbers(List<LetterItem> numbers, Map<String, ItemStat> stats) {
   final maxNumber = numberLevels[unlockedNumberLevel(stats) - 1].$2;
-  return [for (final l in numbers) if (int.parse(l.char) <= maxNumber) l];
+  return [
+    for (final l in numbers)
+      if ((int.tryParse(l.char) ?? maxNumber + 1) <= maxNumber) l,
+  ];
 }

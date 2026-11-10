@@ -104,20 +104,20 @@ class LetterGameSpec {
 
   static const traceEn = LetterGameSpec(
     letters: _lettersEn,
-    keyPrefix: 'trace_en_upper',
-    sessionGame: 'trace',
-    promptId: 'trace_prompt',
-    doneId: 'letter_example',
+    keyPrefix: _traceEnPrefix,
+    sessionGame: _traceEnSession,
+    promptId: _traceEnPrompt,
+    doneId: _traceEnDone,
     vars: _varsEn,
   );
 
   /// [traceEn] opened from the tracing chooser: leaving goes all the way home.
   static const traceEnFromChooser = LetterGameSpec(
     letters: _lettersEn,
-    keyPrefix: 'trace_en_upper',
-    sessionGame: 'trace',
-    promptId: 'trace_prompt',
-    doneId: 'letter_example',
+    keyPrefix: _traceEnPrefix,
+    sessionGame: _traceEnSession,
+    promptId: _traceEnPrompt,
+    doneId: _traceEnDone,
     vars: _varsEn,
     popToRootOnExit: true,
   );
@@ -149,6 +149,12 @@ class LetterGameSpec {
     popToRootOnExit: true,
   );
 }
+
+// Shared by traceEn and traceEnFromChooser so the two can't drift apart.
+const _traceEnPrefix = 'trace_en_upper';
+const _traceEnSession = 'trace';
+const _traceEnPrompt = 'trace_prompt';
+const _traceEnDone = 'letter_example';
 
 List<LetterItem> _lettersEn(ContentBundle c) => c.lettersEn;
 List<LetterItem> _lettersVi(ContentBundle c) => c.lettersVi;

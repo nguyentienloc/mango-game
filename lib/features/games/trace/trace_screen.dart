@@ -14,6 +14,7 @@ import '../../../core/progress/question_picker.dart';
 import '../../../core/session/session_store.dart';
 import '../../../core/time.dart';
 import '../../../core/voice/voice_service.dart';
+import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
 import '../../../shared/ice_background.dart';
@@ -175,13 +176,7 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
     final level = _spec.level;
     final before = _levelAtStart;
     if (level == null || before == null || level(_stats) <= before) return;
-    final cap = Completer<void>();
-    final timer = Timer(const Duration(seconds: 3), cap.complete);
-    try {
-      await Future.any([_voice.say(_spec.levelUpId), cap.future]);
-    } finally {
-      timer.cancel();
-    }
+    await sayCapped(_voice, _spec.levelUpId);
   }
 
   Future<void> _finish() async {

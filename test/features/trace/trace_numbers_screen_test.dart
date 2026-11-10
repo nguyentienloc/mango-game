@@ -108,38 +108,42 @@ void main() {
   });
 
   testWidgets('finishing level 1 says the unlock line before the reward screen', (tester) async {
-    // Every number of 0-9 already traced right except one; the round is random, so try
-    // each missing number until a round asks for it (rounds that don't must stay quiet).
-    var unlocked = false;
-    for (var missing = 0; missing <= 9 && !unlocked; missing++) {
-      final tts = FakeTts();
-      final stats = MemoryItemStatsStore();
-      for (var n = 0; n <= 9; n++) {
-        if (n != missing) stats.stats[numberTraceKey(n)] = ItemStat(key: numberTraceKey(n), mastery: 2);
-      }
-      await open(tester, tts, stats: stats);
-      for (var i = 0; i < 3; i++) {
-        await trace(tester, int.parse(asked(tts).last));
-        await tester.pump(const Duration(seconds: 1));
-        await tester.pump();
-      }
-      await tester.pump(const Duration(milliseconds: 500));
-      await tester.pump(const Duration(seconds: 2));
-      expect(find.byType(RewardScreen), findsOneWidget);
-      final round = asked(tts).map(int.parse).toList();
-      expect(round, everyElement(inInclusiveRange(0, 9)));
-      if (round.contains(missing)) {
-        unlocked = true;
-        expect(tts.texts.where((t) => t == _unlock), hasLength(1), reason: 'missing $missing');
-        expect(tts.texts.indexOf(_unlock), lessThan(tts.texts.indexOf(_roundDone)));
-        expect(unlockedNumberLevel(stats.stats), 2);
-      } else {
-        expect(tts.texts, isNot(contains(_unlock)), reason: 'missing $missing, round $round');
-      }
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(seconds: 1));
+    // Every number of 0-9 already traced right except 9, and the round is just 9:
+    // tracing it opens level 2 (the same `level` hook as the real game).
+    final tts = FakeTts();
+    final stats = MemoryItemStatsStore();
+    for (var n = 0; n <= 8; n++) {
+      stats.stats[numberTraceKey(n)] = ItemStat(key: numberTraceKey(n), mastery: 2);
     }
-    expect(unlocked, isTrue);
+    expect(unlockedNumberLevel(stats.stats), 1);
+    await open(tester, tts, spec: _onlyMissing(9), stats: stats);
+    await trace(tester, 9);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(RewardScreen), findsOneWidget);
+    expect(tts.texts.where((t) => t == _unlock), hasLength(1));
+    expect(tts.texts.indexOf(_unlock), lessThan(tts.texts.indexOf(_roundDone)));
+    expect(unlockedNumberLevel(stats.stats), 2);
+  });
+
+  testWidgets('a round that does not open a new level stays silent about it', (tester) async {
+    // 8 and 9 are both still missing, so tracing only 9 leaves level 1 closed.
+    final tts = FakeTts();
+    final stats = MemoryItemStatsStore();
+    for (var n = 0; n <= 7; n++) {
+      stats.stats[numberTraceKey(n)] = ItemStat(key: numberTraceKey(n), mastery: 2);
+    }
+    await open(tester, tts, spec: _onlyMissing(9), stats: stats);
+    await trace(tester, 9);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(RewardScreen), findsOneWidget);
+    expect(unlockedNumberLevel(stats.stats), 1);
+    expect(tts.texts, isNot(contains(_unlock)));
   });
 
   testWidgets('with level 1 done a round can reach into 10-19', (tester) async {
@@ -218,6 +222,25 @@ LetterGameSpec _only(int n) {
   const s = LetterGameSpec.traceNumbers;
   return LetterGameSpec(
     letters: (c) => [buildNumberItems(c.digits)[n]],
+    keyPrefix: s.keyPrefix,
+    sessionGame: s.sessionGame,
+    promptId: s.promptId,
+    doneId: s.doneId,
+    vars: s.vars,
+    doneView: s.doneView,
+    popToRootOnExit: true,
+  );
+}
+
+/// The numbers game with the real `level` hook, but whose round is only number [n]
+/// (as if it were the only one left to learn).
+LetterGameSpec _onlyMissing(int n) {
+  const s = LetterGameSpec.traceNumbers;
+  return LetterGameSpec(
+    letters: s.letters,
+    available: (all, stats) => [all[n]],
+    level: s.level,
+    levelUpId: s.levelUpId,
     keyPrefix: s.keyPrefix,
     sessionGame: s.sessionGame,
     promptId: s.promptId,
