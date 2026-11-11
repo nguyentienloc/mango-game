@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import '../app/theme.dart';
 
 class BigButton extends StatelessWidget {
-  const BigButton({super.key, required this.emoji, required this.onTap, this.size = 88, this.enabled = true});
+  const BigButton({super.key, required this.emoji, required this.onTap, this.size = 88, this.enabled = true, this.textStyle});
 
+  /// What the button shows: usually an emoji, sometimes a letter (then styled by [textStyle]).
   final String emoji;
+
+  /// Merged over the default text style (font size [size] × 0.45), e.g. to colour a letter.
+  final TextStyle? textStyle;
   final VoidCallback onTap;
   final double size;
   final bool enabled;
@@ -27,7 +31,7 @@ class BigButton extends StatelessWidget {
               BoxShadow(color: IceColors.deep.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 4)),
             ],
           ),
-          child: Text(emoji, style: TextStyle(fontSize: size * 0.45)),
+          child: Text(emoji, style: TextStyle(fontSize: size * 0.45).merge(textStyle)),
         ),
       ),
     );

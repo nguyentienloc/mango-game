@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../app/theme.dart';
 import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
@@ -12,7 +13,7 @@ import '../balloon/balloon_screen.dart';
 import '../letter_game_spec.dart';
 import '../trace/trace_screen.dart';
 
-/// 🇻🇳: pick the Vietnamese balloon game (🎈) or tracing game (✏️).
+/// 🇻🇳: pick the Vietnamese balloon game (🎈), letter tracing (✏️) or tone-mark tracing (á).
 class VietnameseLettersScreen extends ConsumerStatefulWidget {
   const VietnameseLettersScreen({super.key});
 
@@ -73,19 +74,26 @@ class _VietnameseLettersScreenState extends ConsumerState<VietnameseLettersScree
                 Expanded(
                   child: Center(
                     child: Wrap(
-                      spacing: 24,
-                      runSpacing: 24,
+                      // Three 100 dp buttons in one row still fit a 360 dp wide phone.
+                      spacing: 16,
+                      runSpacing: 16,
                       alignment: WrapAlignment.center,
                       children: [
                         BigButton(
                           emoji: '🎈',
-                          size: 110,
+                          size: 100,
                           onTap: () => _open('game_vi_balloon', (_) => const BalloonScreen(spec: LetterGameSpec.balloonVi)),
                         ),
                         BigButton(
                           emoji: '✏️',
-                          size: 110,
+                          size: 100,
                           onTap: () => _open('game_vi_trace', (_) => const TraceScreen(spec: LetterGameSpec.traceVi)),
+                        ),
+                        BigButton(
+                          emoji: 'á',
+                          size: 100,
+                          textStyle: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: IceColors.deep),
+                          onTap: () => _open('game_vi_tone', (_) => const TraceScreen(spec: LetterGameSpec.traceTones)),
                         ),
                       ],
                     ),

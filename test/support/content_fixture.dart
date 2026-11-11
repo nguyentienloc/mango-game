@@ -5,7 +5,7 @@ import 'package:xoai_castle/core/content/content_validator.dart';
 Map<String, String> validFiles() => {
       'manifest.json': jsonEncode({
         'schema': 1,
-        'packs': {'letters_en': 1, 'letters_vi': 1, 'digits': 1, 'conversation': 1, 'stories': 1, 'vocab_animals': 1},
+        'packs': {'letters_en': 1, 'letters_vi': 1, 'digits': 1, 'tones': 1, 'conversation': 1, 'stories': 1, 'vocab_animals': 1},
         'files': {'phrases': 1, 'castle': 1, 'characters': 1, 'profile_defaults': 1},
       }),
       'packs/letters_en.json': jsonEncode({
@@ -29,6 +29,14 @@ Map<String, String> validFiles() => {
         'version': 1,
         'items': [
           for (var d = 0; d < 10; d++) {'char': '$d', 'strokes': [[{'line': [[0.5, 0.1], [0.5, 0.9]]}]]},
+        ],
+      }),
+      'packs/tones.json': jsonEncode({
+        'id': 'tones',
+        'version': 1,
+        'items': [
+          for (final (id, name, mark) in [('sac', 'sắc', '´'), ('huyen', 'huyền', '`'), ('hoi', 'hỏi', 'ˀ'), ('nga', 'ngã', '~'), ('nang', 'nặng', '.')])
+            {'id': id, 'name': name, 'mark': mark, 'strokes': [[{'line': [[0.34, 0.74], [0.66, 0.26]]}]]},
         ],
       }),
       'packs/conversation.json': jsonEncode({

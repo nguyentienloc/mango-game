@@ -24,6 +24,7 @@ import '../letter_game_spec.dart';
 import 'sparkle_letter.dart';
 import 'trace_logic.dart';
 import 'trace_pad.dart';
+import 'trace_progress_dots.dart';
 
 class TraceScreen extends ConsumerStatefulWidget {
   const TraceScreen({super.key, this.spec = LetterGameSpec.traceEn});
@@ -95,12 +96,13 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
     _stats = await ref.read(itemStatsStoreProvider).loadByPrefix('${_spec.keyPrefix}:');
     final all = _spec.letters(ref.read(contentProvider));
     _levelAtStart = _spec.level?.call(_stats);
-    final letters = buildTraceRound(
+    final round = buildTraceRound(
       letters: _spec.available?.call(all, _stats) ?? all,
       stats: _stats,
       picker: QuestionPicker(random),
       keyPrefix: _spec.keyPrefix,
     );
+    final letters = _spec.prepareRound?.call(round) ?? round;
     if (!mounted) return;
     setState(() {
       _letters = letters;
@@ -235,6 +237,12 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
                   ],
                 ),
               ),
+              TraceProgressDots(total: letters.length, current: _index),
+              if (_spec.header case final header?) ...[
+                const SizedBox(height: 8),
+                header(_letter),
+              ],
+              const SizedBox(height: 4),
               GestureDetector(
                 onTap: () {
                   if (!_busy) _sayPrompt();

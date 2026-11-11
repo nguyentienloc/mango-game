@@ -91,27 +91,67 @@ class TraceLetterSession {
   AnswerOutcome get outcome => _failures.any((f) => f >= 3) ? AnswerOutcome.retry : AnswerOutcome.firstTry;
 }
 
+/// Items per tracing round.
+const kTraceRoundSize = 10;
+
+/// Builds a round of [count] items.
+///
+/// Distinct items come first, picked one at a time by mastery weight. [maxNew]
+/// limits never-seen items so a child is not flooded with new ones: it applies
+/// while seen items are left to choose from; once those run out the round is
+/// filled with new ones rather than repeats, so any pool of [count] or more
+/// still gives [count] different items.
+///
+/// A pool smaller than [count] is repeated: every item appears floor or ceil of
+/// count / n times, and no item follows itself (a pool of one is the only
+/// exception, there is nothing else to show).
 List<LetterItem> buildTraceRound({
   required List<LetterItem> letters,
   required Map<String, ItemStat> stats,
   required QuestionPicker picker,
   String keyPrefix = 'trace_en_upper',
-  int count = 3,
+  int count = kTraceRoundSize,
   int maxNew = 3,
 }) {
   final byKey = {for (final l in letters) traceKey(l, keyPrefix): l};
-  // Pick one letter at a time so a letter never repeats within the round
-  // (QuestionPicker only avoids back-to-back repeats), and cap unseen letters.
+  // Pick one letter at a time so a letter never repeats while there are enough
+  // different ones (QuestionPicker only avoids back-to-back repeats), and cap
+  // unseen letters.
   final remaining = byKey.keys.toList();
-  final round = <LetterItem>[];
+  final distinct = <String>[];
   var newCount = 0;
-  while (round.length < count && remaining.isNotEmpty) {
+  while (distinct.length < count && remaining.isNotEmpty) {
     final seen = remaining.where(stats.containsKey).toList();
     final pool = newCount >= maxNew && seen.isNotEmpty ? seen : remaining;
     final k = picker.pick(candidates: pool, stats: stats, count: 1).single;
     remaining.remove(k);
     if (!stats.containsKey(k)) newCount++;
-    round.add(byKey[k]!);
+    distinct.add(k);
   }
-  return round;
+  if (distinct.length >= count || distinct.isEmpty) {
+    return [for (final k in distinct) byKey[k]!];
+  }
+  return [for (final k in _spreadRepeats(distinct, count, picker.random)) byKey[k]!];
+}
+
+/// [count] keys drawn from [keys], each floor or ceil of count / n times, with
+/// no key straight after itself (unless there is only one key).
+List<String> _spreadRepeats(List<String> keys, int count, Random random) {
+  final n = keys.length;
+  final left = {for (final k in keys) k: count ~/ n};
+  final extra = (List.of(keys)..shuffle(random)).take(count % n);
+  for (final k in extra) {
+    left[k] = left[k]! + 1;
+  }
+  // Always take the key with most turns left (never the previous one): that
+  // keeps the rest placeable, and random ties vary the order between rounds.
+  final out = <String>[];
+  while (out.length < count) {
+    final options = left.keys.where((k) => left[k]! > 0 && (n == 1 || k != (out.isEmpty ? null : out.last))).toList()
+      ..shuffle(random);
+    final k = options.reduce((a, b) => left[b]! > left[a]! ? b : a);
+    left[k] = left[k]! - 1;
+    out.add(k);
+  }
+  return out;
 }

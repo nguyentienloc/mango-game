@@ -119,4 +119,41 @@ void main() {
     // Two fixed openings, 100 vi numbers (shared with the snowflake count) and 100 en numbers.
     expect(parts, hasLength(202));
   });
+
+  test('tone marks: the prompt for each of the 5 tones and the done line for each tone on a, e, o, u, i', () {
+    final tones = keys(UtteranceKind.viTones).toList();
+    expect(tones, hasLength(5 + 25));
+    expect(tones, containsAll([
+      'vi|Mình cùng tô dấu sắc nào!',
+      'vi|Mình cùng tô dấu nặng nào!',
+      'vi|Giỏi quá! a, sắc, á!',
+      'vi|Giỏi quá! e, huyền, è!',
+      'vi|Giỏi quá! o, hỏi, ỏ!',
+      'vi|Giỏi quá! u, ngã, ũ!',
+      'vi|Giỏi quá! i, nặng, ị!',
+    ]));
+    for (final p in planned.where((p) => p.kind == UtteranceKind.viTones)) {
+      expect(p.utterance.parts, hasLength(1));
+    }
+    expect(keys(UtteranceKind.fixed), contains('vi|Tô dấu'));
+    expect(keys(UtteranceKind.fixed).any((k) => k.contains('{tone}') || k.contains('{combined}')), isFalse);
+  });
+
+  test('compare: every number part for {a} and {b}, pictures 1..10 and numbers 0..99', () {
+    final compare = planned.where((p) => p.kind == UtteranceKind.compare).toList();
+    // Each phrase runs {a} over the range with {b} fixed and the other way round (one pair shared).
+    expect(compare, hasLength(2 * (10 + 9) + 4 * (100 + 99)));
+    final parts = {for (final p in compare) for (final part in p.utterance.parts) part.key};
+    for (var n = 0; n <= 99; n++) {
+      expect(parts, contains('vi|$n'));
+    }
+    expect(parts, containsAll(['vi|và', 'vi|Chọn dấu nào nhỉ?', 'vi|Đúng rồi!', 'vi|nhiều hơn', 'vi|ít hơn', 'vi|lớn hơn', 'vi|bé hơn', 'vi|bằng']));
+    expect(keys(UtteranceKind.compare), containsAll([
+      'vi|3 || vi|và || vi|0 || vi|Chọn dấu nào nhỉ?',
+      'vi|Đúng rồi! || vi|7 || vi|nhiều hơn || vi|1',
+      'vi|Đúng rồi! || vi|0 || vi|bé hơn || vi|99',
+    ]));
+    expect(keys(UtteranceKind.fixed), containsAll(['vi|So sánh', 'vi|Bên nào nhiều hơn?', 'vi|Bên nào ít hơn?', 'vi|Thử lại nha!', 'vi|Lên cấp rồi! Giỏi quá!']));
+    expect(keys(UtteranceKind.fixed).any((k) => k.contains('{a}') || k.contains('{b}')), isFalse);
+  });
 }

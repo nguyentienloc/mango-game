@@ -18,6 +18,7 @@ import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
 import '../games/balloon/balloon_screen.dart';
+import '../games/compare/compare_screen.dart';
 import '../games/talk/talk_screen.dart';
 import '../games/trace/trace_chooser_screen.dart';
 import '../games/vi_letters/vi_letters_screen.dart';
@@ -25,6 +26,8 @@ import '../games/vocab/vocab_screen.dart';
 import '../parent/parent_lock_button.dart';
 import '../story/math_gate_screen.dart';
 import '../story/story_setup_screen.dart';
+
+const _castleWidth = 300.0;
 
 class _GameEntry {
   const _GameEntry(this.emoji, this.phraseId, this.builder);
@@ -84,6 +87,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _GameEntry('✏️', 'game_trace', (_) => const TraceChooserScreen()),
       _GameEntry('🗣️', 'game_talk', (_) => const TalkScreen()),
       _GameEntry('🇻🇳', 'game_vi', (_) => const VietnameseLettersScreen()),
+      _GameEntry('⚖️', 'game_compare', (_) => const CompareScreen()),
       _GameEntry('🌙', 'game_story', (_) => MathGateScreen(onPassed: (_) => const StorySetupScreen())),
     ];
     // Home is the root: the back gesture must not exit the app by accident.
@@ -107,35 +111,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // Full width so Elsa sits at the screen edge, not on top of the castle.
                 child: SizedBox(
                   width: double.infinity,
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      GestureDetector(
-                        key: const Key('home-castle'),
-                        onTap: _openCastle,
-                        child: CastleView(level: rewards.castleLevel, width: 300),
-                      ),
-                      Positioned(
-                        left: 8,
-                        bottom: 0,
-                        child: GestureDetector(
-                          onTap: () => ref.read(voiceProvider).say('greet_en'),
-                          child: const CharacterView(id: 'elsa', size: 150),
-                        ),
-                      ),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, c) {
+                      // Castle (300 wide, 255 tall) and Elsa (150) shrink together
+                      // when the area is shorter than the castle, so nothing clips.
+                      final scale = c.maxHeight.isFinite ? (c.maxHeight / (_castleWidth * 0.85)).clamp(0.0, 1.0) : 1.0;
+                      return Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          GestureDetector(
+                            key: const Key('home-castle'),
+                            onTap: _openCastle,
+                            child: CastleView(level: rewards.castleLevel, width: _castleWidth * scale),
+                          ),
+                          Positioned(
+                            left: 8,
+                            bottom: 0,
+                            child: GestureDetector(
+                              onTap: () => ref.read(voiceProvider).say('greet_en'),
+                              child: CharacterView(id: 'elsa', size: 150 * scale),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    for (final g in games) BigButton(emoji: g.emoji, onTap: () => _openGame(g)),
-                  ],
+                // 8 dp at the sides so 4 x 76 + 3 x 12 fits a 360 dp phone.
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    // Rows of 4 + 3; 88 dp buttons when 4 of them fit, 76 dp otherwise.
+                    final size = c.maxWidth >= 4 * 88 + 3 * 12 ? 88.0 : 76.0;
+                    Widget row(Iterable<_GameEntry> items) => Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (final (i, g) in items.indexed) ...[
+                              if (i > 0) const SizedBox(width: 12),
+                              BigButton(emoji: g.emoji, size: size, onTap: () => _openGame(g)),
+                            ],
+                          ],
+                        );
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [row(games.take(4)), const SizedBox(height: 12), row(games.skip(4))],
+                    );
+                  },
                 ),
               ),
               Align(

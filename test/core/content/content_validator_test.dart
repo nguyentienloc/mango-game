@@ -394,6 +394,61 @@ void main() {
       expect(errors, contains('packs/digits.json items[4]: phải là object'));
     });
   });
+
+  group('tones', () {
+    Map<String, String> withTones(void Function(List items) edit) {
+      final tones = readJson(validFiles(), 'packs/tones.json');
+      edit(tones['items'] as List);
+      return withJson(validFiles(), 'packs/tones.json', tones);
+    }
+
+    test('the pack is required', () {
+      final manifest = readJson(validFiles(), 'manifest.json');
+      (manifest['packs'] as Map).remove('tones');
+      final errors = validateContent(withJson(validFiles(), 'manifest.json', manifest));
+      expect(errors, contains('manifest.json: thiếu gói "tones"'));
+    });
+
+    test('the five tones sac, huyen, hoi, nga, nang in order with name, mark and strokes are valid', () {
+      expect(validateContent(withTones((_) {})), isEmpty);
+      expect(toneIds, ['sac', 'huyen', 'hoi', 'nga', 'nang']);
+    });
+
+    test('fewer or more than five tones are reported', () {
+      const error = 'packs/tones.json: cần đúng 5 dấu sac, huyen, hoi, nga, nang theo thứ tự';
+      expect(validateContent(withTones((items) => items.removeLast())), contains(error));
+      expect(validateContent(withTones((items) => items.add({...items.last as Map}))), contains(error));
+    });
+
+    test('a tone out of order is reported', () {
+      final errors = validateContent(withTones((items) {
+        (items[0] as Map)['id'] = 'huyen';
+        (items[1] as Map)['id'] = 'sac';
+      }));
+      expect(errors, contains('packs/tones.json items[0]: "id" phải là "sac"'));
+      expect(errors, contains('packs/tones.json items[1]: "id" phải là "huyen"'));
+    });
+
+    test('a tone needs a name, a mark and valid strokes', () {
+      final errors = validateContent(withTones((items) {
+        (items[0] as Map).remove('name');
+        (items[1] as Map)['mark'] = ' ';
+        (items[2] as Map).remove('strokes');
+        (items[3] as Map)['strokes'] = [
+          [ {'arc': [0.5, 0.5, 0, 0.1, 0, 360]} ],
+        ];
+      }));
+      expect(errors, contains('packs/tones.json items[0]: thiếu "name"'));
+      expect(errors, contains('packs/tones.json items[1]: thiếu "mark"'));
+      expect(errors, contains('packs/tones.json items[2]: thiếu "strokes"'));
+      expect(errors, contains('packs/tones.json items[3] strokes[0][0]: "arc" cần rx, ry > 0 và sweep khác 0'));
+    });
+
+    test('items must be objects', () {
+      final errors = validateContent(withTones((items) => items[4] = 'nang'));
+      expect(errors, contains('packs/tones.json items[4]: phải là object'));
+    });
+  });
 }
 
 const _vocabImages = {

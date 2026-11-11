@@ -48,6 +48,22 @@ void main() {
     expect(tester.widget<TraceScreen>(find.byType(TraceScreen)).spec, same(LetterGameSpec.traceVi));
   });
 
+  testWidgets('the á button names the game and opens tone-mark tracing', (tester) async {
+    final tts = await pumpChooser(tester);
+    await tester.tap(find.text('á'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('Tô dấu'));
+    expect(tester.widget<TraceScreen>(find.byType(TraceScreen)).spec, same(LetterGameSpec.traceTones));
+  });
+
+  testWidgets('the á button shows a bold deep-blue letter, not an emoji', (tester) async {
+    await pumpChooser(tester);
+    final text = tester.widget<Text>(find.text('á'));
+    expect(text.style?.color, const Color(0xFF1E5AA8));
+    expect(text.style?.fontWeight, FontWeight.bold);
+  });
+
   testWidgets('a double tap opens only one game', (tester) async {
     final tts = GatedTts();
     await pumpChooser(tester, ttsOverride: tts);
@@ -89,7 +105,7 @@ void main() {
   });
 
   testWidgets('the home button inside a game returns to the home screen, skipping the chooser', (tester) async {
-    for (final button in ['🎈', '✏️']) {
+    for (final button in ['🎈', '✏️', 'á']) {
       final tts = FakeTts();
       await tester.pumpWidget(testApp(content: content, tts: tts, home: const HomeScreen()));
       await tester.pump();
@@ -154,5 +170,11 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('🎈'), findsOneWidget);
     expect(find.text('✏️'), findsOneWidget);
+    expect(find.text('á'), findsOneWidget);
+    for (final b in ['🎈', '✏️', 'á']) {
+      final r = tester.getRect(find.text(b));
+      expect(const Rect.fromLTWH(0, 0, 360, 640).intersect(r), r, reason: b);
+      expect(r.center.dy, closeTo(tester.getCenter(find.text('🎈')).dy, 0.5), reason: '$b on the same row');
+    }
   });
 }

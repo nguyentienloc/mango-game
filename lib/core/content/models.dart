@@ -38,6 +38,24 @@ class LetterItem {
   String get lower => char.toLowerCase();
 }
 
+/// A Vietnamese tone mark to trace (packs/tones.json): [id] keys its progress
+/// (`sac`), [name] is said (`sắc`) and [mark] shown on the done card (`´`).
+class ToneItem {
+  const ToneItem({required this.id, required this.name, required this.mark, this.strokes = const []});
+
+  factory ToneItem.fromJson(Map<String, dynamic> json) => ToneItem(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        mark: json['mark'] as String,
+        strokes: [for (final s in json['strokes'] as List) Stroke.fromJson(s as List)],
+      );
+
+  final String id;
+  final String name;
+  final String mark;
+  final List<Stroke> strokes;
+}
+
 class PhrasePart {
   const PhrasePart(this.lang, this.text);
 
@@ -186,6 +204,7 @@ class ContentBundle {
     required this.lettersEn,
     required this.lettersVi,
     required this.digits,
+    this.tones = const [],
     required this.phrases,
     required this.castle,
     required this.characters,
@@ -216,6 +235,9 @@ class ContentBundle {
       digits: [
         for (final j in read('packs/digits.json')['items'] as List) LetterItem.fromJson(j as Map<String, dynamic>),
       ],
+      tones: [
+        for (final j in read('packs/tones.json')['items'] as List) ToneItem.fromJson(j as Map<String, dynamic>),
+      ],
       phrases: {
         for (final j in read('phrases.json')['items'] as List)
           (j as Map<String, dynamic>)['id'] as String: Phrase.fromJson(j),
@@ -242,6 +264,9 @@ class ContentBundle {
 
   /// The ten digits "0"–"9" with their tracing strokes (no example).
   final List<LetterItem> digits;
+
+  /// The five tone marks sắc, huyền, hỏi, ngã, nặng, in that order.
+  final List<ToneItem> tones;
   final Map<String, Phrase> phrases;
   final List<CastleLevel> castle;
   final Map<String, CharacterDef> characters;

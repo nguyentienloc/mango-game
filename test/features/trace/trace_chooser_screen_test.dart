@@ -156,7 +156,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 10; i++) {
       final letter = content.lettersEn.firstWhere((l) => l.char == asked(tts).last);
       for (final s in letter.strokes) {
         await drawPoints(tester, s.sample(step: 0.05));

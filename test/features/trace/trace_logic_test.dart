@@ -124,23 +124,80 @@ void main() {
     });
   });
 
-  test('buildTraceRound picks 3 different new letters for a fresh player', () {
-    final letters = [
-      for (final c in 'ABCDEFGHIJ'.split('')) LetterItem(char: c, exampleWord: c, exampleEmoji: '⭐', strokes: letterT.strokes),
-    ];
+  List<LetterItem> pool(int n) => [
+    for (var i = 0; i < n; i++) LetterItem(char: String.fromCharCode(65 + i), exampleWord: 'w', exampleEmoji: '⭐', strokes: letterT.strokes),
+  ];
+
+  test('buildTraceRound picks 10 different new letters for a fresh player', () {
+    final letters = pool(26);
     for (var seed = 0; seed < 20; seed++) {
       final round = buildTraceRound(letters: letters, stats: const <String, ItemStat>{}, picker: QuestionPicker(Random(seed)));
-      expect(round, hasLength(3));
-      expect(round.map((l) => l.char).toSet(), hasLength(3));
+      expect(round, hasLength(10));
+      expect(round.map((l) => l.char).toSet(), hasLength(10));
     }
     expect(traceKey(letters.first), 'trace_en_upper:A');
   });
 
   test('buildTraceRound and traceKey follow the key prefix', () {
-    final letters = [for (final c in 'ABCDEFGHIJ'.split('')) LetterItem(char: c, strokes: letterT.strokes)];
+    final letters = pool(10);
     expect(traceKey(letters.first, 'trace_vi_upper'), 'trace_vi_upper:A');
     final stats = {'trace_vi_upper:A': ItemStat(key: 'trace_vi_upper:A', mastery: 1)};
     final round = buildTraceRound(letters: letters, stats: stats, picker: QuestionPicker(Random(1)), keyPrefix: 'trace_vi_upper');
-    expect(round, hasLength(3));
+    expect(round, hasLength(10));
+  });
+
+  test('maxNew caps never-seen letters while seen ones can still fill the round', () {
+    final letters = pool(26);
+    final stats = {
+      for (final l in letters.take(12)) traceKey(l): ItemStat(key: traceKey(l), mastery: 2),
+    };
+    for (var seed = 0; seed < 30; seed++) {
+      final round = buildTraceRound(letters: letters, stats: stats, picker: QuestionPicker(Random(seed)));
+      expect(round.map((l) => l.char).toSet(), hasLength(10), reason: 'seed $seed');
+      expect(round.where((l) => !stats.containsKey(traceKey(l))).length, lessThanOrEqualTo(3), reason: 'seed $seed');
+    }
+  });
+
+  test('a pool of 5 repeats every item twice, never twice in a row', () {
+    for (var seed = 0; seed < 50; seed++) {
+      final round = buildTraceRound(letters: pool(5), stats: const <String, ItemStat>{}, picker: QuestionPicker(Random(seed)));
+      final chars = round.map((l) => l.char).toList();
+      expect(chars, hasLength(10));
+      for (final c in 'ABCDE'.split('')) {
+        expect(chars.where((x) => x == c), hasLength(2), reason: 'seed $seed $chars');
+      }
+      for (var i = 1; i < chars.length; i++) {
+        expect(chars[i], isNot(chars[i - 1]), reason: 'seed $seed $chars');
+      }
+    }
+  });
+
+  test('uneven pools spread repeats evenly: each item floor or ceil of 10/n times, never adjacent', () {
+    for (final n in [2, 3, 4, 6, 7, 9]) {
+      for (var seed = 0; seed < 50; seed++) {
+        final round = buildTraceRound(letters: pool(n), stats: const <String, ItemStat>{}, picker: QuestionPicker(Random(seed)));
+        final chars = round.map((l) => l.char).toList();
+        expect(chars, hasLength(10), reason: 'n $n seed $seed');
+        final counts = <String, int>{for (final c in chars) c: chars.where((x) => x == c).length};
+        expect(counts, hasLength(n), reason: 'n $n seed $seed $chars');
+        expect(counts.values, everyElement(inInclusiveRange(10 ~/ n, (10 / n).ceil())), reason: 'n $n seed $seed $chars');
+        for (var i = 1; i < chars.length; i++) {
+          expect(chars[i], isNot(chars[i - 1]), reason: 'n $n seed $seed $chars');
+        }
+      }
+    }
+  });
+
+  test('a pool of one is the only case of the same item back to back: ten times', () {
+    final round = buildTraceRound(letters: pool(1), stats: const <String, ItemStat>{}, picker: QuestionPicker(Random(1)));
+    expect(round.map((l) => l.char), List.filled(10, 'A'));
+  });
+
+  test('a repeated pool still varies the order between rounds', () {
+    final orders = {
+      for (var seed = 0; seed < 20; seed++)
+        buildTraceRound(letters: pool(5), stats: const <String, ItemStat>{}, picker: QuestionPicker(Random(seed))).map((l) => l.char).join(),
+    };
+    expect(orders.length, greaterThan(5));
   });
 }
