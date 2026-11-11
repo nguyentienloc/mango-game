@@ -240,6 +240,132 @@ void main() {
     expect(stats.stats[compareLevelKey]!.mastery, 3);
   });
 
+  testWidgets('level 1: both cards draw their pictures at the same size, even with 2 vs 9', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tts = FakeTts();
+    await pumpGame(tester, tts);
+    double emojiWidth(String side) {
+      final emoji = tester.widget<PictureCard>(find.byType(PictureCard).at(side == 'left' ? 0 : 1)).emoji;
+      final f = find.descendant(of: find.byKey(Key('compare-side-$side')), matching: find.text(emoji)).first;
+      // getTopLeft/getBottomRight include the FittedBox scale, getSize does not.
+      return tester.getBottomRight(f).dx - tester.getTopLeft(f).dx;
+    }
+
+    var sawBig = false;
+    for (var i = 0; i < 10; i++) {
+      final q = shown(tester);
+      if (q.left > q.right ? q.left >= 8 : q.right >= 8) sawBig = true;
+      expect(emojiWidth('left'), closeTo(emojiWidth('right'), 0.01), reason: '${q.left} vs ${q.right}');
+      await answerRight(tester, tts);
+      if (find.byType(PictureCard).evaluate().isEmpty) break;
+    }
+    expect(sawBig, isTrue);
+  });
+
+  testWidgets('picture cards and sign buttons answer on tap, not on touch down', (tester) async {
+    final tts = FakeTts();
+    await pumpGame(tester, tts);
+    tts.spoken.clear();
+    // A resting palm / the start of a swipe: down, drag away, up. No answer.
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('compare-side-left'))));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(tts.texts, isEmpty);
+    await g.moveBy(const Offset(0, 120));
+    await g.up();
+    await settle(tester, 6);
+    expect(tts.texts, isEmpty);
+    expect(find.byKey(const Key('compare-count-left')), findsNothing);
+    // A real tap still answers.
+    await tester.tap(find.byKey(const Key('compare-side-left')));
+    await settle(tester, 6);
+    expect(tts.texts, isNotEmpty);
+    await settle(tester, 20);
+  });
+
+  testWidgets('sign buttons answer on tap, not on touch down', (tester) async {
+    final tts = FakeTts();
+    await pumpGame(tester, tts, stats: statsAt(2));
+    tts.spoken.clear();
+    final g = await tester.startGesture(tester.getCenter(find.byKey(const Key('compare-sign-gt'))));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(tts.texts, isEmpty);
+    await g.moveBy(const Offset(0, -150));
+    await g.up();
+    await settle(tester, 6);
+    expect(tts.texts, isEmpty);
+    await tester.tap(find.byKey(const Key('compare-sign-gt')));
+    await settle(tester, 6);
+    expect(tts.texts, isNotEmpty);
+    await settle(tester, 20);
+  });
+
+  group('the winner/hint border does not shrink the content', () {
+    Future<void> pumpCard(WidgetTester tester, Widget card) => tester.pumpWidget(MaterialApp(
+          home: Center(child: SizedBox(width: 170, height: 300, child: card)),
+        ));
+
+    for (final variant in [(name: 'winner', mark: CardMark.winner, hint: false), (name: 'hint', mark: CardMark.none, hint: true)]) {
+      testWidgets('picture card: ${variant.name}', (tester) async {
+        PictureCard card({required bool on}) => PictureCard(
+              side: 'left',
+              count: 9,
+              emoji: '🍎',
+              onTap: () {},
+              mark: on ? variant.mark : CardMark.none,
+              revealed: on && variant.mark == CardMark.winner,
+              hint: on && variant.hint,
+            );
+        Rect emoji() {
+          final f = find.text('🍎').first;
+          return Rect.fromPoints(tester.getTopLeft(f), tester.getBottomRight(f));
+        }
+
+        await pumpCard(tester, card(on: false));
+        final before = emoji();
+        final cardBefore = tester.getSize(find.byType(PictureCard));
+        await pumpCard(tester, card(on: true));
+        expect(tester.getSize(find.byType(PictureCard)), cardBefore);
+        expect(emoji().width, closeTo(before.width, 0.01));
+        expect(emoji().height, closeTo(before.height, 0.01));
+        expect(emoji().topLeft.dx, closeTo(before.topLeft.dx, 0.01));
+        expect(emoji().topLeft.dy, closeTo(before.topLeft.dy, 0.01));
+      });
+    }
+
+    testWidgets('number card: winner', (tester) async {
+      Rect number() {
+        final f = find.text('7');
+        return Rect.fromPoints(tester.getTopLeft(f), tester.getBottomRight(f));
+      }
+
+      await tester.pumpWidget(const MaterialApp(home: Center(child: NumberCard(side: 'left', value: 7, dots: true))));
+      final before = number();
+      await tester.pumpWidget(const MaterialApp(home: Center(child: NumberCard(side: 'left', value: 7, dots: true, mark: CardMark.winner))));
+      expect(number().width, closeTo(before.width, 0.01));
+      expect(number().topLeft.dx, closeTo(before.topLeft.dx, 0.01));
+      expect(number().topLeft.dy, closeTo(before.topLeft.dy, 0.01));
+    });
+
+    testWidgets('sign button: hint', (tester) async {
+      Rect symbol() {
+        final f = find.text('>');
+        return Rect.fromPoints(tester.getTopLeft(f), tester.getBottomRight(f));
+      }
+
+      Widget button(bool hint) => MaterialApp(
+            home: Center(child: SizedBox(width: 100, child: SignButton(sign: CompareSign.gt, onTap: () {}, hint: hint))),
+          );
+      await tester.pumpWidget(button(false));
+      final before = symbol();
+      await tester.pumpWidget(button(true));
+      expect(symbol().width, closeTo(before.width, 0.01));
+      expect(symbol().topLeft.dx, closeTo(before.topLeft.dx, 0.01));
+      expect(symbol().topLeft.dy, closeTo(before.topLeft.dy, 0.01));
+    });
+  });
+
   testWidgets('tapping Elsa repeats the question', (tester) async {
     final tts = FakeTts();
     await pumpGame(tester, tts);

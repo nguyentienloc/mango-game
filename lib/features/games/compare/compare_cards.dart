@@ -13,6 +13,8 @@ const _greenShadow = Color(0xFF2E7D32);
 const _blue = Color(0xFF42A5F5);
 const _blueShadow = Color(0xFF1565C0);
 
+const _cell = 58.0;
+
 /// How a card looks once the question is answered.
 enum CardMark { none, winner, loser }
 
@@ -43,7 +45,8 @@ BoxDecoration _cardDecoration({required CardMark mark, required bool hint}) => B
         CardMark.none => Colors.white,
       },
       borderRadius: BorderRadius.circular(28),
-      border: mark == CardMark.winner || hint ? Border.all(color: _gold, width: 6) : null,
+      // Always 6 dp wide (transparent when inactive) so lighting it up never shrinks the content.
+      border: Border.all(color: mark == CardMark.winner || hint ? _gold : Colors.transparent, width: 6),
       boxShadow: mark == CardMark.winner || hint ? _glow : (mark == CardMark.loser ? null : _softShadow),
     );
 
@@ -55,6 +58,7 @@ class PictureCard extends StatelessWidget {
     required this.count,
     required this.emoji,
     required this.onTap,
+    this.maxCount,
     this.mark = CardMark.none,
     this.revealed = false,
     this.hint = false,
@@ -66,6 +70,10 @@ class PictureCard extends StatelessWidget {
   final int count;
   final String emoji;
   final VoidCallback onTap;
+
+  /// The larger of the two counts on screen (default [count]); both cards lay out for it,
+  /// so their pictures are drawn at the same size.
+  final int? maxCount;
   final CardMark mark;
   final bool revealed;
   final bool hint;
@@ -73,20 +81,23 @@ class PictureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slots = max(count, maxCount ?? count);
+    // Fixed-size cells, so the grid for [slots] has the same size on both cards and the
+    // FittedBox below scales both by the same factor.
     final rows = [
       for (var i = 0; i < count; i += 2)
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             for (var j = i; j < min(i + 2, count); j++)
-              Padding(padding: const EdgeInsets.all(2), child: Text(emoji, style: const TextStyle(fontSize: 50))),
+              SizedBox.square(dimension: _cell, child: Center(child: Text(emoji, style: const TextStyle(fontSize: 50)))),
           ],
         ),
     ];
     return GestureDetector(
       key: Key('compare-side-$side'),
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => onTap(),
+      onTap: onTap,
       child: Shake(
         shaking: shaking,
         child: Container(
@@ -98,7 +109,15 @@ class PictureCard extends StatelessWidget {
               Expanded(
                 child: Opacity(
                   opacity: mark == CardMark.loser ? 0.45 : 1,
-                  child: FittedBox(fit: BoxFit.scaleDown, child: Column(mainAxisSize: MainAxisSize.min, children: rows)),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: 2 * _cell,
+                      height: (slots + 1) ~/ 2 * _cell,
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: rows),
+                    ),
+                  ),
                 ),
               ),
               SizedBox(
@@ -262,7 +281,7 @@ class SignButton extends StatelessWidget {
     return GestureDetector(
       key: Key('compare-sign-${sign.name}'),
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => onTap(),
+      onTap: onTap,
       child: Shake(
         shaking: shaking,
         child: Container(
@@ -272,7 +291,7 @@ class SignButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: eq ? _blue : _green,
             borderRadius: BorderRadius.circular(24),
-            border: hint ? Border.all(color: _gold, width: 5) : null,
+            border: Border.all(color: hint ? _gold : Colors.transparent, width: 5),
             boxShadow: [
               BoxShadow(color: eq ? _blueShadow : _greenShadow, offset: const Offset(0, 6)),
               if (hint) ..._glow,

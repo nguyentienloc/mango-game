@@ -250,6 +250,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
             side: side,
             count: count,
             emoji: q.emoji,
+            maxCount: max(q.left, q.right),
             onTap: () => _onTap(side),
             mark: _mark(side, q),
             revealed: _revealed,
