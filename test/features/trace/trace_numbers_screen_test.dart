@@ -61,12 +61,21 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('a first round: three different numbers of 0-9, said in vi then en, ends on the reward with +8 ❄️', (tester) async {
+  /// Traces [n] [times] times in a row, as a round whose pool is just that number asks.
+  Future<void> traceRepeatedly(WidgetTester tester, int n, int times) async {
+    for (var i = 0; i < times; i++) {
+      await trace(tester, n);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+  }
+
+  testWidgets('a first round: ten different numbers of 0-9, said in vi then en, ends on the reward with +15 ❄️', (tester) async {
     final tts = FakeTts();
     final sessions = MemorySessionStore();
     final stats = MemoryItemStatsStore();
     await open(tester, tts, sessions: sessions, stats: stats);
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 10; i++) {
       final c = asked(tts);
       expect(c, hasLength(i + 1), reason: 'number ${i + 1}');
       final n = int.parse(c.last);
@@ -88,15 +97,17 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pump();
     }
-    expect(asked(tts).toSet(), hasLength(3));
+    expect(asked(tts).toSet(), hasLength(10));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(RewardScreen), findsOneWidget);
-    expect(find.text('+8 ❄️'), findsOneWidget);
+    expect(find.text('+15 ❄️'), findsOneWidget);
     expect(sessions.records.single.game, numberTracePrefix);
     expect(stats.stats.keys, everyElement(startsWith('$numberTracePrefix:')));
     expect(stats.stats.values.map((s) => s.mastery), everyElement(1));
-    expect(tts.texts, isNot(contains(_unlock)));
+    // Tracing all of 0-9 first time opens level 2, said once before the reward.
+    expect(tts.texts.where((t) => t == _unlock), hasLength(1));
+    expect(unlockedNumberLevel(stats.stats), 2);
   });
 
   testWidgets('after tracing 7 the screen shows 7 butterflies to count', (tester) async {
@@ -117,9 +128,8 @@ void main() {
     }
     expect(unlockedNumberLevel(stats.stats), 1);
     await open(tester, tts, spec: _onlyMissing(9), stats: stats);
-    await trace(tester, 9);
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump();
+    // The pool is just 9, so the round is ten tracings of it.
+    await traceRepeatedly(tester, 9, 10);
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(RewardScreen), findsOneWidget);
@@ -136,6 +146,16 @@ void main() {
     }
     await open(tester, tts, spec: _onlyMissing(9), stats: stats);
     tts.release();
+    // Nine tracings of 9 first (the pool is just 9, so the round is ten of them).
+    for (var round = 0; round < 9; round++) {
+      for (final s in numbers[9].strokes) {
+        await drawPoints(tester, s.sample(step: 0.05));
+      }
+      for (var i = 0; i < 12; i++) {
+        tts.release();
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
     for (final s in numbers[9].strokes) {
       await drawPoints(tester, s.sample(step: 0.05));
     }
@@ -162,9 +182,7 @@ void main() {
       stats.stats[numberTraceKey(n)] = ItemStat(key: numberTraceKey(n), mastery: 2);
     }
     await open(tester, tts, spec: _onlyMissing(9), stats: stats);
-    await trace(tester, 9);
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump();
+    await traceRepeatedly(tester, 9, 10);
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(RewardScreen), findsOneWidget);
@@ -179,13 +197,13 @@ void main() {
     }
     final tts = FakeTts();
     await open(tester, tts, stats: stats);
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 10; i++) {
       await trace(tester, int.parse(asked(tts).last));
       await tester.pump(const Duration(seconds: 1));
       await tester.pump();
     }
     final round = asked(tts).map(int.parse).toList();
-    expect(round, hasLength(3));
+    expect(round, hasLength(10));
     expect(round, everyElement(inInclusiveRange(0, 19)));
     // Mastered numbers weigh 1 and unseen ones 5, so the new level shows up.
     expect(round.any((n) => n >= 10), isTrue, reason: '$round');

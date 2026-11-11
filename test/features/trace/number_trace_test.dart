@@ -142,8 +142,8 @@ void main() {
         picker: QuestionPicker(Random(1)),
         keyPrefix: numberTracePrefix,
       );
-      expect(round, hasLength(3));
-      expect(round.map((l) => l.char).toSet(), hasLength(3));
+      expect(round, hasLength(10));
+      expect(round.map((l) => l.char).toSet(), hasLength(10));
       for (final l in round) {
         expect(int.parse(l.char), inInclusiveRange(0, 9));
         expect(traceKey(l, numberTracePrefix), numberTraceKey(int.parse(l.char)));

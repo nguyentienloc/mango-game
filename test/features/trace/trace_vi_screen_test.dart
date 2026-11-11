@@ -38,12 +38,12 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('tracing three Vietnamese letters (accents included) ends on the reward screen', (tester) async {
+  testWidgets('tracing ten Vietnamese letters (accents included) ends on the reward screen', (tester) async {
     final tts = FakeTts();
     final sessions = MemorySessionStore();
     final stats = MemoryItemStatsStore();
     await open(tester, tts, sessions: sessions, stats: stats);
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 10; i++) {
       final c = asked(tts);
       expect(c, hasLength(i + 1), reason: 'letter ${i + 1}');
       final letter = bySpoken(c.last);
@@ -60,9 +60,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(RewardScreen), findsOneWidget);
-    expect(find.text('+8 ❄️'), findsOneWidget);
+    expect(find.text('+15 ❄️'), findsOneWidget);
     expect(sessions.records.single.game, 'trace_vi');
-    expect(stats.stats, hasLength(3));
+    expect(stats.stats, hasLength(10));
     expect(stats.stats.keys.every((k) => k.startsWith('trace_vi_upper:')), isTrue);
   });
 
@@ -93,7 +93,7 @@ void main() {
     await tester.tap(find.text('✏️'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 10; i++) {
       final letter = bySpoken(asked(tts).last);
       for (final s in letter.strokes) {
         await drawPoints(tester, s.sample(step: 0.05));

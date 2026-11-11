@@ -42,7 +42,7 @@ void main() {
       content.lettersEn.firstWhere((l) => l.char == c);
 
   testWidgets(
-    'tracing every stroke of three letters ends on the reward screen',
+    'tracing every stroke of ten letters ends on the reward screen',
     (tester) async {
       final tts = FakeTts();
       final rewards = MemoryRewardStore();
@@ -58,7 +58,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      for (var i = 0; i < 3; i++) {
+      for (var i = 0; i < 10; i++) {
         final c = asked(tts);
         expect(c, hasLength(i + 1), reason: 'letter ${i + 1}');
         for (final s in letter(c.last).strokes) {
@@ -70,10 +70,58 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(seconds: 2));
       expect(find.byType(RewardScreen), findsOneWidget);
-      expect(find.text('+8 ❄️'), findsOneWidget);
+      expect(find.text('+15 ❄️'), findsOneWidget);
       expect(sessions.records.single.game, 'trace');
     },
   );
+
+  group('progress dots', () {
+    // The dots in order, as (fill, ring colour or null).
+    List<(Color?, Color?)> dots(WidgetTester tester) => [
+      for (final d in tester.widgetList<Container>(find.byKey(const Key('trace-progress-dot'))))
+        (
+          (d.decoration! as BoxDecoration).color,
+          ((d.decoration! as BoxDecoration).border as Border?)?.top.color,
+        ),
+    ];
+
+    testWidgets('ten dots under the top bar: current has an orange ring, done are deep blue, the rest faint', (tester) async {
+      final tts = FakeTts();
+      await tester.pumpWidget(testApp(content: content, tts: tts, home: const TraceScreen()));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const Key('trace-progress-dot')), findsNWidgets(10));
+      final first = dots(tester);
+      expect(first[0], (Colors.white, const Color(0xFFFFB74D)));
+      for (final d in first.skip(1)) {
+        expect(d.$1, Colors.white.withValues(alpha: 0.7));
+        expect(d.$2, isNull);
+      }
+      final size = tester.getSize(find.byKey(const Key('trace-progress-dot')).first);
+      expect(size, const Size(22, 22));
+      expect(tester.getRect(find.byKey(const Key('trace-progress-dot')).at(1)).left - tester.getRect(find.byKey(const Key('trace-progress-dot')).first).right, 6);
+      final ring = tester.widget<Container>(find.byKey(const Key('trace-progress-dot')).first).decoration! as BoxDecoration;
+      expect((ring.border! as Border).top.width, 3);
+      // under the top bar, above the writing pad
+      expect(tester.getRect(find.byKey(const Key('trace-progress-dot')).first).top, greaterThan(tester.getRect(find.text('🏠')).bottom - 1));
+      expect(tester.getRect(find.byKey(const Key('trace-progress-dot')).first).bottom, lessThanOrEqualTo(tester.getRect(find.byKey(const Key('trace-pad'))).top));
+
+      for (final s in letter(asked(tts).last).strokes) {
+        await drawPoints(tester, s.sample(step: 0.05));
+      }
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      final second = dots(tester);
+      expect(second[0], (IceColors.deep, null));
+      expect(second[1], (Colors.white, const Color(0xFFFFB74D)));
+      for (final d in second.skip(2)) {
+        expect(d.$1, Colors.white.withValues(alpha: 0.7));
+      }
+      expect(find.text('2/10'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    });
+  });
 
   testWidgets('a stroke drawn in the wrong place says try again and stays', (
     tester,

@@ -7,6 +7,9 @@ class QuestionPicker {
 
   final Random _random;
 
+  /// The source of randomness, for callers that arrange picked keys themselves.
+  Random get random => _random;
+
   /// Picks [count] keys from [candidates]. Keys with lower mastery are more
   /// likely (weight = 5 − mastery; unseen keys count as mastery 0). At most
   /// [maxNew] distinct unseen keys are used, and a key never appears twice in a row.

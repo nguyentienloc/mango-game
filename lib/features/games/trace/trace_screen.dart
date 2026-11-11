@@ -24,6 +24,7 @@ import '../letter_game_spec.dart';
 import 'sparkle_letter.dart';
 import 'trace_logic.dart';
 import 'trace_pad.dart';
+import 'trace_progress_dots.dart';
 
 class TraceScreen extends ConsumerStatefulWidget {
   const TraceScreen({super.key, this.spec = LetterGameSpec.traceEn});
@@ -235,6 +236,8 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
                   ],
                 ),
               ),
+              TraceProgressDots(total: letters.length, current: _index),
+              const SizedBox(height: 4),
               GestureDetector(
                 onTap: () {
                   if (!_busy) _sayPrompt();
