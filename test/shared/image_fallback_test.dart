@@ -20,6 +20,7 @@ void main() {
       lettersEn: content.lettersEn,
       lettersVi: content.lettersVi,
       digits: content.digits,
+      tones: content.tones,
       phrases: content.phrases,
       castle: content.castle,
       characters: {'olaf': const CharacterDef(id: 'olaf', name: 'Olaf', emoji: '⛄', image: 'missing/olaf.png')},

@@ -1,9 +1,10 @@
 import '../content/models.dart';
 import '../content/vocab.dart';
+import '../../features/games/trace/tone_trace.dart';
 import '../profile/names.dart';
 import 'utterance.dart';
 
-enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk, traceNumbers }
+enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk, traceNumbers, viTones }
 
 class PlannedUtterance {
   const PlannedUtterance(this.utterance, this.kind);
@@ -33,6 +34,10 @@ const viLetterPhraseIds = [
   'vi_trace_done',
 ];
 
+/// Tone-mark tracing, each a single `vi` part: the prompt names the tone ({tone}), the done line
+/// also the vowel it was put on ({base}) and the two together ({combined}, e.g. `á`).
+const viTonePhraseIds = ['vi_tone_prompt', 'vi_tone_done'];
+
 /// Talk-with-Elsa phrases that need an item: `talk_question` ({question}) and
 /// `talk_say_after` ({model}). The two other talk phrases (`talk_again`,
 /// `talk_hold_hint`) are plain fixed phrases.
@@ -59,7 +64,7 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   for (final id in content.phrases.keys) {
     if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
         balloonPhraseIds.contains(id) || numberPhraseIds.contains(id) || viLetterPhraseIds.contains(id) ||
-        talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id)) {
+        talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id) || viTonePhraseIds.contains(id)) {
       continue;
     }
     add(id, const {}, UtteranceKind.fixed);
@@ -100,6 +105,14 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   for (var n = 0; n <= maxTracedNumber; n++) {
     for (final id in traceNumberPhraseIds) {
       add(id, {'number': '$n'}, UtteranceKind.traceNumbers);
+    }
+  }
+  // Tone marks: a round puts its items on a, e, o, u, i by position, so any tone can land on
+  // any base. The vars are LetterGameSpec.traceTones' (toneVars); the prompt only uses {tone}.
+  for (final tone in content.tones) {
+    add('vi_tone_prompt', toneVars(ToneTraceItem(tone)), UtteranceKind.viTones);
+    for (final base in toneBases) {
+      add('vi_tone_done', toneVars(ToneTraceItem(tone, base: base)), UtteranceKind.viTones);
     }
   }
   for (var n = 0; n <= maxSpokenCount; n++) {

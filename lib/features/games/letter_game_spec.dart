@@ -4,6 +4,8 @@ import '../../core/content/models.dart';
 import '../../core/progress/item_stat.dart';
 import 'trace/number_face.dart';
 import 'trace/number_trace.dart';
+import 'trace/tone_face.dart';
+import 'trace/tone_trace.dart';
 
 /// Everything that differs between the English and the Vietnamese version of the
 /// balloon and trace games: which letters, how mastery is keyed, what is said.
@@ -26,6 +28,8 @@ class LetterGameSpec {
     this.levelUpId = '',
     this.doneView,
     this.strokeNumbers = true,
+    this.prepareRound,
+    this.header,
   });
 
   final List<LetterItem> Function(ContentBundle content) letters;
@@ -41,6 +45,13 @@ class LetterGameSpec {
 
   /// Trace only: shown over the pad once an item is traced. Null: [showExampleCard] decides.
   final Widget Function(LetterItem item)? doneView;
+
+  /// Trace only: turns the round once built into the items actually traced (e.g. the tone
+  /// marks put on a, e, o, u, i by position). Null: the round as built.
+  final List<LetterItem> Function(List<LetterItem> round)? prepareRound;
+
+  /// Trace only: shown between the progress dots and Elsa for the item being traced. Null: nothing.
+  final Widget Function(LetterItem item)? header;
 
   /// Trace only: whether the guide shows the stroke-order numeral on each stroke's start dot.
   /// False for numbers, where a "1" on a dot would read as a digit of the number.
@@ -143,6 +154,24 @@ class LetterGameSpec {
     popToRootOnExit: true,
   );
 
+  /// The five Vietnamese tone marks, opened from 🇻🇳: the row of marks above the pad, and
+  /// once traced, the mark put on the round's next vowel (A + ´ = Á).
+  static const traceTones = LetterGameSpec(
+    letters: _tones,
+    prepareRound: withToneBases,
+    keyPrefix: toneTracePrefix,
+    sessionGame: toneTracePrefix,
+    promptId: 'vi_tone_prompt',
+    doneId: 'vi_tone_done',
+    tryAgainId: 'try_again_vi_1',
+    vars: _varsTone,
+    doneView: _toneFace,
+    header: _toneRow,
+    strokeNumbers: false,
+    showExampleCard: false,
+    popToRootOnExit: true,
+  );
+
   static const traceVi = LetterGameSpec(
     letters: _lettersVi,
     keyPrefix: 'trace_vi_upper',
@@ -165,6 +194,14 @@ const _traceEnDone = 'letter_example';
 List<LetterItem> _lettersEn(ContentBundle c) => c.lettersEn;
 List<LetterItem> _lettersVi(ContentBundle c) => c.lettersVi;
 List<LetterItem> _numbers(ContentBundle c) => buildNumberItems(c.digits);
+
+List<LetterItem> _tones(ContentBundle c) => buildToneItems(c.tones);
+
+Map<String, String> _varsTone(LetterItem target, {LetterItem? tapped}) => toneVars(target as ToneTraceItem);
+
+Widget _toneFace(LetterItem item) => ToneFace(item as ToneTraceItem);
+
+Widget _toneRow(LetterItem item) => ToneRow(current: item.char);
 
 Map<String, String> _varsNumber(LetterItem target, {LetterItem? tapped}) => {'number': target.char};
 

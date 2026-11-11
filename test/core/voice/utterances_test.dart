@@ -119,4 +119,23 @@ void main() {
     // Two fixed openings, 100 vi numbers (shared with the snowflake count) and 100 en numbers.
     expect(parts, hasLength(202));
   });
+
+  test('tone marks: the prompt for each of the 5 tones and the done line for each tone on a, e, o, u, i', () {
+    final tones = keys(UtteranceKind.viTones).toList();
+    expect(tones, hasLength(5 + 25));
+    expect(tones, containsAll([
+      'vi|Mình cùng tô dấu sắc nào!',
+      'vi|Mình cùng tô dấu nặng nào!',
+      'vi|Giỏi quá! a, sắc, á!',
+      'vi|Giỏi quá! e, huyền, è!',
+      'vi|Giỏi quá! o, hỏi, ỏ!',
+      'vi|Giỏi quá! u, ngã, ũ!',
+      'vi|Giỏi quá! i, nặng, ị!',
+    ]));
+    for (final p in planned.where((p) => p.kind == UtteranceKind.viTones)) {
+      expect(p.utterance.parts, hasLength(1));
+    }
+    expect(keys(UtteranceKind.fixed), contains('vi|Tô dấu'));
+    expect(keys(UtteranceKind.fixed).any((k) => k.contains('{tone}') || k.contains('{combined}')), isFalse);
+  });
 }

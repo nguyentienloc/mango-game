@@ -4,6 +4,7 @@
     "letters_en": 2,
     "letters_vi": 2,
     "digits": 1,
+    "tones": 1,
     "conversation": 2,
     "stories": 1,
     "vocab_animals": 1,
@@ -12,7 +13,7 @@
     "vocab_vehicles": 1
   },
   "files": {
-    "phrases": 11,
+    "phrases": 12,
     "castle": 1,
     "characters": 2,
     "profile_defaults": 1

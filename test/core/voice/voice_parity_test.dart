@@ -10,6 +10,7 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
 import 'package:xoai_castle/features/games/letter_game_spec.dart';
 import 'package:xoai_castle/features/games/trace/number_trace.dart';
+import 'package:xoai_castle/features/games/trace/tone_trace.dart';
 
 import '../../support/fakes.dart';
 
@@ -46,7 +47,8 @@ void main() {
 
     for (final id in content.phrases.keys) {
       if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
-          viLetterPhraseIds.contains(id) || talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id)) {
+          viLetterPhraseIds.contains(id) || talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id) ||
+          viTonePhraseIds.contains(id)) {
         continue;
       }
       if (numberPhraseIds.contains(id)) continue;
@@ -107,6 +109,17 @@ void main() {
       await check(tn.doneId, tn.doneId, tn.vars(numbers[n]));
     }
     await check(tn.levelUpId, tn.levelUpId);
+
+    // Tone marks: every tone on every base, with the items a round places and the spec's vars.
+    const tt = LetterGameSpec.traceTones;
+    final toneItems = tt.letters(content);
+    expect(toneItems, hasLength(5));
+    for (final item in toneItems) {
+      for (final placed in tt.prepareRound!([for (var i = 0; i < toneBases.length; i++) item])) {
+        await check(tt.promptId, tt.promptId, tt.vars(placed));
+        await check(tt.doneId, tt.doneId, tt.vars(placed));
+      }
+    }
 
     // Talk: exactly as the talk screen says them, with the item's text rendered first.
     final names = Names(en: defaults.nameEn, vi: defaults.nameVi);

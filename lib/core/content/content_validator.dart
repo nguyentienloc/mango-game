@@ -1,6 +1,9 @@
 import 'dart:convert';
 
-const requiredPacks = ['letters_en', 'letters_vi', 'digits', 'conversation', 'stories'];
+const requiredPacks = ['letters_en', 'letters_vi', 'digits', 'tones', 'conversation', 'stories'];
+
+/// The five Vietnamese tone marks of packs/tones.json, in teaching order.
+const toneIds = ['sac', 'huyen', 'hoi', 'nga', 'nang'];
 
 /// The 29 Vietnamese capitals, in teaching order.
 const viLetters = ['A', 'Ă', 'Â', 'B', 'C', 'D', 'Đ', 'E', 'Ê', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'Ô', 'Ơ', 'P', 'Q', 'R', 'S', 'T', 'U', 'Ư', 'V', 'X', 'Y'];
@@ -53,6 +56,9 @@ const requiredPhraseIds = {
   'vi_trace_done',
   'game_vi_balloon',
   'game_vi_trace',
+  'game_vi_tone',
+  'vi_tone_prompt',
+  'vi_tone_done',
   'game_story',
   'story_pick',
   'story_error',
@@ -115,6 +121,7 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
   _checkLetters('letters_en', docs['packs/letters_en.json']!, errors, checkImage);
   _checkLetters('letters_vi', docs['packs/letters_vi.json']!, errors, checkImage);
   _checkDigits(docs['packs/digits.json']!, errors);
+  _checkTones(docs['packs/tones.json']!, errors);
   _checkConversation(docs['packs/conversation.json']!, errors);
   _checkStories(docs['packs/stories.json']!, errors);
   _checkVocab(packs.keys, docs, errors, checkImage);
@@ -203,6 +210,28 @@ void _checkDigits(Map<String, dynamic> doc, List<String> errors) {
       continue;
     }
     if (i < 10 && item['char'] != '$i') errors.add('$w: "char" phải là "$i"');
+    _checkStrokes(item['strokes'], w, errors);
+  }
+}
+
+/// tones.json: exactly the five tones of [toneIds], in order, each with a name, a mark and strokes.
+void _checkTones(Map<String, dynamic> doc, List<String> errors) {
+  const where = 'packs/tones.json';
+  final items = doc['items'];
+  if (items is! List || items.length != toneIds.length) {
+    errors.add('$where: cần đúng ${toneIds.length} dấu ${toneIds.join(', ')} theo thứ tự');
+    if (items is! List) return;
+  }
+  for (final (i, item) in items.indexed) {
+    final w = '$where items[$i]';
+    if (item is! Map<String, dynamic>) {
+      errors.add('$w: phải là object');
+      continue;
+    }
+    if (i < toneIds.length && item['id'] != toneIds[i]) errors.add('$w: "id" phải là "${toneIds[i]}"');
+    for (final field in ['name', 'mark']) {
+      if (!_nonEmpty(item[field])) errors.add('$w: thiếu "$field"');
+    }
     _checkStrokes(item['strokes'], w, errors);
   }
 }

@@ -79,6 +79,7 @@ ContentBundle withStories(ContentBundle content, List<Story> stories) => Content
   lettersEn: content.lettersEn,
   lettersVi: content.lettersVi,
   digits: content.digits,
+  tones: content.tones,
   phrases: content.phrases,
   castle: content.castle,
   characters: content.characters,
