@@ -7,6 +7,7 @@ import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/core/updater/app_updater.dart';
 import 'package:xoai_castle/features/castle/castle_screen.dart';
 import 'package:xoai_castle/features/games/balloon/balloon_screen.dart';
+import 'package:xoai_castle/features/games/compare/compare_screen.dart';
 import 'package:xoai_castle/features/games/talk/talk_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_chooser_screen.dart';
 import 'package:xoai_castle/features/games/trace/trace_screen.dart';
@@ -210,15 +211,33 @@ void main() {
     expect(find.byType(MathGateScreen), findsOneWidget);
   });
 
-  testWidgets('fits a 360x640 phone with all six game buttons', (tester) async {
+  testWidgets('the scales button says "So sánh" and opens the compare game', (tester) async {
+    final tts = await pumpHome(tester);
+    await tester.tap(find.text('⚖️'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tts.texts, contains('So sánh'));
+    expect(find.byType(CompareScreen), findsOneWidget);
+    // Named before the game's first question.
+    expect(tts.texts.indexOf('So sánh'), lessThan(tts.texts.indexWhere((t) => t.startsWith('Bên nào'))));
+  });
+
+  testWidgets('the scales button comes right before the moon', (tester) async {
+    await pumpHome(tester);
+    final emojis = [for (final b in tester.widgetList<BigButton>(find.byType(BigButton))) b.emoji];
+    expect(emojis, ['🐾', '🎈', '✏️', '🗣️', '🇻🇳', '⚖️', '🌙']);
+  });
+
+  testWidgets('fits a 360x640 phone with all seven game buttons', (tester) async {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await pumpHome(tester);
     expect(tester.takeException(), isNull);
     final buttons = find.byType(BigButton);
-    expect(buttons, findsNWidgets(6));
-    for (var i = 0; i < 6; i++) {
+    expect(buttons, findsNWidgets(7));
+    for (var i = 0; i < 7; i++) {
       final r = tester.getRect(buttons.at(i));
       expect(r.left, greaterThanOrEqualTo(0));
       expect(r.right, lessThanOrEqualTo(360));

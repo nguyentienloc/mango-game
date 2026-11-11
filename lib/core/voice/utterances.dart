@@ -1,10 +1,11 @@
 import '../content/models.dart';
 import '../content/vocab.dart';
+import '../../features/games/compare/compare_logic.dart';
 import '../../features/games/trace/tone_trace.dart';
 import '../profile/names.dart';
 import 'utterance.dart';
 
-enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk, traceNumbers, viTones }
+enum UtteranceKind { fixed, vocab, trace, balloon, numbers, viLetters, talk, traceNumbers, viTones, compare }
 
 class PlannedUtterance {
   const PlannedUtterance(this.utterance, this.kind);
@@ -38,6 +39,12 @@ const viLetterPhraseIds = [
 /// also the vowel it was put on ({base}) and the two together ({combined}, e.g. `á`).
 const viTonePhraseIds = ['vi_tone_prompt', 'vi_tone_done'];
 
+/// Compare game phrases with numbers: {a} and {b} are each a part of their own (`vi|7`), whose clips
+/// the snowflake counts already need. Level 1 says picture counts (1..10), levels 2-4 numbers 0..99.
+const comparePictureIds = ['compare_right_more', 'compare_right_fewer'];
+const compareNumberIds = ['compare_ask', 'compare_right_gt', 'compare_right_lt', 'compare_right_eq'];
+const comparePhraseIds = [...comparePictureIds, ...compareNumberIds];
+
 /// Talk-with-Elsa phrases that need an item: `talk_question` ({question}) and
 /// `talk_say_after` ({model}). The two other talk phrases (`talk_again`,
 /// `talk_hold_hint`) are plain fixed phrases.
@@ -64,7 +71,8 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
   for (final id in content.phrases.keys) {
     if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
         balloonPhraseIds.contains(id) || numberPhraseIds.contains(id) || viLetterPhraseIds.contains(id) ||
-        talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id) || viTonePhraseIds.contains(id)) {
+        talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id) || viTonePhraseIds.contains(id) ||
+        comparePhraseIds.contains(id)) {
       continue;
     }
     add(id, const {}, UtteranceKind.fixed);
@@ -115,6 +123,19 @@ List<PlannedUtterance> enumerateUtterances(ContentBundle content, Names names) {
       add('vi_tone_done', toneVars(ToneTraceItem(tone, base: base)), UtteranceKind.viTones);
     }
   }
+  // Compare: clips are per PART and every part depends on at most one of {a} and {b}, so running
+  // {a} over the whole range with {b} fixed, then {b} with {a} fixed, covers every part of every
+  // pair the game can ask (all 100 x 100 combinations would only repeat the same parts).
+  void compareRange(List<String> ids, int lo, int hi) {
+    for (final id in ids) {
+      for (var n = lo; n <= hi; n++) {
+        add(id, {'a': '$n', 'b': '$lo'}, UtteranceKind.compare);
+        add(id, {'a': '$lo', 'b': '$n'}, UtteranceKind.compare);
+      }
+    }
+  }
+  compareRange(comparePictureIds, 1, compareMaxNumber(1));
+  compareRange(compareNumberIds, 0, compareMaxNumber(compareMaxLevel));
   for (var n = 0; n <= maxSpokenCount; n++) {
     add('snowflake_count', {'count': '$n'}, UtteranceKind.numbers);
   }

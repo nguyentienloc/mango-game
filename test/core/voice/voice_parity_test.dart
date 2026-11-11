@@ -8,6 +8,7 @@ import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/clip_library.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 import 'package:xoai_castle/core/voice/voice_service.dart';
+import 'package:xoai_castle/features/games/compare/compare_logic.dart';
 import 'package:xoai_castle/features/games/letter_game_spec.dart';
 import 'package:xoai_castle/features/games/trace/number_trace.dart';
 import 'package:xoai_castle/features/games/trace/tone_trace.dart';
@@ -48,7 +49,7 @@ void main() {
     for (final id in content.phrases.keys) {
       if (vocabPhraseIds.contains(id) || letterPhraseIds.contains(id) || balloonPhraseIds.contains(id) || tracePhraseIds.contains(id) ||
           viLetterPhraseIds.contains(id) || talkPhraseIds.contains(id) || traceNumberPhraseIds.contains(id) ||
-          viTonePhraseIds.contains(id)) {
+          viTonePhraseIds.contains(id) || comparePhraseIds.contains(id)) {
         continue;
       }
       if (numberPhraseIds.contains(id)) continue;
@@ -119,6 +120,34 @@ void main() {
         await check(tt.promptId, tt.promptId, tt.vars(placed));
         await check(tt.doneId, tt.doneId, tt.vars(placed));
       }
+    }
+
+    // Compare: every question the game can build, with the question's own phrase ids and vars.
+    // There are 10 000 number pairs, so they are checked by key; a few go through say().
+    final compareQs = [
+      for (var a = 1; a <= 10; a++)
+        for (var b = 1; b <= 10; b++)
+          if (a != b)
+            for (final more in [true, false]) CompareQuestion.picture(left: a, right: b, askMore: more, emoji: '🍎'),
+      for (var a = 0; a <= 99; a++)
+        for (var b = 0; b <= 99; b++) CompareQuestion.numbers(level: 4, left: a, right: b),
+    ];
+    for (final q in compareQs) {
+      for (final (id, vars) in [(q.promptId, q.promptVars), (q.rightId, q.rightVars)]) {
+        for (final part in voice.utterance(id, vars: vars).parts) {
+          if (clips.assetFor(part) == null) missing.add(part.key);
+        }
+      }
+    }
+    for (final q in const [
+      CompareQuestion.picture(left: 7, right: 3, askMore: true, emoji: '🍎'),
+      CompareQuestion.picture(left: 7, right: 3, askMore: false, emoji: '🍎'),
+      CompareQuestion.numbers(level: 2, left: 3, right: 5),
+      CompareQuestion.numbers(level: 3, left: 18, right: 6),
+      CompareQuestion.numbers(level: 4, left: 47, right: 47),
+    ]) {
+      await check(q.promptId, q.promptId, q.promptVars);
+      await check(q.rightId, q.rightId, q.rightVars);
     }
 
     // Talk: exactly as the talk screen says them, with the item's text rendered first.

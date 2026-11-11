@@ -12,7 +12,7 @@ import 'package:xoai_castle/core/voice/utterances.dart';
 /// Clips bake in the default names from profile_defaults.json; if names ever become
 /// editable, regenerate the clips.
 void main() {
-  test('every part of every fixed, vocabulary, trace, balloon, Vietnamese-letter, number-tracing and tone-mark utterance has a generated clip', () async {
+  test('every part of every fixed, vocabulary, trace, balloon, Vietnamese-letter, number-tracing, tone-mark and compare utterance has a generated clip', () async {
     final content = await ContentRepository(FileContentSource('content')).load();
     final defaults = content.profileDefaults;
     final planned = enumerateUtterances(content, Names(en: defaults.nameEn, vi: defaults.nameVi));
@@ -37,6 +37,8 @@ void main() {
     expect(planned.where((p) => p.kind == UtteranceKind.traceNumbers), hasLength(100 * 2));
     // Tone marks: a prompt per tone and a done line per tone and base; a required kind.
     expect(planned.where((p) => p.kind == UtteranceKind.viTones), hasLength(5 + 5 * 5));
+    // Compare: {a} and {b} each over the range with the other fixed; a required kind.
+    expect(planned.where((p) => p.kind == UtteranceKind.compare), hasLength(2 * 19 + 4 * 199));
     expect(missing, isEmpty, reason: 'Run: dart run tool/gen_voice.dart');
   });
 

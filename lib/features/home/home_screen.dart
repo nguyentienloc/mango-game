@@ -18,6 +18,7 @@ import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
 import '../games/balloon/balloon_screen.dart';
+import '../games/compare/compare_screen.dart';
 import '../games/talk/talk_screen.dart';
 import '../games/trace/trace_chooser_screen.dart';
 import '../games/vi_letters/vi_letters_screen.dart';
@@ -84,6 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _GameEntry('✏️', 'game_trace', (_) => const TraceChooserScreen()),
       _GameEntry('🗣️', 'game_talk', (_) => const TalkScreen()),
       _GameEntry('🇻🇳', 'game_vi', (_) => const VietnameseLettersScreen()),
+      _GameEntry('⚖️', 'game_compare', (_) => const CompareScreen()),
       _GameEntry('🌙', 'game_story', (_) => MathGateScreen(onPassed: (_) => const StorySetupScreen())),
     ];
     // Home is the root: the back gesture must not exit the app by accident.
