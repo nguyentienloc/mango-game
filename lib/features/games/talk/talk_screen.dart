@@ -361,7 +361,12 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                           child: _celebrating && _turn.earnsSnowflake
                               ? const Text(
                                   '+1 ❄️',
-                                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: NoelColors.gold),
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: NoelColors.gold,
+                                    shadows: NoelColors.goldTextShadows,
+                                  ),
                                 )
                               : null,
                         ),

@@ -31,6 +31,10 @@ void main() {
     final tree = bundle.vocab.firstWhere((w) => w.id == 'christmas_tree');
     expect(tree.word, 'Christmas tree');
     expect(tree.vi, 'cây thông Noel');
+    // "Find the Santa Claus!" reads right; "Find the Santa!" did not. The picture keeps its id.
+    final santa = bundle.vocab.firstWhere((w) => w.id == 'santa');
+    expect(santa.word, 'Santa Claus');
+    expect(santa.image, 'images/vocab/santa.png');
   });
 
   test('only shipped words have a picture file', () {

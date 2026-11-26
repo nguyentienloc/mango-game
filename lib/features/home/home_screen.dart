@@ -83,7 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final today = dayKey(ref.watch(clockProvider)());
     final hasUpdate = ref.watch(updateCheckProvider).value is UpdateAvailable;
     final games = <_GameEntry>[
-      _GameEntry('🐾', 'game_vocab', (_) => const VocabScreen()),
+      _GameEntry('🎁', 'game_vocab', (_) => const VocabScreen()),
       _GameEntry('🎈', 'game_balloon', (_) => const BalloonScreen()),
       _GameEntry('✏️', 'game_trace', (_) => const TraceChooserScreen()),
       _GameEntry('🗣️', 'game_talk', (_) => const TalkScreen()),

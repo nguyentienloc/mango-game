@@ -119,7 +119,12 @@ class _RewardScreenState extends ConsumerState<RewardScreen> {
                     duration: const Duration(milliseconds: 1200),
                     builder: (context, value, _) => Text(
                       '+$value ❄️',
-                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: NoelColors.gold),
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: NoelColors.gold,
+                        shadows: NoelColors.goldTextShadows,
+                      ),
                     ),
                   ),
                   if (o.questCompleted) _GiftBox(opened: _giftOpened, bonus: o.questBonus, onTap: _openGift),
@@ -190,7 +195,12 @@ class _GiftBoxState extends State<_GiftBox> with SingleTickerProviderStateMixin 
                   builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
                   child: Text(
                     '+${widget.bonus} ❄️',
-                    style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: NoelColors.gold),
+                    style: const TextStyle(
+                      fontSize: 44,
+                      fontWeight: FontWeight.bold,
+                      color: NoelColors.gold,
+                      shadows: NoelColors.goldTextShadows,
+                    ),
                   ),
                 )
               : AnimatedBuilder(

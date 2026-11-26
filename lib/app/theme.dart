@@ -50,16 +50,10 @@ class NoelColors {
 
   /// Drop shadow of white cards on the night sky.
   static const shadow = Color(0xFF020814);
-}
 
-/// Old ice names, kept only so code from branches started before the Noel theme still
-/// compiles; the values are Noel colours. Use [NoelColors] in new code.
-class IceColors {
-  static const sky = NoelColors.snow;
-  static const ice = NoelColors.snowShade;
-  static const frost = NoelColors.snowShade;
-  static const deep = NoelColors.ink;
-  static const glow = NoelColors.glow;
+  /// Under gold text ("+1 ❄️"), which may land on the white snow hill: a dark soft halo
+  /// keeps it readable there as well as on the sky.
+  static const goldTextShadows = [Shadow(color: shadow, blurRadius: 6)];
 }
 
 /// The parent area keeps the light Material look of earlier versions.

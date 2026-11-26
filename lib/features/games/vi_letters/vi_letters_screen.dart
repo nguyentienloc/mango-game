@@ -51,57 +51,55 @@ class _VietnameseLettersScreenState extends ConsumerState<VietnameseLettersScree
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
         body: NoelBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Row(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    BigButton(
+                      emoji: '🏠',
+                      size: 64,
+                      onTap: () {
+                        _leavingByUs = true;
+                        ref.read(voiceProvider).say('go_home');
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const CharacterView(id: 'elsa', size: 120),
+              Expanded(
+                child: Center(
+                  child: Wrap(
+                    // Three 100 dp buttons in one row still fit a 360 dp wide phone.
+                    spacing: 16,
+                    runSpacing: 16,
+                    alignment: WrapAlignment.center,
                     children: [
                       BigButton(
-                        emoji: '🏠',
-                        size: 64,
-                        onTap: () {
-                          _leavingByUs = true;
-                          ref.read(voiceProvider).say('go_home');
-                          Navigator.of(context).pop();
-                        },
+                        emoji: '🎈',
+                        size: 100,
+                        onTap: () => _open('game_vi_balloon', (_) => const BalloonScreen(spec: LetterGameSpec.balloonVi)),
+                      ),
+                      BigButton(
+                        emoji: '✏️',
+                        size: 100,
+                        ring: NoelColors.green,
+                        onTap: () => _open('game_vi_trace', (_) => const TraceScreen(spec: LetterGameSpec.traceVi)),
+                      ),
+                      BigButton(
+                        emoji: 'á',
+                        size: 100,
+                        textStyle: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: NoelColors.deepRed),
+                        onTap: () => _open('game_vi_tone', (_) => const TraceScreen(spec: LetterGameSpec.traceTones)),
                       ),
                     ],
                   ),
                 ),
-                const CharacterView(id: 'elsa', size: 120),
-                Expanded(
-                  child: Center(
-                    child: Wrap(
-                      // Three 100 dp buttons in one row still fit a 360 dp wide phone.
-                      spacing: 16,
-                      runSpacing: 16,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        BigButton(
-                          emoji: '🎈',
-                          size: 100,
-                          onTap: () => _open('game_vi_balloon', (_) => const BalloonScreen(spec: LetterGameSpec.balloonVi)),
-                        ),
-                        BigButton(
-                          emoji: '✏️',
-                          size: 100,
-                          ring: NoelColors.green,
-                          onTap: () => _open('game_vi_trace', (_) => const TraceScreen(spec: LetterGameSpec.traceVi)),
-                        ),
-                        BigButton(
-                          emoji: 'á',
-                          size: 100,
-                          textStyle: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: NoelColors.deepRed),
-                          onTap: () => _open('game_vi_tone', (_) => const TraceScreen(spec: LetterGameSpec.traceTones)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

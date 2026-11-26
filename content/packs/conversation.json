@@ -1,6 +1,6 @@
 {
   "id": "conversation",
-  "version": 3,
+  "version": 4,
   "items": [
     {
       "id": "name",
@@ -21,7 +21,7 @@
       "question": "Merry Christmas, {name_en}!",
       "model": "Merry Christmas!",
       "accept": [["christmas"], ["merry"]],
-      "aliases": { "christmas": ["xmas"] }
+      "aliases": { "christmas": ["xmas"], "merry": ["mary"] }
     },
     {
       "id": "who_brings_gifts",
@@ -49,7 +49,7 @@
       "id": "like_snow",
       "question": "Do you like snow?",
       "model": "Yes, I do!",
-      "accept": [["yes"], ["yeah"], ["no"], ["like", "snow"]],
+      "accept": [["yes"], ["yeah"], ["no"], ["i", "do"]],
       "aliases": { "yes": ["yesh", "yep"] }
     },
     {
@@ -79,7 +79,8 @@
       "question": "How many stars?",
       "model": "Three!",
       "emojiRow": "⭐⭐⭐",
-      "accept": [["three"], ["3"]]
+      "accept": [["three"], ["3"]],
+      "aliases": { "three": ["tree"] }
     },
     {
       "id": "good_morning",
@@ -97,14 +98,14 @@
       "id": "cold_today",
       "question": "Is it cold today?",
       "model": "Yes, it is cold.",
-      "accept": [["yes"], ["yeah"], ["no"], ["cold"]],
-      "aliases": { "yes": ["yesh", "yep"] }
+      "accept": [["yes"], ["yeah"], ["no"], ["it is cold"]],
+      "aliases": { "yes": ["yesh", "yep"], "it is cold": ["its cold"] }
     },
     {
       "id": "sing_song",
       "question": "Can you sing a song?",
       "model": "Yes, I can!",
-      "accept": [["yes"], ["yeah"], ["can"], ["sing"]],
+      "accept": [["yes"], ["yeah"], ["no"], ["i", "can"]],
       "aliases": { "yes": ["yesh", "yep"] }
     },
     {
@@ -125,7 +126,7 @@
       "id": "love_mommy",
       "question": "Do you love your mommy?",
       "model": "Yes, I love Mommy!",
-      "accept": [["yes"], ["yeah"], ["love"]],
+      "accept": [["yes"], ["yeah"], ["i", "love"]],
       "aliases": { "yes": ["yesh", "yep"] }
     },
     {

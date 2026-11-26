@@ -1,10 +1,10 @@
 {
   "id": "vocab_christmas",
-  "version": 1,
+  "version": 2,
   "title_vi": "Giáng sinh",
   "items": [
     { "id": "christmas_tree", "word": "Christmas tree", "vi": "cây thông Noel", "image": "images/vocab/christmas_tree.png", "emoji": "🎄" },
-    { "id": "santa", "word": "Santa", "vi": "ông già Noel", "image": "images/vocab/santa.png", "emoji": "🎅" },
+    { "id": "santa", "word": "Santa Claus", "vi": "ông già Noel", "image": "images/vocab/santa.png", "emoji": "🎅" },
     { "id": "gift", "word": "gift", "vi": "hộp quà", "image": "images/vocab/gift.png", "emoji": "🎁" },
     { "id": "snowman", "word": "snowman", "vi": "người tuyết", "image": "images/vocab/snowman.png", "emoji": "⛄" },
     { "id": "reindeer", "word": "reindeer", "vi": "tuần lộc", "image": "images/vocab/reindeer.png", "emoji": "🦌" },

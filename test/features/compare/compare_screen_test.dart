@@ -9,6 +9,7 @@ import 'package:xoai_castle/features/games/compare/compare_logic.dart';
 import 'package:xoai_castle/features/games/compare/compare_screen.dart';
 import 'package:xoai_castle/features/reward/reward_screen.dart';
 
+import '../../support/gold_text.dart';
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
 
@@ -115,6 +116,7 @@ void main() {
       expect(find.descendant(of: find.byKey(const Key('compare-count-right')), matching: find.text('${q.right}')), findsOneWidget);
       expect(find.byKey(Key('compare-win-$side')), findsOneWidget);
       expect(find.text('+1 ❄️'), findsOneWidget);
+      expectGoldOnSnow(tester, find.text('+1 ❄️'));
       sawMore = more;
       await settle(tester, 20);
     }

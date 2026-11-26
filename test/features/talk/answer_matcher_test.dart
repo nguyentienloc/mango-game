@@ -94,6 +94,8 @@ void main() {
   test('merry christmas and santa', () {
     expect(ok('merry_christmas', ['Merry Christmas Elsa']), isTrue);
     expect(ok('merry_christmas', ['merry xmas']), isTrue);
+    expect(ok('merry_christmas', ['merry']), isTrue);
+    expect(ok('merry_christmas', ['Mary']), isTrue, reason: 'the recogniser often hears "merry" as "Mary"');
     expect(ok('merry_christmas', ['hello']), isFalse);
     expect(ok('who_brings_gifts', ['Santa']), isTrue);
     expect(ok('who_brings_gifts', ["Santa's sleigh"]), isTrue);
@@ -120,15 +122,37 @@ void main() {
       expect(ok(id, ['yeah']), isTrue, reason: id);
     }
     expect(ok('like_snow', ['no']), isTrue);
-    expect(ok('like_snow', ['I like snow']), isTrue);
+    expect(ok('like_snow', ['I do']), isTrue);
+    expect(ok('like_snow', ['yes I like snow']), isTrue);
     expect(ok('like_snow', ['snow']), isFalse);
     expect(ok('cold_today', ['no']), isTrue);
-    expect(ok('cold_today', ['very cold']), isTrue);
+    expect(ok('cold_today', ['it is cold']), isTrue);
+    expect(ok('cold_today', ["it's cold"]), isTrue);
     expect(ok('cold_today', ['hot']), isFalse);
+    expect(ok('sing_song', ['no']), isTrue);
     expect(ok('sing_song', ['I can sing']), isTrue);
     expect(ok('sing_song', ["I can't"]), isFalse);
     expect(ok('love_mommy', ['I love mommy']), isTrue);
     expect(ok('love_mommy', ['mommy']), isFalse);
+  });
+
+  test('repeating Elsa\'s yes/no question is not an answer', () {
+    for (final (id, echo) in [
+      ('like_snow', 'Do you like snow?'),
+      ('sing_song', 'Can you sing a song?'),
+      ('love_mommy', 'Do you love your mommy?'),
+      ('cold_today', 'Is it cold today?'),
+    ]) {
+      expect(ok(id, [echo]), isFalse, reason: id);
+      expect(ok(id, [echo.replaceAll('?', '')]), isFalse, reason: id);
+    }
+    // Bits of the question are not answers either.
+    expect(ok('like_snow', ['like snow']), isFalse);
+    expect(ok('sing_song', ['sing']), isFalse);
+    expect(ok('sing_song', ['can']), isFalse);
+    expect(ok('love_mommy', ['love']), isFalse);
+    expect(ok('cold_today', ['cold']), isFalse);
+    expect(ok('cold_today', ['very cold']), isFalse);
   });
 
   test('snowman color is white only', () {
@@ -150,6 +174,7 @@ void main() {
   test('how many stars', () {
     expect(ok('how_many_stars', ['three']), isTrue);
     expect(ok('how_many_stars', ['3']), isTrue);
+    expect(ok('how_many_stars', ['tree']), isTrue, reason: 'a small child\'s "three" is often heard as "tree"');
     expect(ok('how_many_stars', ['two']), isFalse);
     expect(ok('how_many_stars', ['33']), isFalse);
   });

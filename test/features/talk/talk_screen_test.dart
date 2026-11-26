@@ -13,6 +13,7 @@ import 'package:xoai_castle/features/games/talk/talk_screen.dart';
 import 'package:xoai_castle/features/reward/reward_screen.dart';
 import 'package:xoai_castle/shared/character_view.dart';
 
+import '../../support/gold_text.dart';
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
 
@@ -152,6 +153,19 @@ void main() {
     expect(stats.stats.keys.every((k) => k.startsWith('conv:')), isTrue);
     expect(stats.stats.values.every((s) => s.mastery == 1), isTrue);
     expect(rewards.state.snowflakesTotal, 10);
+  });
+
+  testWidgets('the gold +1 has a dark shadow so it reads on the snow', (tester) async {
+    final (tts, speech, _, _, _) = await pumpTalk(tester);
+    final g = await tester.startGesture(tester.getCenter(_mic));
+    await tester.pump(const Duration(milliseconds: 100));
+    speech.scripts.add([model(current(tts))]);
+    await g.up();
+    for (var i = 0; i < 20 && find.text('+1 ❄️').evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expectGoldOnSnow(tester, find.text('+1 ❄️'));
+    await settle(tester);
   });
 
   group('picture questions', () {

@@ -21,6 +21,9 @@ import 'package:xoai_castle/shared/character_view.dart';
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
 
+/// The vocabulary game's button: a gift (the quest gifts are plain text, not buttons).
+final _vocabButton = find.byWidgetPredicate((w) => w is BigButton && w.emoji == '🎁');
+
 void main() {
   late ContentBundle content;
 
@@ -93,9 +96,11 @@ void main() {
     expect(find.byType(TraceScreen), findsNothing);
   });
 
-  testWidgets('the paw button opens the vocabulary game', (tester) async {
+  testWidgets('the gift button opens the vocabulary game (no paw: the animals pack is gone)', (tester) async {
     final tts = await pumpHome(tester);
-    await tester.tap(find.text('🐾'));
+    expect(find.text('🐾'), findsNothing);
+    expect(_vocabButton, findsOneWidget);
+    await tester.tap(_vocabButton);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(tts.texts, contains('Nhìn hình đoán từ'));
@@ -119,7 +124,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     tts.release();
-    await tester.tap(find.text('🐾'));
+    await tester.tap(_vocabButton);
     await tester.pump(const Duration(milliseconds: 500));
     expect(tts.texts.last, 'Nhìn hình đoán từ');
     expect(find.byType(VocabScreen), findsNothing);
@@ -136,9 +141,9 @@ void main() {
     await tester.pump();
     await tester.pump();
     tts.release();
-    await tester.tap(find.text('🐾'));
+    await tester.tap(_vocabButton);
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.text('🐾'), warnIfMissed: false);
+    await tester.tap(_vocabButton, warnIfMissed: false);
     await tester.tap(find.byKey(const Key('home-castle')), warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 500));
     for (var i = 0; i < 3; i++) {
@@ -155,7 +160,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     tts.release();
-    await tester.tap(find.text('🐾'));
+    await tester.tap(_vocabButton);
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(VocabScreen), findsNothing);
     await tester.pump(const Duration(seconds: 2));
@@ -228,7 +233,7 @@ void main() {
   testWidgets('the scales button comes right before the moon', (tester) async {
     await pumpHome(tester);
     final emojis = [for (final b in tester.widgetList<BigButton>(find.byType(BigButton))) b.emoji];
-    expect(emojis, ['🐾', '🎈', '✏️', '🗣️', '🇻🇳', '⚖️', '🌙']);
+    expect(emojis, ['🎁', '🎈', '✏️', '🗣️', '🇻🇳', '⚖️', '🌙']);
   });
 
   testWidgets('fits a 360x640 phone with all seven game buttons', (tester) async {

@@ -214,7 +214,15 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
                     Expanded(
                       child: Center(
                         child: firstTry
-                            ? const Text('+1 ❄️', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: NoelColors.gold))
+                            ? const Text(
+                                '+1 ❄️',
+                                style: TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w900,
+                                  color: NoelColors.gold,
+                                  shadows: NoelColors.goldTextShadows,
+                                ),
+                              )
                             : null,
                       ),
                     ),
