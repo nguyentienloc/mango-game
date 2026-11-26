@@ -3,10 +3,14 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:xoai_castle/core/voice/utterance.dart';
 
-/// Pure helpers for tool/gen_voice.dart (Vbee TTS), kept free of I/O so they
-/// can be unit-tested.
+import 'local_voice.dart';
 
-const provider = 'vbee';
+/// Pure helpers for tool/gen_voice.dart (local voices by default, Vbee as a
+/// fallback), kept free of I/O so they can be unit-tested.
+
+/// Who synthesises the parts: [local] = VieNeu-TTS (vi) + Kokoro-82M (en) on
+/// this machine; [vbee] = the Vbee API (needs credentials and --allow-api).
+enum VoiceProvider { local, vbee }
 const voiceSpeed = 0.9;
 const _voices = {
   'vi': 'hn_female_ngochuyen_full_48k-fhg', // HN - Ngọc Huyền
@@ -21,9 +25,21 @@ String voiceFor(String lang) {
   return v;
 }
 
-/// Cache key of one synthesised part (a single-language piece of an utterance).
+/// Cache key of one Vbee-synthesised part (a single-language piece of an utterance).
 String partCacheKey(String lang, String text, String voice, double speed) =>
     sha1.convert(utf8.encode('$lang|$text|$voice|$speed')).toString();
+
+/// Cache key of [p] for [provider]; Vbee keys are unchanged, so its old MP3 cache stays valid.
+/// [enSpeed] is the Kokoro speed of the local provider (ignored by Vbee).
+String partCacheKeyFor(VoiceProvider provider, UtterancePart p, {double enSpeed = defaultEnSpeed}) =>
+    switch (provider) {
+      VoiceProvider.vbee => partCacheKey(p.lang, p.text, voiceFor(p.lang), voiceSpeed),
+      VoiceProvider.local => localPartCacheKey(p.lang, p.text, enSpeed: enSpeed),
+    };
+
+/// The cached raw audio of [p]: an MP3 from Vbee, a WAV from the local engines.
+String partCachePath(VoiceProvider provider, UtterancePart p, {double enSpeed = defaultEnSpeed}) =>
+    'build/voice-parts/${partCacheKeyFor(provider, p, enSpeed: enSpeed)}.${provider == VoiceProvider.vbee ? 'mp3' : 'wav'}';
 
 /// File name of a part's clip in content/audio/: sha1 of `lang|text`, 16 hex chars.
 String partFileName(String partKey) =>
@@ -41,27 +57,39 @@ Map<String, UtterancePart> distinctParts(Iterable<Utterance> utterances) {
 }
 
 /// Generator settings recorded in content/audio/index.json (next to `clips`).
-Map<String, Object> indexMeta() => {
-  'provider': provider,
-  'voices': {for (final e in _voices.entries) e.key: e.value},
-  'speed': voiceSpeed,
-  'granularity': 'part',
+/// [enSpeed] is the Kokoro speed of the local provider (ignored by Vbee).
+Map<String, Object> indexMeta(VoiceProvider provider, {double enSpeed = defaultEnSpeed}) => switch (provider) {
+  VoiceProvider.vbee => {
+    'provider': 'vbee',
+    'voices': {for (final e in _voices.entries) e.key: e.value},
+    'speed': voiceSpeed,
+    'granularity': 'part',
+  },
+  VoiceProvider.local => {
+    'provider': 'local',
+    'voices': {for (final e in localVoices.entries) e.key: e.value.id},
+    'speed': enSpeed,
+    'temperature': localVoices['vi']!.settings['temperature']!,
+    'post': localPostRecipe,
+    'granularity': 'part',
+  },
 };
 
-/// True when the index was made with another provider/voices/speed, or holds
+/// True when the index was made with another provider/voices/settings, or holds
 /// per-utterance clips (no `granularity: part`), so all of its clips must be
 /// regenerated.
-bool indexIsStale(Map<String, dynamic> index) {
-  final cur = indexMeta();
-  if (index['provider'] != cur['provider'] ||
-      index['speed'] != cur['speed'] ||
-      index['granularity'] != cur['granularity']) {
-    return true;
+bool indexIsStale(Map<String, dynamic> index, VoiceProvider provider, {double enSpeed = defaultEnSpeed}) {
+  for (final e in indexMeta(provider, enSpeed: enSpeed).entries) {
+    final have = index[e.key];
+    final want = e.value;
+    if (want is Map) {
+      if (have is! Map || have.length != want.length) return true;
+      if (want.entries.any((w) => have[w.key] != w.value)) return true;
+    } else if (have != want) {
+      return true;
+    }
   }
-  final voices = index['voices'];
-  final curVoices = cur['voices']! as Map<String, String>;
-  if (voices is! Map || voices.length != curVoices.length) return true;
-  return curVoices.entries.any((e) => voices[e.key] != e.value);
+  return false;
 }
 
 enum VbeeErrorAction { retry, stopRun, fail }
@@ -154,6 +182,8 @@ class GenArgs {
     this.dryRun = false,
     this.allowApi = false,
     this.batch = false,
+    this.provider = VoiceProvider.local,
+    this.enSpeed = defaultEnSpeed,
   });
 
   final int? limit;
@@ -161,12 +191,19 @@ class GenArgs {
   final bool prune;
   final bool dryRun;
 
-  /// Without it, parts missing from the local cache are only reported (no Vbee call).
+  /// Without it, parts missing from the local cache are only reported (no Vbee
+  /// call). Only applies to `--provider vbee`.
   final bool allowApi;
 
   /// Batch every uncached part per language, whatever its length (by default only
   /// parts of at most [maxBatchTextLength] characters are batched).
   final bool batch;
+
+  /// `--provider local|vbee` (default local).
+  final VoiceProvider provider;
+
+  /// `--en-speed X`: Kokoro reading speed for English (local provider), 0.5–2.0.
+  final double enSpeed;
 }
 
 /// Parses the generator's command line; throws [FormatException] on bad input.
@@ -177,6 +214,8 @@ GenArgs parseGenArgs(List<String> args) {
   var dryRun = false;
   var allowApi = false;
   var batch = false;
+  var provider = VoiceProvider.local;
+  var enSpeed = defaultEnSpeed;
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
     switch (a) {
@@ -200,6 +239,18 @@ GenArgs parseGenArgs(List<String> args) {
           throw const FormatException('--only cần một đoạn văn bản');
         }
         only = v;
+      case '--en-speed':
+        final v = i + 1 < args.length ? double.tryParse(args[++i]) : null;
+        if (v == null || v < 0.5 || v > 2.0) {
+          throw const FormatException('--en-speed cần một số từ 0.5 đến 2.0');
+        }
+        enSpeed = v;
+      case '--provider':
+        final v = i + 1 < args.length ? args[++i] : '';
+        provider = VoiceProvider.values.firstWhere(
+          (p) => p.name == v,
+          orElse: () => throw const FormatException('--provider cần local hoặc vbee'),
+        );
       default:
         throw FormatException('Tùy chọn không hợp lệ: $a');
     }
@@ -211,6 +262,8 @@ GenArgs parseGenArgs(List<String> args) {
     dryRun: dryRun,
     allowApi: allowApi,
     batch: batch,
+    provider: provider,
+    enSpeed: enSpeed,
   );
 }
 

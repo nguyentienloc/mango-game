@@ -9,19 +9,31 @@ import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/utterance.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 
+import 'src/local_tts.dart';
+import 'src/local_voice.dart';
 import 'src/voice_gen.dart';
 
 /// Builds one Opus clip per distinct utterance PART (`lang|text`) into
-/// content/audio/`sha1(partKey)`.ogg + content/audio/index.json. The clips come
-/// from the local MP3 part cache (build/voice-parts/); a part missing from the
-/// cache is only synthesised through Vbee with --allow-api, otherwise it is
+/// content/audio/`sha1(partKey)`.ogg + content/audio/index.json.
+///
+///   dart run tool/gen_voice.dart [--provider local|vbee] [--en-speed X] [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api] [--batch]
+///
+/// --provider local (default): every part missing from the WAV cache
+/// (build/voice-parts/`key`.wav) is synthesised on this machine — Vietnamese by
+/// the VieNeu-TTS Gradio server at VIENEU_URL (default http://127.0.0.1:7860,
+/// voice "Trúc Ly", through tool/tts/vieneu_batch.py run by `uv`), English by
+/// Kokoro-82M (af_heart at --en-speed, default 0.8 — slow for a small child —
+/// tool/tts/kokoro_batch.py run by KOKORO_PYTHON).  The speed is part of every
+/// English cache key and of index.json, so changing it redoes the English clips. Each WAV is trimmed, levelled, padded 0.15 s and encoded.
+/// A server or Python that cannot be used stops the run with exit code 2.
+///
+/// --provider vbee: the clips come from the MP3 part cache; a part missing from
+/// the cache is only synthesised through Vbee with --allow-api, otherwise it is
 /// reported and the run exits with code 2. Vbee credentials come from
 /// ~/.config/xoai/vbee.env (VBEE_APP_ID, VBEE_TOKEN) or the same environment
 /// variables, and are never written or printed.
 ///
-///   dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api] [--batch]
-///
-/// With --allow-api, uncached parts of at most 12 characters are synthesised in
+/// With --allow-api (Vbee), uncached parts of at most 12 characters are synthesised in
 /// batches (up to 50 per Vbee request, one per line, with long pauses between)
 /// and cut apart on silence with ffmpeg; --batch batches longer parts too. A batch
 /// whose silence-segment count differs from its item count is never guessed at:
@@ -33,6 +45,9 @@ const _api = 'https://api.vbee.vn/v1/tts';
 // callback can never reach a real server (we poll instead).
 const _webhook = 'https://xoai-callback.invalid/vbee';
 const _concurrency = 3;
+const _encodeConcurrency = 4;
+const _usage =
+    'Dùng: dart run tool/gen_voice.dart [--provider local|vbee] [--en-speed X] [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api] [--batch]';
 const _pollEvery = Duration(seconds: 2);
 const _pollTimeout = Duration(seconds: 120);
 const _connectTimeout = Duration(seconds: 15);
@@ -49,9 +64,7 @@ Future<void> main(List<String> args) async {
   try {
     opts = parseGenArgs(args);
   } on FormatException catch (e) {
-    _err(
-      '${e.message}\nDùng: dart run tool/gen_voice.dart [--limit N] [--only TEXT] [--prune] [--dry-run] [--allow-api] [--batch]',
-    );
+    _err('${e.message}\n$_usage');
     exit(1);
   }
   final limit = opts.limit;
@@ -59,6 +72,8 @@ Future<void> main(List<String> args) async {
   final dryRun = opts.dryRun;
   final only = opts.only;
   final allowApi = opts.allowApi;
+  final provider = opts.provider;
+  final enSpeed = opts.enSpeed;
 
   final content = await ContentRepository(FileContentSource('content')).load();
   final d = content.profileDefaults;
@@ -74,7 +89,7 @@ Future<void> main(List<String> args) async {
   if (indexFile.existsSync()) {
     final index =
         jsonDecode(indexFile.readAsStringSync()) as Map<String, dynamic>;
-    if (indexIsStale(index)) {
+    if (indexIsStale(index, provider, enSpeed: enSpeed)) {
       stdout.writeln(
         'Index tạo bằng giọng/cấu hình khác (hoặc clip theo câu): coi mọi clip cũ là hết hạn (dùng --prune để xóa file cũ).',
       );
@@ -92,14 +107,13 @@ Future<void> main(List<String> args) async {
     final tmp = File('${indexFile.path}.tmp')
       ..writeAsStringSync(
         const JsonEncoder.withIndent('  ')
-            .convert({...indexMeta(), 'clips': sorted}),
+            .convert({...indexMeta(provider, enSpeed: enSpeed), 'clips': sorted}),
       );
     tmp.renameSync(indexFile.path);
   }
 
-  File mp3Of(UtterancePart p) => _partFile(
-    partCacheKey(p.lang, p.text, voiceFor(p.lang), voiceSpeed),
-  );
+  /// The cached raw audio of a part (Vbee MP3 or local WAV).
+  File cacheOf(UtterancePart p) => File(partCachePath(provider, p, enSpeed: enSpeed));
 
   final todo = [
     for (final e in allParts.entries)
@@ -108,11 +122,11 @@ Future<void> main(List<String> args) async {
               File('${dir.path}/${clips[e.key]}').existsSync()))
         e.value,
   ];
-  final uncached = todo.where((p) => !mp3Of(p).existsSync()).toList();
+  final uncached = todo.where((p) => !cacheOf(p).existsSync()).toList();
   final plannedUtterances = planned.length;
   stdout.writeln(
     '$plannedUtterances utterances, ${allParts.length} distinct parts, '
-    '${todo.length} to encode (${uncached.length} not in the MP3 cache).',
+    '${todo.length} to encode (${uncached.length} not in the ${provider.name} cache).',
   );
   if (dryRun) {
     final byKind = <UtteranceKind, int>{};
@@ -124,16 +138,48 @@ Future<void> main(List<String> args) async {
     );
     final chars = uncached.fold<int>(0, (n, p) => n + p.text.runes.length);
     stdout.writeln(
-      'Not cached: ${uncached.length} parts (~$chars characters to synthesise with --allow-api).',
+      provider == VoiceProvider.vbee
+          ? 'Not cached: ${uncached.length} parts (~$chars characters to synthesise with --allow-api).'
+          : 'Not cached: ${uncached.length} parts (~$chars characters to synthesise locally).',
     );
     for (final p in todo) {
-      stdout.writeln('  ${p.key}${mp3Of(p).existsSync() ? '' : '  (no MP3)'}');
+      stdout.writeln('  ${p.key}${cacheOf(p).existsSync() ? '' : '  (not cached)'}');
     }
     return;
   }
 
   final queue = (limit == null ? todo : todo.take(limit)).toList();
-  final needsApi = allowApi && queue.any((p) => !mp3Of(p).existsSync());
+  void pruneClips() {
+    final keep = allParts.keys.toSet();
+    clips.removeWhere((k, _) => !keep.contains(k));
+    saveIndex(); // index first, so a crash never leaves it pointing at deleted files
+    final files = clips.values.toSet();
+    for (final f in dir.listSync().whereType<File>()) {
+      final name = f.uri.pathSegments.last;
+      if (name.endsWith('.part') || (name.endsWith('.ogg') && !files.contains(name))) f.deleteSync();
+    }
+  }
+
+  if (provider == VoiceProvider.local) {
+    if (allowApi) stdout.writeln('--allow-api chỉ dùng cho --provider vbee: bỏ qua.');
+    final ok = await _runLocal(
+      queue: queue,
+      todoCount: todo.length,
+      limited: limit != null,
+      cacheOf: cacheOf,
+      enSpeed: enSpeed,
+      outDir: dir,
+      onClip: (p, file) {
+        clips[p.key] = file;
+        saveIndex();
+      },
+    );
+    saveIndex();
+    if (ok && prune) pruneClips();
+    return;
+  }
+
+  final needsApi = allowApi && queue.any((p) => !cacheOf(p).existsSync());
   if (queue.isNotEmpty) await _preflightFfmpeg();
   _Vbee? vbee;
   HttpClient? client;
@@ -145,7 +191,7 @@ Future<void> main(List<String> args) async {
   }
   final batchStats = _BatchStats();
   if (vbee != null) {
-    final uncachedQueue = [for (final p in queue) if (!mp3Of(p).existsSync()) p];
+    final uncachedQueue = [for (final p in queue) if (!cacheOf(p).existsSync()) p];
     final plan = planBatches(uncachedQueue, forceAll: opts.batch);
     if (plan.batches.isNotEmpty) {
       stdout.writeln(
@@ -177,7 +223,7 @@ Future<void> main(List<String> args) async {
     while (!stopped && next < queue.length) {
       final p = queue[next++];
       try {
-        final cached = mp3Of(p);
+        final cached = cacheOf(p);
         final File mp3;
         if (cached.existsSync()) {
           mp3 = cached;
@@ -237,15 +283,101 @@ Future<void> main(List<String> args) async {
     stdout.writeln('Đã tạo $done đoạn, còn $remaining đoạn.');
   }
 
-  if (prune) {
-    final keep = allParts.keys.toSet();
-    clips.removeWhere((k, _) => !keep.contains(k));
-    saveIndex(); // index first, so a crash never leaves it pointing at deleted files
-    final files = clips.values.toSet();
-    for (final f in dir.listSync().whereType<File>()) {
-      final name = f.uri.pathSegments.last;
-      if (name.endsWith('.part') || (name.endsWith('.ogg') && !files.contains(name))) f.deleteSync();
+  if (prune) pruneClips();
+}
+
+/// Local provider: synthesises the uncached parts of [queue] (VieNeu + Kokoro),
+/// then trims, levels and encodes every part of [queue]. False when an engine
+/// cannot be used (exit code 2, nothing encoded).
+Future<bool> _runLocal({
+  required List<UtterancePart> queue,
+  required int todoCount,
+  required bool limited,
+  required File Function(UtterancePart) cacheOf,
+  required Directory outDir,
+  required void Function(UtterancePart p, String file) onClip,
+  required double enSpeed,
+}) async {
+  if (queue.isEmpty) return true;
+  await _preflightFfmpeg();
+  final failures = <String, String>{};
+  final need = [for (final p in queue) if (!cacheOf(p).existsSync()) p];
+  if (need.isNotEmpty) {
+    stdout.writeln('Tạo ${need.length} đoạn bằng giọng local (vi: VieNeu-TTS, en: Kokoro-82M tốc độ $enSpeed)…');
+    final synth = LocalSynthesizer(
+      runner: runHelperProcess,
+      probe: probeUrl,
+      cacheDir: 'build/voice-parts',
+      workDir: 'build/voice-jobs',
+      environment: Platform.environment,
+      enSpeed: enSpeed,
+    );
+    try {
+      failures.addAll(await synth.synthesize(need, log: stdout.writeln));
+    } on LocalTtsUnavailable catch (e) {
+      _err('⏸ Dừng: ${e.message}');
+      exitCode = 2;
+      return false;
     }
+  }
+
+  var next = 0;
+  var done = 0;
+  Future<void> worker() async {
+    while (next < queue.length) {
+      final p = queue[next++];
+      if (failures.containsKey(p.key)) continue;
+      final wav = cacheOf(p);
+      if (!wav.existsSync()) {
+        failures[p.key] = 'không có WAV trong build/voice-parts/';
+        continue;
+      }
+      try {
+        final file = partFileName(p.key);
+        await _toOggLeveled(wav, File('${outDir.path}/$file'));
+        onClip(p, file);
+        done++;
+        stdout.writeln('✓ ${queue.length - done} left  ${p.key}');
+      } on Object catch (e) {
+        failures[p.key] = '$e';
+      }
+    }
+  }
+
+  await Future.wait([for (var i = 0; i < _encodeConcurrency; i++) worker()]);
+  if (failures.isNotEmpty) {
+    for (final e in failures.entries) {
+      final v = localVoices[e.key.split('|').first];
+      _err('✗ ${formatPartFailure(e.key.split('|').first, v?.id ?? '?', e.key.substring(e.key.indexOf('|') + 1), e.value)}');
+    }
+    _err('Đã tạo $done đoạn, ${failures.length} đoạn lỗi (chạy lại để thử lại).');
+    exitCode = 1;
+  } else if (limited) {
+    stdout.writeln('Đã tạo $done đoạn, còn ${todoCount - done} đoạn.');
+  }
+  return true;
+}
+
+/// Trims silence at both ends, brings the loudness to the shared target, pads
+/// 0.15 s on each side and encodes Opus mono 32 kbps at `<name>.ogg.part`, then
+/// renames (so a crash never leaves a half-written `.ogg`).
+Future<void> _toOggLeveled(File wav, File out) async {
+  final probe = await Process.run('ffmpeg', volumeProbeArgs(wav.path));
+  if (probe.exitCode != 0) {
+    throw ProcessException('ffmpeg', [], _short('${probe.stderr}'), probe.exitCode);
+  }
+  final stats = parseVolumeDetect('${probe.stderr}');
+  if (stats == null) throw StateError('ffmpeg: không đo được âm lượng (file im lặng?) ${wav.path}');
+  final tmpOgg = File('${out.path}.part');
+  try {
+    final r = await Process.run('ffmpeg', localEncodeArgs(wav.path, tmpOgg.path, levelGainDb(stats)));
+    if (r.exitCode != 0) {
+      throw ProcessException('ffmpeg', [], _short('${r.stderr}'), r.exitCode);
+    }
+    tmpOgg.renameSync(out.path);
+  } on Object {
+    if (tmpOgg.existsSync()) tmpOgg.deleteSync();
+    rethrow;
   }
 }
 
