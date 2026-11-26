@@ -164,7 +164,7 @@ void main() {
       expect(profile.speeds.vi, 1.0);
       final container = ProviderScope.containerOf(tester.element(find.byType(ParentScreen)));
       expect(container.read(voiceProvider).speeds.en, closeTo(0.95, 1e-9));
-      expect(tts.spoken.last, (text: 'Find the lion!', lang: 'en'));
+      expect(tts.spoken.last, (text: 'Find the snowman!', lang: 'en'));
       expect(tts.speeds.last, closeTo(0.95, 1e-9));
     });
 
@@ -195,7 +195,7 @@ void main() {
       expect(profile.speeds, const VoiceSpeeds());
       expect(tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Anh')).value, 0.85);
       expect(tester.widget<Slider>(sliderIn('Tốc độ đọc tiếng Việt')).value, 1.0);
-      expect(tts.spoken.last, (text: 'Find the lion!', lang: 'en'));
+      expect(tts.spoken.last, (text: 'Find the snowman!', lang: 'en'));
       expect(tts.speeds.last, 0.85);
     });
   });

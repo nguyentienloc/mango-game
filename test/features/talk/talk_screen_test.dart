@@ -8,8 +8,10 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/profile/names.dart';
 import 'package:xoai_castle/core/voice/utterances.dart';
 import 'package:xoai_castle/features/games/talk/mic_button.dart';
+import 'package:xoai_castle/features/games/talk/talk_picture.dart';
 import 'package:xoai_castle/features/games/talk/talk_screen.dart';
 import 'package:xoai_castle/features/reward/reward_screen.dart';
+import 'package:xoai_castle/shared/character_view.dart';
 
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
@@ -22,6 +24,21 @@ const _moveOn = 'Không sao, mình học câu tiếp nhé!';
 const _praise = ['Great job!', 'Wonderful, An!', 'You did it!', 'Giỏi quá Xoài ơi!', 'Xoài làm đúng rồi!'];
 final _mic = find.byKey(const Key('mic-button'));
 final _confirm = find.byKey(const Key('confirm-button'));
+
+/// [c] with only the conversation items [ids], in that order.
+ContentBundle withConversation(ContentBundle c, List<String> ids) => ContentBundle(
+      lettersEn: c.lettersEn,
+      lettersVi: c.lettersVi,
+      digits: c.digits,
+      tones: c.tones,
+      phrases: c.phrases,
+      castle: c.castle,
+      characters: c.characters,
+      profileDefaults: c.profileDefaults,
+      vocab: c.vocab,
+      conversation: [for (final id in ids) c.conversation.firstWhere((i) => i.id == id)],
+      stories: c.stories,
+    );
 
 /// A recogniser whose stop() never returns.
 class HangingStopSpeech extends FakeSpeechRecognizer {
@@ -42,9 +59,16 @@ void main() {
   /// The conversation item Elsa asked last.
   ConversationItem current(FakeTts tts) {
     for (final t in tts.texts.reversed) {
-      for (final i in content.conversation) {
-        if (question(i) == t) return i;
-      }
+      final asked = [
+        for (final i in content.conversation)
+          if (question(i) == t) i,
+      ];
+      if (asked.isEmpty) continue;
+      // "What's this?" is asked about two pictures: the card on screen tells which.
+      return asked.firstWhere(
+        (i) => find.byKey(ValueKey('talk-picture:${i.id}')).evaluate().isNotEmpty,
+        orElse: () => asked.first,
+      );
     }
     throw StateError('Elsa has not asked anything: ${tts.texts}');
   }
@@ -75,6 +99,7 @@ void main() {
     WidgetTester tester, {
     FakeSpeechRecognizer? speech,
     FakeTts? tts,
+    List<String>? only,
   }) async {
     final t = tts ?? FakeTts();
     final s = speech ?? FakeSpeechRecognizer();
@@ -82,7 +107,7 @@ void main() {
     final rewards = MemoryRewardStore();
     final stats = MemoryItemStatsStore();
     await tester.pumpWidget(testApp(
-      content: content,
+      content: only == null ? content : withConversation(content, only),
       tts: t,
       home: const TalkScreen(),
       speech: s,
@@ -127,6 +152,44 @@ void main() {
     expect(stats.stats.keys.every((k) => k.startsWith('conv:')), isTrue);
     expect(stats.stats.values.every((s) => s.mastery == 1), isTrue);
     expect(rewards.state.snowflakesTotal, 10);
+  });
+
+  group('picture questions', () {
+    final card = find.byType(TalkPicture);
+
+    for (final size in const [Size(360, 640), Size(411, 891)]) {
+      testWidgets('the white card sits between Elsa and the mic on a ${size.width.toInt()}x${size.height.toInt()} phone',
+          (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final (tts, speech, _, _, _) = await pumpTalk(tester, only: ['what_tree', 'what_gift', 'how_many_stars']);
+        for (var i = 0; i < 3; i++) {
+          final item = current(tts);
+          expect(find.byKey(ValueKey('talk-picture:${item.id}')), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          expect(tester.getBottomLeft(find.byKey(const Key('elsa'))).dy, lessThanOrEqualTo(tester.getTopLeft(card).dy));
+          expect(tester.getBottomLeft(card).dy, lessThanOrEqualTo(tester.getTopLeft(_mic).dy));
+          expect(tester.getBottomLeft(_mic).dy, lessThanOrEqualTo(size.height));
+          if (size.height >= 800) expect(tester.getSize(card), const Size(TalkPicture.size, TalkPicture.size));
+          if (item.emojiRow != null) {
+            expect(find.descendant(of: card, matching: find.text('⭐⭐⭐')), findsOneWidget);
+          } else {
+            final image = tester.widget<Image>(find.descendant(of: card, matching: find.byType(Image)));
+            expect((image.image as AssetImage).assetName, 'content/images/vocab/${item.image}.png');
+          }
+          await answerRight(tester, tts, speech);
+        }
+        expect(praises(tts), 3);
+        await tester.pump(const Duration(seconds: 2));
+      });
+    }
+
+    testWidgets('questions without a picture show no card', (tester) async {
+      await pumpTalk(tester, only: ['name', 'age']);
+      expect(card, findsNothing);
+      expect(tester.getSize(find.byType(CharacterView)).width, 150);
+    });
   });
 
   testWidgets('a wrong answer gets "say it again" and the same question stays', (tester) async {

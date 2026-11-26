@@ -1,0 +1,19 @@
+{
+  "id": "vocab_christmas",
+  "version": 1,
+  "title_vi": "Giáng sinh",
+  "items": [
+    { "id": "christmas_tree", "word": "Christmas tree", "vi": "cây thông Noel", "image": "images/vocab/christmas_tree.png", "emoji": "🎄" },
+    { "id": "santa", "word": "Santa", "vi": "ông già Noel", "image": "images/vocab/santa.png", "emoji": "🎅" },
+    { "id": "gift", "word": "gift", "vi": "hộp quà", "image": "images/vocab/gift.png", "emoji": "🎁" },
+    { "id": "snowman", "word": "snowman", "vi": "người tuyết", "image": "images/vocab/snowman.png", "emoji": "⛄" },
+    { "id": "reindeer", "word": "reindeer", "vi": "tuần lộc", "image": "images/vocab/reindeer.png", "emoji": "🦌" },
+    { "id": "bell", "word": "bell", "vi": "cái chuông", "image": "images/vocab/bell.png", "emoji": "🔔" },
+    { "id": "star", "word": "star", "vi": "ngôi sao", "image": "images/vocab/star.png", "emoji": "⭐" },
+    { "id": "candle", "word": "candle", "vi": "cây nến", "image": "images/vocab/candle.png", "emoji": "🕯️" },
+    { "id": "cookie", "word": "cookie", "vi": "bánh quy", "image": "images/vocab/cookie.png", "emoji": "🍪" },
+    { "id": "socks", "word": "socks", "vi": "đôi tất", "image": "images/vocab/socks.png", "emoji": "🧦" },
+    { "id": "sled", "word": "sled", "vi": "xe trượt tuyết", "image": "images/vocab/sled.png", "emoji": "🛷" },
+    { "id": "snowflake", "word": "snowflake", "vi": "bông tuyết", "image": "images/vocab/snowflake.png", "emoji": "❄️" }
+  ]
+}

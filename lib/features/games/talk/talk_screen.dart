@@ -19,6 +19,7 @@ import '../../../shared/ice_background.dart';
 import '../../reward/reward_screen.dart';
 import 'mic_button.dart';
 import 'talk_logic.dart';
+import 'talk_picture.dart';
 
 /// Talk with Elsa: she asks, the child holds the mic and answers in English.
 /// When speech recognition is unavailable the child just repeats after Elsa
@@ -312,6 +313,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
         ),
       );
     }
+    final picture = TalkPicture.forItem(_turn.item, ref.read(contentProvider).vocab);
     return PopScope(
       canPop: !_finishing,
       onPopInvokedWithResult: _onPopInvoked,
@@ -343,24 +345,30 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
               ),
               Expanded(
                 child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        key: const Key('elsa'),
-                        onTap: _reask,
-                        child: const CharacterView(id: 'elsa', size: 150),
-                      ),
-                      SizedBox(
-                        height: 48,
-                        child: _celebrating && _turn.earnsSnowflake
-                            ? const Text(
-                                '+1 ❄️',
-                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: IceColors.deep),
-                              )
-                            : null,
-                      ),
-                    ],
+                  // Scales down rather than overflowing on a short screen.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          key: const Key('elsa'),
+                          onTap: _reask,
+                          // Elsa makes room for the picture card under her.
+                          child: CharacterView(id: 'elsa', size: picture == null ? 150 : 80),
+                        ),
+                        if (picture != null) GestureDetector(onTap: _reask, child: picture),
+                        SizedBox(
+                          height: 48,
+                          child: _celebrating && _turn.earnsSnowflake
+                              ? const Text(
+                                  '+1 ❄️',
+                                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: IceColors.deep),
+                                )
+                              : null,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

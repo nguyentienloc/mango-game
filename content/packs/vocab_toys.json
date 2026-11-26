@@ -1,0 +1,19 @@
+{
+  "id": "vocab_toys",
+  "version": 1,
+  "title_vi": "Đồ chơi",
+  "items": [
+    { "id": "teddy_bear", "word": "teddy bear", "vi": "gấu bông", "image": "images/vocab/teddy_bear.png", "emoji": "🧸" },
+    { "id": "ball", "word": "ball", "vi": "quả bóng", "image": "images/vocab/ball.png", "emoji": "⚽" },
+    { "id": "kite", "word": "kite", "vi": "cái diều", "image": "images/vocab/kite.png", "emoji": "🪁" },
+    { "id": "yo_yo", "word": "yo-yo", "vi": "con quay yo-yo", "image": "images/vocab/yo_yo.png", "emoji": "🪀" },
+    { "id": "robot", "word": "robot", "vi": "rô-bốt", "image": "images/vocab/robot.png", "emoji": "🤖" },
+    { "id": "balloon", "word": "balloon", "vi": "bóng bay", "image": "images/vocab/balloon.png", "emoji": "🎈" },
+    { "id": "puzzle", "word": "puzzle", "vi": "xếp hình", "image": "images/vocab/puzzle.png", "emoji": "🧩" },
+    { "id": "drum", "word": "drum", "vi": "cái trống", "image": "images/vocab/drum.png", "emoji": "🥁" },
+    { "id": "guitar", "word": "guitar", "vi": "đàn ghi-ta", "image": "images/vocab/guitar.png", "emoji": "🎸" },
+    { "id": "skateboard", "word": "skateboard", "vi": "ván trượt", "image": "images/vocab/skateboard.png", "emoji": "🛹" },
+    { "id": "crayon", "word": "crayon", "vi": "bút sáp", "image": "images/vocab/crayon.png", "emoji": "🖍️" },
+    { "id": "trumpet", "word": "trumpet", "vi": "kèn", "image": "images/vocab/trumpet.png", "emoji": "🎺" }
+  ]
+}

@@ -108,8 +108,9 @@ class _SpeedSection extends ConsumerWidget {
       if (lang == 'vi') {
         voice.say('greet_vi');
       } else {
-        final lion = ref.read(contentProvider).vocab.firstWhere((w) => w.id == 'lion');
-        voice.say('vocab_prompt', vars: vocabVars(lion));
+        final words = ref.read(contentProvider).vocab;
+        final sample = words.firstWhere((w) => w.id == 'snowman', orElse: () => words.first);
+        voice.say('vocab_prompt', vars: vocabVars(sample));
       }
     }
 

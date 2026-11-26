@@ -1,0 +1,19 @@
+{
+  "id": "vocab_clothes",
+  "version": 1,
+  "title_vi": "Quần áo",
+  "items": [
+    { "id": "tshirt", "word": "T-shirt", "vi": "áo phông", "image": "images/vocab/tshirt.png", "emoji": "👕" },
+    { "id": "dress", "word": "dress", "vi": "váy", "image": "images/vocab/dress.png", "emoji": "👗" },
+    { "id": "cap", "word": "cap", "vi": "mũ lưỡi trai", "image": "images/vocab/cap.png", "emoji": "🧢" },
+    { "id": "shoe", "word": "shoe", "vi": "giày", "image": "images/vocab/shoe.png", "emoji": "👟" },
+    { "id": "glasses", "word": "glasses", "vi": "kính", "image": "images/vocab/glasses.png", "emoji": "👓" },
+    { "id": "coat", "word": "coat", "vi": "áo khoác", "image": "images/vocab/coat.png", "emoji": "🧥" },
+    { "id": "scarf", "word": "scarf", "vi": "khăn quàng", "image": "images/vocab/scarf.png", "emoji": "🧣" },
+    { "id": "gloves", "word": "gloves", "vi": "găng tay", "image": "images/vocab/gloves.png", "emoji": "🧤" },
+    { "id": "jeans", "word": "jeans", "vi": "quần bò", "image": "images/vocab/jeans.png", "emoji": "👖" },
+    { "id": "boot", "word": "boot", "vi": "ủng", "image": "images/vocab/boot.png", "emoji": "👢" },
+    { "id": "crown", "word": "crown", "vi": "vương miện", "image": "images/vocab/crown.png", "emoji": "👑" },
+    { "id": "backpack", "word": "backpack", "vi": "ba lô", "image": "images/vocab/backpack.png", "emoji": "🎒" }
+  ]
+}

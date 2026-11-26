@@ -1,0 +1,19 @@
+{
+  "id": "vocab_food",
+  "version": 1,
+  "title_vi": "Đồ ăn",
+  "items": [
+    { "id": "bread", "word": "bread", "vi": "bánh mì", "image": "images/vocab/bread.png", "emoji": "🍞" },
+    { "id": "cake", "word": "cake", "vi": "bánh ngọt", "image": "images/vocab/cake.png", "emoji": "🍰" },
+    { "id": "pizza", "word": "pizza", "vi": "bánh pizza", "image": "images/vocab/pizza.png", "emoji": "🍕" },
+    { "id": "egg", "word": "egg", "vi": "quả trứng", "image": "images/vocab/egg.png", "emoji": "🥚" },
+    { "id": "milk", "word": "milk", "vi": "sữa", "image": "images/vocab/milk.png", "emoji": "🥛" },
+    { "id": "rice", "word": "rice", "vi": "cơm", "image": "images/vocab/rice.png", "emoji": "🍚" },
+    { "id": "noodles", "word": "noodles", "vi": "mì", "image": "images/vocab/noodles.png", "emoji": "🍜" },
+    { "id": "ice_cream", "word": "ice cream", "vi": "kem", "image": "images/vocab/ice_cream.png", "emoji": "🍦" },
+    { "id": "cheese", "word": "cheese", "vi": "phô mai", "image": "images/vocab/cheese.png", "emoji": "🧀" },
+    { "id": "honey", "word": "honey", "vi": "mật ong", "image": "images/vocab/honey.png", "emoji": "🍯" },
+    { "id": "candy", "word": "candy", "vi": "kẹo", "image": "images/vocab/candy.png", "emoji": "🍬" },
+    { "id": "sandwich", "word": "sandwich", "vi": "bánh kẹp", "image": "images/vocab/sandwich.png", "emoji": "🥪" }
+  ]
+}
