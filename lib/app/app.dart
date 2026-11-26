@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/home/home_screen.dart';
+import '../shared/snowfall.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -37,6 +38,13 @@ class _XoaiAppState extends ConsumerState<XoaiApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'Lâu đài Xoài', debugShowCheckedModeBanner: false, theme: buildTheme(), home: const HomeScreen());
+    return MaterialApp(
+      title: 'Lâu đài Xoài',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(),
+      // Snow falls over every screen and dialog (it never takes a touch).
+      builder: noelAppBuilder,
+      home: const HomeScreen(),
+    );
   }
 }

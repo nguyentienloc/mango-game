@@ -19,7 +19,7 @@ class ToneFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const letter = TextStyle(fontSize: 88, height: 1.1, fontWeight: FontWeight.bold, color: IceColors.deep);
+    const letter = TextStyle(fontSize: 88, height: 1.1, fontWeight: FontWeight.bold, color: NoelColors.ink);
     const sign = TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: kToneSignColor);
     // Scaled down rather than clipped when the pad is small (a phone of 360 dp wide).
     return FittedBox(
@@ -44,7 +44,7 @@ class ToneFace extends StatelessWidget {
             ),
             Text(
               'dấu ${item.tone.name}',
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: IceColors.deep),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: NoelColors.ink),
             ),
           ],
         ),
@@ -76,7 +76,7 @@ class ToneRow extends StatelessWidget {
               height: tileSize,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: id == current ? IceColors.deep : Colors.white.withValues(alpha: 0.7),
+                color: id == current ? NoelColors.deepRed : Colors.white.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(
@@ -84,7 +84,7 @@ class ToneRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: id == current ? Colors.white : IceColors.deep,
+                  color: id == current ? Colors.white : NoelColors.ink,
                 ),
               ),
             ),

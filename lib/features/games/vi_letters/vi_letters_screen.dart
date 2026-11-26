@@ -8,7 +8,7 @@ import '../../../app/theme.dart';
 import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/noel_background.dart';
 import '../balloon/balloon_screen.dart';
 import '../letter_game_spec.dart';
 import '../trace/trace_screen.dart';
@@ -50,7 +50,7 @@ class _VietnameseLettersScreenState extends ConsumerState<VietnameseLettersScree
     return PopScope(
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
+        body: NoelBackground(
           child: SafeArea(
             child: Column(
               children: [
@@ -87,12 +87,13 @@ class _VietnameseLettersScreenState extends ConsumerState<VietnameseLettersScree
                         BigButton(
                           emoji: '✏️',
                           size: 100,
+                          ring: NoelColors.green,
                           onTap: () => _open('game_vi_trace', (_) => const TraceScreen(spec: LetterGameSpec.traceVi)),
                         ),
                         BigButton(
                           emoji: 'á',
                           size: 100,
-                          textStyle: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: IceColors.deep),
+                          textStyle: const TextStyle(fontSize: 52, fontWeight: FontWeight.bold, color: NoelColors.deepRed),
                           onTap: () => _open('game_vi_tone', (_) => const TraceScreen(spec: LetterGameSpec.traceTones)),
                         ),
                       ],

@@ -46,13 +46,23 @@ bool shouldDrawArrow(double length) => length >= _kMinArrowStrokeLength;
 /// How long a finished stroke's ink takes to melt away.
 const _kFadeDuration = Duration(milliseconds: 300);
 
-/// The ink under the child's finger: a saturated mid blue that reads on the
-/// white board and stays visibly lighter than the dark navy of completed strokes.
-const _kLiveInk = Color(0xFF1565C0);
+/// The ink under the child's finger: candy-cane red, saturated on the white board and
+/// visibly lighter than the dark red of completed strokes.
+const kTraceLiveInk = NoelColors.deepRed;
 
-/// Completed strokes: a darker navy than [_kLiveInk], so a stroke that was just
+/// The soft halo under the live ink.
+const kTraceInkGlow = Color(0xFFFFCDD2);
+
+/// Completed strokes: a darker red than [kTraceLiveInk], so a stroke that was just
 /// finished visibly "settles" from the live ink into the letter.
-const _kDoneInk = Color(0xFF0D2B5C);
+const kTraceDoneInk = Color(0xFF7F1D1D);
+
+/// The dashed guide of the stroke to trace now.
+const kTraceGuide = Color(0xFFEF9A9A);
+
+/// The board's frame.
+const kTracePadBorder = NoelColors.red;
+const kTracePadBorderWidth = 5.0;
 
 /// Live ink width as a fraction of the pad's side.
 const _kInkWidth = 0.075;
@@ -223,10 +233,10 @@ class TraceInkPainter extends CustomPainter {
     final p = _polyPath(pts, side);
     canvas.drawPath(
       p,
-      _strokePaint(IceColors.ice.withValues(alpha: 0.7 * opacity), width * 1.8)
+      _strokePaint(kTraceInkGlow.withValues(alpha: 0.7 * opacity), width * 1.8)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.6),
     );
-    canvas.drawPath(p, _strokePaint(_kLiveInk.withValues(alpha: opacity), width));
+    canvas.drawPath(p, _strokePaint(kTraceLiveInk.withValues(alpha: opacity), width));
   }
 
   @override
@@ -241,7 +251,7 @@ class TraceInkPainter extends CustomPainter {
   bool shouldRepaint(TraceInkPainter old) => true;
 }
 
-/// The white board, the letter's strokes, the number dot and the arrow.
+/// The white board with its red frame, the letter's strokes, the number dot and the arrow.
 class _GuidePainter extends CustomPainter {
   _GuidePainter(this.strokes, this.current, this.dashCache, this.showStrokeNumbers);
 
@@ -287,19 +297,19 @@ class _GuidePainter extends CustomPainter {
       if (pts.length < 2) continue;
       Path dashed() => dashCache.get(strokes, i, side, () => _dashed(pts, side));
       if (i < current) {
-        canvas.drawPath(_polyPath(pts, side), stroke(_kDoneInk, width));
+        canvas.drawPath(_polyPath(pts, side), stroke(kTraceDoneInk, width));
       } else if (i == current) {
         canvas.drawPath(
           dashed(),
           stroke(
-            IceColors.frost.withValues(alpha: 0.6),
+            kTraceGuide.withValues(alpha: 0.6),
             width * 1.6,
             dashed: true,
           )..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.5),
         );
         canvas.drawPath(
           dashed(),
-          stroke(IceColors.frost, width * 0.8, dashed: true),
+          stroke(kTraceGuide, width * 0.8, dashed: true),
         );
         if (shouldDrawArrow(_TracePadState._length(pts))) _paintArrow(canvas, pts, side);
         _paintNumber(canvas, pts.first, i + 1, side);
@@ -310,11 +320,18 @@ class _GuidePainter extends CustomPainter {
         );
       }
     }
+    canvas.drawRRect(
+      rrect.deflate(kTracePadBorderWidth / 2),
+      Paint()
+        ..color = kTracePadBorder
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = kTracePadBorderWidth,
+    );
   }
 
   void _paintNumber(Canvas canvas, TracePoint at, int n, double side) {
     final center = _o(at, side);
-    canvas.drawCircle(center, 0.045 * side, Paint()..color = IceColors.deep);
+    canvas.drawCircle(center, 0.045 * side, Paint()..color = NoelColors.green);
     if (!showStrokeNumbers) return;
     final tp = TextPainter(
       text: TextSpan(
@@ -351,7 +368,7 @@ class _GuidePainter extends CustomPainter {
         (a - dir * len * 0.4 - normal * len * 0.7).dy,
       )
       ..close();
-    canvas.drawPath(path, Paint()..color = IceColors.deep);
+    canvas.drawPath(path, Paint()..color = NoelColors.green);
   }
 
   @override

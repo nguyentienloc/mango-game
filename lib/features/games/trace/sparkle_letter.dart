@@ -20,7 +20,7 @@ class SparkleLetter extends StatelessWidget {
           const Text('✨', style: TextStyle(fontSize: 40)),
           Text(
             letter,
-            style: const TextStyle(fontSize: 120, fontWeight: FontWeight.bold, color: IceColors.deep),
+            style: const TextStyle(fontSize: 120, fontWeight: FontWeight.bold, color: NoelColors.ink),
           ),
           const Text('✨', style: TextStyle(fontSize: 40)),
         ],

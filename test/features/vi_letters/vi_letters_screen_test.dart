@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xoai_castle/app/theme.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/content/models.dart';
@@ -57,10 +58,10 @@ void main() {
     expect(tester.widget<TraceScreen>(find.byType(TraceScreen)).spec, same(LetterGameSpec.traceTones));
   });
 
-  testWidgets('the á button shows a bold deep-blue letter, not an emoji', (tester) async {
+  testWidgets('the á button shows a bold red letter, not an emoji', (tester) async {
     await pumpChooser(tester);
     final text = tester.widget<Text>(find.text('á'));
-    expect(text.style?.color, const Color(0xFF1E5AA8));
+    expect(text.style?.color, NoelColors.deepRed);
     expect(text.style?.fontWeight, FontWeight.bold);
   });
 

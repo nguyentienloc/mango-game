@@ -71,9 +71,9 @@ class _Card extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
               boxShadow: glow
-                  ? const [BoxShadow(color: IceColors.glow, blurRadius: 28, spreadRadius: 10)]
-                  : [BoxShadow(color: IceColors.deep.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 4))],
-              border: burst ? Border.all(color: IceColors.frost, width: 6) : null,
+                  ? const [BoxShadow(color: NoelColors.glow, blurRadius: 28, spreadRadius: 10)]
+                  : [BoxShadow(color: NoelColors.shadow.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 5))],
+              border: burst ? Border.all(color: NoelColors.green, width: 6) : null,
             ),
             child: picture,
           ),

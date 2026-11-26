@@ -17,10 +17,14 @@ class SnowflakeCounter extends ConsumerWidget {
       onTap: () => ref.read(voiceProvider).say('snowflake_count', vars: {'count': '$count'}),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(24)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(color: NoelColors.shadow.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
         child: Text(
           '❄️ $count',
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: IceColors.deep),
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: NoelColors.deepRed),
         ),
       ),
     );

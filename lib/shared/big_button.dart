@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
 
+/// A big round white button with a Christmas-coloured ring.
 class BigButton extends StatelessWidget {
-  const BigButton({super.key, required this.emoji, required this.onTap, this.size = 88, this.enabled = true, this.textStyle});
+  const BigButton({
+    super.key,
+    required this.emoji,
+    required this.onTap,
+    this.size = 88,
+    this.enabled = true,
+    this.textStyle,
+    this.ring = NoelColors.red,
+  });
 
   /// What the button shows: usually an emoji, sometimes a letter (then styled by [textStyle]).
   final String emoji;
@@ -13,6 +22,9 @@ class BigButton extends StatelessWidget {
   final VoidCallback onTap;
   final double size;
   final bool enabled;
+
+  /// The 4 dp ring: red by default, green to alternate.
+  final Color ring;
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +38,10 @@ class BigButton extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const RadialGradient(colors: [Colors.white, IceColors.frost]),
+            color: Colors.white,
+            border: Border.all(color: ring, width: 4),
             boxShadow: [
-              BoxShadow(color: IceColors.deep.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 4)),
+              BoxShadow(color: NoelColors.shadow.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 4)),
             ],
           ),
           child: Text(emoji, style: TextStyle(fontSize: size * 0.45).merge(textStyle)),
