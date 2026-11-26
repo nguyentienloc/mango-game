@@ -63,7 +63,7 @@ void main() {
       expect(tts.texts.last, 'Mình cùng tô dấu ${tone.name} nào!');
       // The row of five marks shows the one being traced filled in.
       for (final t in content.tones) {
-        expect(tileColor(tester, t.id), t.id == tone.id ? IceColors.deep : Colors.white.withValues(alpha: 0.7), reason: '${t.id} at ${i + 1}');
+        expect(tileColor(tester, t.id), t.id == tone.id ? NoelColors.deepRed : Colors.white.withValues(alpha: 0.7), reason: '${t.id} at ${i + 1}');
       }
       await trace(tester, tone);
       final base = bases[i % 5];

@@ -48,9 +48,13 @@ class _ParentLockButtonState extends State<ParentLockButton> with SingleTickerPr
         child: Stack(
           alignment: Alignment.center,
           children: [
+            const DecoratedBox(
+              decoration: BoxDecoration(color: NoelColors.lockBg, shape: BoxShape.circle),
+              child: SizedBox.expand(),
+            ),
             AnimatedBuilder(
               animation: _hold,
-              builder: (context, child) => CircularProgressIndicator(value: _hold.value, color: IceColors.deep),
+              builder: (context, child) => CircularProgressIndicator(value: _hold.value, color: NoelColors.deepRed),
             ),
             const Text('🔒', style: TextStyle(fontSize: 24)),
             if (widget.hasUpdate)

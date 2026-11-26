@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../app/theme.dart';
 
 /// Shows a character: the configured image if any, otherwise a placeholder
-/// (a painted ice princess for Elsa, the emoji for everyone else).
+/// (a painted ice princess for Elsa, the emoji for everyone else). Elsa wears a Santa hat.
 class CharacterView extends ConsumerWidget {
   const CharacterView({super.key, required this.id, this.size = 140});
 
@@ -23,21 +24,65 @@ class CharacterView extends ConsumerWidget {
         child: Text(def?.emoji ?? '❓', style: TextStyle(fontSize: size * 0.6)),
       ),
     );
+    final Widget body;
     if (image != null) {
       // A missing or broken file falls back to the emoji instead of a red error box.
-      return Image.asset(
+      body = Image.asset(
         'content/$image',
         width: size,
         height: size,
         fit: BoxFit.contain,
         errorBuilder: (_, _, _) => emoji,
       );
+    } else if (id == 'elsa') {
+      body = CustomPaint(size: Size.square(size), painter: const PrincessPainter());
+    } else {
+      body = emoji;
     }
-    if (id == 'elsa') {
-      return CustomPaint(size: Size.square(size), painter: const PrincessPainter());
-    }
-    return emoji;
+    if (id != 'elsa') return body;
+    // It's Christmas: Elsa wears a Santa hat.
+    return CustomPaint(key: const Key('santa-hat'), foregroundPainter: const SantaHatPainter(), child: body);
   }
+}
+
+/// A red Santa hat with a white band and pompom, tilted a little, on the head of an Elsa
+/// drawn in a [size]-square box (the picture or [PrincessPainter]; both have her head
+/// near the top centre).
+class SantaHatPainter extends CustomPainter {
+  const SantaHatPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0) return;
+    final band = Offset(w * 0.47, h * 0.14);
+    canvas
+      ..save()
+      ..translate(band.dx, band.dy)
+      ..rotate(-12 * pi / 180);
+    final half = w * 0.19;
+    final cone = Path()
+      ..moveTo(-half * 0.9, 0)
+      ..quadraticBezierTo(-half * 0.4, -h * 0.12, half * 0.15, -h * 0.17)
+      ..quadraticBezierTo(half * 0.55, -h * 0.1, half * 0.9, 0)
+      ..close();
+    canvas.drawPath(cone, Paint()..color = NoelColors.hatRed);
+    final white = Paint()..color = Colors.white;
+    canvas
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset.zero, width: half * 2.1, height: h * 0.065),
+          Radius.circular(h * 0.035),
+        ),
+        white,
+      )
+      ..drawCircle(Offset(half * 0.15, -h * 0.17), w * 0.04, white)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class PrincessPainter extends CustomPainter {

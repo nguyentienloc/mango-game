@@ -15,7 +15,8 @@ import '../../../core/voice/utterances.dart';
 import '../../../core/voice/voice_service.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/counter_pill.dart';
+import '../../../shared/noel_background.dart';
 import '../../reward/reward_screen.dart';
 import 'mic_button.dart';
 import 'talk_logic.dart';
@@ -308,7 +309,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
         canPop: _turns == null,
         onPopInvokedWithResult: _onPopInvoked,
         child: const Scaffold(
-          body: IceBackground(child: Center(child: CircularProgressIndicator())),
+          body: NoelBackground(child: Center(child: CircularProgressIndicator())),
         ),
       );
     }
@@ -316,7 +317,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
       canPop: !_finishing,
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
+        body: NoelBackground(
           child: Column(
             children: [
               Padding(
@@ -334,10 +335,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                       },
                     ),
                     const Spacer(),
-                    Text(
-                      '${_index + 1}/${_turns!.length}',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: IceColors.deep),
-                    ),
+                    CounterPill('${_index + 1}/${_turns!.length}'),
                   ],
                 ),
               ),
@@ -356,7 +354,7 @@ class _TalkScreenState extends ConsumerState<TalkScreen> {
                         child: _celebrating && _turn.earnsSnowflake
                             ? const Text(
                                 '+1 ❄️',
-                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: IceColors.deep),
+                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: NoelColors.gold),
                               )
                             : null,
                       ),

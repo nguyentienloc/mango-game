@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../app/theme.dart';
 import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/noel_background.dart';
 import '../letter_game_spec.dart';
 import 'trace_screen.dart';
 
@@ -48,7 +49,7 @@ class _TraceChooserScreenState extends ConsumerState<TraceChooserScreen> {
     return PopScope(
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
+        body: NoelBackground(
           child: SafeArea(
             child: Column(
               children: [
@@ -84,6 +85,7 @@ class _TraceChooserScreenState extends ConsumerState<TraceChooserScreen> {
                         BigButton(
                           emoji: '🔢',
                           size: 110,
+                          ring: NoelColors.green,
                           onTap: () => _open('game_trace_numbers', (_) => const TraceScreen(spec: LetterGameSpec.traceNumbers)),
                         ),
                       ],

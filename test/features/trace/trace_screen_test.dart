@@ -85,16 +85,17 @@ void main() {
         ),
     ];
 
-    testWidgets('ten dots under the top bar: current has an orange ring, done are deep blue, the rest faint', (tester) async {
+    testWidgets('ten dots under the top bar: current has a gold ring, done are gifts, the rest faint', (tester) async {
       final tts = FakeTts();
       await tester.pumpWidget(testApp(content: content, tts: tts, home: const TraceScreen()));
       await tester.pump();
       await tester.pump();
       expect(find.byKey(const Key('trace-progress-dot')), findsNWidgets(10));
       final first = dots(tester);
-      expect(first[0], (Colors.white, const Color(0xFFFFB74D)));
+      expect(first[0], (Colors.white, NoelColors.gold));
+      expect(find.text('🎁'), findsNothing);
       for (final d in first.skip(1)) {
-        expect(d.$1, Colors.white.withValues(alpha: 0.7));
+        expect(d.$1, Colors.white.withValues(alpha: 0.35));
         expect(d.$2, isNull);
       }
       final size = tester.getSize(find.byKey(const Key('trace-progress-dot')).first);
@@ -112,10 +113,12 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pump();
       final second = dots(tester);
-      expect(second[0], (IceColors.deep, null));
-      expect(second[1], (Colors.white, const Color(0xFFFFB74D)));
+      expect(second[0], (null, null));
+      expect(find.descendant(of: find.byKey(const Key('trace-progress-dot')).first, matching: find.text('🎁')), findsOneWidget);
+      expect(find.text('🎁'), findsOneWidget);
+      expect(second[1], (Colors.white, NoelColors.gold));
       for (final d in second.skip(2)) {
-        expect(d.$1, Colors.white.withValues(alpha: 0.7));
+        expect(d.$1, Colors.white.withValues(alpha: 0.35));
       }
       expect(find.text('2/10'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
@@ -361,7 +364,7 @@ void padTests() {
     expect(painter().fadeOpacity, 0.0);
   });
 
-  testWidgets('the live ink is a deep saturated blue (not the pale ice) with a lighter glow under it', (tester) async {
+  testWidgets('the live ink is a saturated candy-cane red with a lighter glow under it', (tester) async {
     await pumpPad(tester, (_) {});
     final rect = tester.getRect(find.byKey(const Key('trace-pad')));
     final ink = find.descendant(of: find.byKey(const Key('trace-ink')), matching: find.byType(CustomPaint));
@@ -372,15 +375,15 @@ void padTests() {
     expect(
       tester.renderObject(ink),
       paints
-        ..path(color: IceColors.ice.withValues(alpha: 0.7)) // soft glow, lighter than the ink
-        ..path(color: const Color(0xFF1565C0), strokeWidth: 0.075 * side),
+        ..path(color: kTraceInkGlow.withValues(alpha: 0.7)) // soft glow, lighter than the ink
+        ..path(color: const Color(0xFFC62828), strokeWidth: 0.075 * side),
     );
     await g.up();
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('completed strokes are drawn in a navy darker than the live ink', (tester) async {
-    const doneInk = Color(0xFF0D2B5C);
+  testWidgets('completed strokes are drawn in a red darker than the live ink', (tester) async {
+    const doneInk = kTraceDoneInk;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -402,10 +405,10 @@ void padTests() {
     );
     final guide = find.byWidgetPredicate((w) => w is CustomPaint && w.painter.runtimeType.toString() == '_GuidePainter');
     expect(tester.renderObject(guide), paints..path(color: doneInk));
-    expect(doneInk.computeLuminance(), lessThan(const Color(0xFF1565C0).computeLuminance()));
+    expect(doneInk.computeLuminance(), lessThan(kTraceLiveInk.computeLuminance()));
   });
 
-  testWidgets('the fading ink keeps the live colour, which differs from the navy of completed strokes', (tester) async {
+  testWidgets('the fading ink keeps the live colour, which differs from the dark red of completed strokes', (tester) async {
     await pumpPad(tester, (_) {});
     final rect = tester.getRect(find.byKey(const Key('trace-pad')));
     final ink = find.descendant(of: find.byKey(const Key('trace-ink')), matching: find.byType(CustomPaint));
@@ -413,8 +416,8 @@ void padTests() {
     await g.moveTo(rect.topLeft + const Offset(150, 30));
     await g.up();
     await tester.pump();
-    expect(tester.renderObject(ink), paints..path()..path(color: const Color(0xFF1565C0), strokeWidth: 0.075 * rect.width));
-    expect(const Color(0xFF1565C0), isNot(IceColors.deep));
+    expect(tester.renderObject(ink), paints..path()..path(color: kTraceLiveInk, strokeWidth: 0.075 * rect.width));
+    expect(kTraceLiveInk, isNot(kTraceDoneInk));
     await tester.pump(const Duration(seconds: 1));
   });
 

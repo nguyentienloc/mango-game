@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:xoai_castle/app/animation_flags.dart';
 import 'package:xoai_castle/app/providers.dart';
 import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/net/connectivity_probe.dart';
@@ -41,6 +42,8 @@ Widget testApp({
   ConnectivityProbe? connectivity,
   ScreenAwake? screenAwake,
   OEmbedClient? oembed,
+  // Endless animations (sky twinkle, falling snow) are off so pumpAndSettle settles.
+  bool animations = false,
 }) {
   const names = Names(en: 'An', vi: 'Xoài');
   return ProviderScope(
@@ -69,6 +72,8 @@ Widget testApp({
       connectivityProbeProvider.overrideWithValue(connectivity ?? FakeConnectivityProbe()),
       screenAwakeProvider.overrideWithValue(screenAwake ?? FakeScreenAwake()),
       oembedClientProvider.overrideWithValue(oembed ?? FakeOEmbedClient()),
+      animationsEnabledProvider.overrideWithValue(animations),
+      snowfallEnabledProvider.overrideWithValue(animations),
     ],
     child: MaterialApp(home: home),
   );

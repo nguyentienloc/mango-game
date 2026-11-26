@@ -7,7 +7,7 @@ import '../../core/rewards/reward_state.dart';
 import '../../shared/big_button.dart';
 import '../../shared/castle_view.dart';
 import '../../shared/character_view.dart';
-import '../../shared/ice_background.dart';
+import '../../shared/noel_background.dart';
 
 class RewardScreen extends ConsumerStatefulWidget {
   const RewardScreen({super.key, required this.outcome, this.popToRoot = false});
@@ -93,40 +93,45 @@ class _RewardScreenState extends ConsumerState<RewardScreen> {
         }
       },
       child: Scaffold(
-        body: IceBackground(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // Shrinks on short phones so the ✅ button is never pushed off screen.
-                Flexible(
-                  child: FittedBox(
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: o.leveledUp ? 0.7 : 1, end: 1),
-                      duration: const Duration(milliseconds: 900),
-                      curve: Curves.elasticOut,
-                      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-                      child: CastleView(level: o.newLevel, width: 280),
+        body: NoelBackground(
+          child: CustomPaint(
+            key: const Key('reward-confetti'),
+            painter: const _ConfettiPainter(),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Shrinks on short phones so the ✅ button is never pushed off screen.
+                  Flexible(
+                    child: FittedBox(
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: o.leveledUp ? 0.7 : 1, end: 1),
+                        duration: const Duration(milliseconds: 900),
+                        curve: Curves.elasticOut,
+                        builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                        child: CastleView(level: o.newLevel, width: 280),
+                      ),
                     ),
                   ),
-                ),
-                TweenAnimationBuilder<int>(
-                  // The gift's snowflakes join the count when it is opened.
-                  tween: IntTween(begin: 0, end: _giftOpened ? o.earned : o.earned - o.questBonus),
-                  duration: const Duration(milliseconds: 1200),
-                  builder: (context, value, _) => Text(
-                    '+$value ❄️',
-                    style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: IceColors.deep),
+                  TweenAnimationBuilder<int>(
+                    // The gift's snowflakes join the count when it is opened.
+                    tween: IntTween(begin: 0, end: _giftOpened ? o.earned : o.earned - o.questBonus),
+                    duration: const Duration(milliseconds: 1200),
+                    builder: (context, value, _) => Text(
+                      '+$value ❄️',
+                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: NoelColors.gold),
+                    ),
                   ),
-                ),
-                if (o.questCompleted) _GiftBox(opened: _giftOpened, bonus: o.questBonus, onTap: _openGift),
-                if (friend != null) CharacterView(id: friend, size: 96),
-                BigButton(
-                  emoji: '✅',
-                  size: 96,
-                  onTap: _goHome,
-                ),
-              ],
+                  if (o.questCompleted) _GiftBox(opened: _giftOpened, bonus: o.questBonus, onTap: _openGift),
+                  if (friend != null) CharacterView(id: friend, size: 96),
+                  BigButton(
+                    emoji: '✅',
+                    size: 96,
+                    ring: NoelColors.green,
+                    onTap: _goHome,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -185,7 +190,7 @@ class _GiftBoxState extends State<_GiftBox> with SingleTickerProviderStateMixin 
                   builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
                   child: Text(
                     '+${widget.bonus} ❄️',
-                    style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: IceColors.deep),
+                    style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: NoelColors.gold),
                   ),
                 )
               : AnimatedBuilder(
@@ -197,4 +202,56 @@ class _GiftBoxState extends State<_GiftBox> with SingleTickerProviderStateMixin 
       ),
     );
   }
+}
+
+/// Still confetti in Christmas red, green and gold, scattered over the sky.
+class _ConfettiPainter extends CustomPainter {
+  const _ConfettiPainter();
+
+  /// (x, y, angle, colour index, round), x and y as fractions of the size.
+  static const _pieces = [
+    (0.06, 0.04, 0.4, 0, false),
+    (0.18, 0.12, 1.1, 1, true),
+    (0.3, 0.03, 2.0, 2, false),
+    (0.44, 0.1, 0.2, 0, true),
+    (0.58, 0.05, 1.6, 1, false),
+    (0.7, 0.13, 0.9, 2, false),
+    (0.84, 0.04, 2.4, 0, false),
+    (0.94, 0.15, 0.5, 1, true),
+    (0.1, 0.24, 1.9, 2, false),
+    (0.9, 0.3, 1.3, 0, false),
+    (0.04, 0.42, 0.7, 1, false),
+    (0.96, 0.46, 2.2, 2, true),
+    (0.08, 0.6, 1.4, 0, true),
+    (0.93, 0.64, 0.3, 1, false),
+    (0.05, 0.78, 2.6, 2, false),
+    (0.95, 0.8, 1.0, 0, false),
+    (0.24, 0.2, 2.8, 0, false),
+    (0.78, 0.22, 0.6, 2, true),
+  ];
+
+  static const _colors = [NoelColors.red, NoelColors.green, NoelColors.gold];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width < 24 || size.height < 24) return;
+    final paint = Paint();
+    for (final (x, y, angle, color, round) in _pieces) {
+      paint.color = _colors[color];
+      final c = Offset(x * size.width, y * size.height);
+      if (round) {
+        canvas.drawCircle(c, 4, paint);
+      } else {
+        canvas
+          ..save()
+          ..translate(c.dx, c.dy)
+          ..rotate(angle)
+          ..drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: 12, height: 6), const Radius.circular(1.5)), paint)
+          ..restore();
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter oldDelegate) => false;
 }

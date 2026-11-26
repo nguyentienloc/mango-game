@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 
 /// Ring colour of the dot being traced now.
-const kTraceDotCurrent = Color(0xFFFFB74D);
+const kTraceDotCurrent = NoelColors.gold;
 
-/// One dot per item of the round: done ones deep blue, the current one white
-/// with an orange ring, the ones to come faint white.
+/// Fill of the dots still to come.
+final kTraceDotUpcoming = Colors.white.withValues(alpha: 0.35);
+
+/// One dot per item of the round: done ones are a gift 🎁, the current one white
+/// with a gold ring, the ones to come faint white.
 class TraceProgressDots extends StatelessWidget {
   const TraceProgressDots({
     super.key,
@@ -35,17 +38,21 @@ class TraceProgressDots extends StatelessWidget {
               key: const Key('trace-progress-dot'),
               width: dotSize,
               height: dotSize,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: i < current
-                    ? IceColors.deep
+                    ? null
                     : i == current
                     ? Colors.white
-                    : Colors.white.withValues(alpha: 0.7),
+                    : kTraceDotUpcoming,
                 border: i == current
                     ? Border.all(color: kTraceDotCurrent, width: 3)
                     : null,
               ),
+              child: i < current
+                  ? const FittedBox(child: Text('🎁', style: TextStyle(fontSize: 18, height: 1)))
+                  : null,
             ),
           ),
       ],

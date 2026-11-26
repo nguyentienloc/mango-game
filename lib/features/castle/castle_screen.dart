@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../app/reward_controller.dart';
+import '../../app/theme.dart';
 import '../../core/rewards/reward_state.dart';
 import '../../shared/big_button.dart';
 import '../../shared/castle_view.dart';
 import '../../shared/character_view.dart';
-import '../../shared/ice_background.dart';
+import '../../shared/noel_background.dart';
 import '../../shared/snowflake_counter.dart';
 
 class CastleScreen extends ConsumerWidget {
@@ -27,7 +28,7 @@ class CastleScreen extends ConsumerWidget {
         if (l.level <= rewards.castleLevel && l.friend != null) l.friend!,
     ];
     return Scaffold(
-      body: IceBackground(
+      body: NoelBackground(
         child: Column(
           children: [
             Align(
@@ -51,6 +52,8 @@ class CastleScreen extends ConsumerWidget {
                 value: progress.clamp(0.0, 1.0).toDouble(),
                 minHeight: 16,
                 borderRadius: BorderRadius.circular(8),
+                color: NoelColors.gold,
+                backgroundColor: Colors.white.withValues(alpha: 0.35),
               ),
             ),
             const SizedBox(height: 8),

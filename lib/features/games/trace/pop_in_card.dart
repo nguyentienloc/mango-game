@@ -4,7 +4,7 @@ import '../../../app/theme.dart';
 
 /// The white rounded card that pops in (scales 0.5 to 1) when a traced item is shown.
 /// [key] goes on the animation, so tests and callers can find the whole card.
-/// With [glow] the card shines with a soft yellow halo.
+/// With [glow] the card shines with a soft gold halo.
 class PopInCard extends StatelessWidget {
   const PopInCard({super.key, required this.padding, required this.child, this.glow = false});
 
@@ -20,7 +20,7 @@ class PopInCard extends StatelessWidget {
       card = DecoratedBox(
         decoration: ShapeDecoration(
           shape: shape,
-          shadows: [BoxShadow(color: IceColors.glow.withValues(alpha: 0.9), blurRadius: 28, spreadRadius: 6)],
+          shadows: [BoxShadow(color: NoelColors.glow.withValues(alpha: 0.9), blurRadius: 28, spreadRadius: 6)],
         ),
         child: card,
       );
