@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:xoai_castle/core/voice/utterance.dart';
@@ -50,24 +52,41 @@ void main() {
   });
 
   group('index config', () {
-    test('indexMeta lists provider, voices, speed and granularity', () {
-      expect(indexMeta(), {
+    test('indexMeta(vbee) lists provider, voices, speed and granularity', () {
+      expect(indexMeta(VoiceProvider.vbee), {
         'provider': 'vbee',
         'voices': {'vi': voiceFor('vi'), 'en': voiceFor('en')},
         'speed': 0.9,
         'granularity': 'part',
       });
     });
+    test('indexMeta(local) names the local engines, voices and post-processing', () {
+      final m = indexMeta(VoiceProvider.local);
+      expect(m['provider'], 'local');
+      expect(m['voices'], {'vi': 'vieneu:Trúc Ly', 'en': 'kokoro:af_heart'});
+      expect(m['speed'], 0.8);
+      expect(m['temperature'], 0.7);
+      expect(indexMeta(VoiceProvider.local, enSpeed: 0.9)['speed'], 0.9);
+      expect(m['granularity'], 'part');
+      expect(m['post'], isA<String>());
+    });
     test('an index without granularity part (per-utterance clips) is stale', () {
-      final old = {...indexMeta(), 'clips': <String, String>{}}..remove('granularity');
-      expect(indexIsStale(old), isTrue);
-      expect(indexIsStale({...old, 'granularity': 'utterance'}), isTrue);
+      final old = {...indexMeta(VoiceProvider.vbee), 'clips': <String, String>{}}..remove('granularity');
+      expect(indexIsStale(old, VoiceProvider.vbee), isTrue);
+      expect(indexIsStale({...old, 'granularity': 'utterance'}, VoiceProvider.vbee), isTrue);
     });
     test('matching index is not stale', () {
-      expect(
-        indexIsStale({...indexMeta(), 'clips': <String, String>{}}),
-        isFalse,
-      );
+      for (final p in VoiceProvider.values) {
+        expect(indexIsStale({...indexMeta(p), 'clips': <String, String>{}}, p), isFalse, reason: p.name);
+      }
+    });
+    test('an index read back from JSON is not stale', () {
+      final json = jsonDecode(jsonEncode({...indexMeta(VoiceProvider.local), 'clips': <String, String>{}}));
+      expect(indexIsStale(json as Map<String, dynamic>, VoiceProvider.local), isFalse);
+    });
+    test('an index of the other provider is stale', () {
+      expect(indexIsStale({...indexMeta(VoiceProvider.vbee), 'clips': <String, String>{}}, VoiceProvider.local), isTrue);
+      expect(indexIsStale({...indexMeta(VoiceProvider.local), 'clips': <String, String>{}}, VoiceProvider.vbee), isTrue);
     });
     test('old Gemini index is stale', () {
       expect(
@@ -75,21 +94,26 @@ void main() {
           'voice': 'Leda',
           'model': 'gemini',
           'clips': <String, String>{},
-        }),
+        }, VoiceProvider.vbee),
         isTrue,
       );
     });
-    test('different voice or speed is stale', () {
-      final m = indexMeta();
-      expect(indexIsStale({...m, 'speed': 1.0}), isTrue);
+    test('different voice, speed or post-processing is stale', () {
+      final m = indexMeta(VoiceProvider.vbee);
+      expect(indexIsStale({...m, 'speed': 1.0}, VoiceProvider.vbee), isTrue);
       expect(
         indexIsStale({
           ...m,
           'voices': {'vi': 'x', 'en': voiceFor('en')},
-        }),
+        }, VoiceProvider.vbee),
         isTrue,
       );
-      expect(indexIsStale({...m, 'provider': 'other'}), isTrue);
+      expect(indexIsStale({...m, 'provider': 'other'}, VoiceProvider.vbee), isTrue);
+      final l = indexMeta(VoiceProvider.local);
+      expect(indexIsStale({...l, 'post': 'other'}, VoiceProvider.local), isTrue);
+      expect(indexIsStale({...l, 'temperature': 1.0}, VoiceProvider.local), isTrue);
+      expect(indexIsStale({...l, 'speed': 0.9}, VoiceProvider.local), isTrue, reason: 'old 0.9 English clips are redone');
+      expect(indexIsStale({...l, 'speed': 0.9}, VoiceProvider.local, enSpeed: 0.9), isFalse);
     });
   });
 
@@ -240,6 +264,27 @@ void main() {
       expect(a.prune, isFalse);
       expect(a.dryRun, isFalse);
       expect(a.allowApi, isFalse, reason: 'never calls Vbee unless asked');
+      expect(a.provider, VoiceProvider.local, reason: 'local voices are the default');
+      expect(a.enSpeed, 0.8);
+    });
+    test('--en-speed sets the Kokoro speed', () {
+      expect(parseGenArgs(['--en-speed', '0.7']).enSpeed, 0.7);
+      expect(parseGenArgs(['--en-speed', '1']).enSpeed, 1.0);
+      for (final bad in [
+        ['--en-speed'],
+        ['--en-speed', 'x'],
+        ['--en-speed', '0'],
+        ['--en-speed', '0.4'],
+        ['--en-speed', '2.5'],
+      ]) {
+        expect(() => parseGenArgs(bad), throwsFormatException, reason: '$bad');
+      }
+    });
+    test('--provider picks local or vbee', () {
+      expect(parseGenArgs(['--provider', 'vbee']).provider, VoiceProvider.vbee);
+      expect(parseGenArgs(['--provider', 'local']).provider, VoiceProvider.local);
+      expect(() => parseGenArgs(['--provider']), throwsFormatException);
+      expect(() => parseGenArgs(['--provider', 'gemini']), throwsFormatException);
     });
     test('parses all options', () {
       final a = parseGenArgs([
