@@ -11,10 +11,19 @@ import 'local_voice.dart';
 /// orchestration is tested without Python, a server or the network.
 
 class HelperRun {
-  const HelperRun(this.exitCode, this.stderr);
+  const HelperRun(this.exitCode, this.stderr, {this.timedOut = false});
   final int exitCode;
   final String stderr;
+
+  /// The helper made no progress for [helperIdleTimeout] and was killed.
+  final bool timedOut;
 }
+
+/// How long a helper may go without printing anything before it is taken as hung
+/// (e.g. a Gradio `predict` that never answers) and killed. Measured from its last
+/// output line, not from its start: one run makes every part of a language, which
+/// can take much longer than this while it is busy.
+const helperIdleTimeout = Duration(minutes: 20);
 
 /// Runs [cmd], passing each stdout line to [onStdoutLine] as it arrives.
 typedef HelperRunner = Future<HelperRun> Function(HelperCommand cmd, void Function(String line) onStdoutLine);
@@ -131,7 +140,9 @@ class LocalSynthesizer {
         if (!_exists(items[i].out))
           items[i].key:
               failed[i] ??
-              (run.exitCode == 0
+              (run.timedOut
+                  ? 'helper $engine bị treo (không tiến triển ${helperIdleTimeout.inMinutes} phút), đã dừng'
+                  : run.exitCode == 0
                   ? 'helper $engine không tạo ra file'
                   : 'helper $engine thoát mã ${run.exitCode}: ${lastLine(run.stderr)}'),
     };
@@ -139,14 +150,62 @@ class LocalSynthesizer {
 }
 
 /// Starts [cmd] for real, streaming stdout lines and collecting stderr.
-Future<HelperRun> runHelperProcess(HelperCommand cmd, void Function(String line) onStdoutLine) async {
+///
+/// A helper that prints nothing for [idleTimeout] is hung: it gets SIGTERM (uv passes
+/// it on to Python), then SIGKILL after [killGrace], and the run comes back with
+/// [HelperRun.timedOut]. After the helper exits its pipes are drained for at most a few
+/// seconds, so a stray child that keeps them open cannot block the run either.
+Future<HelperRun> runHelperProcess(
+  HelperCommand cmd,
+  void Function(String line) onStdoutLine, {
+  Duration idleTimeout = helperIdleTimeout,
+  Duration killGrace = const Duration(seconds: 5),
+}) async {
   final p = await Process.start(cmd.executable, cmd.arguments, environment: cmd.environment);
   final err = StringBuffer();
-  final out = p.stdout.transform(utf8.decoder).transform(const LineSplitter()).forEach(onStdoutLine);
-  final errDone = p.stderr.transform(utf8.decoder).forEach(err.write);
+  var timedOut = false;
+  Timer? idle;
+  Timer? hardKill;
+  void progress() {
+    idle?.cancel();
+    idle = Timer(idleTimeout, () {
+      timedOut = true;
+      p.kill();
+      hardKill = Timer(killGrace, () => p.kill(ProcessSignal.sigkill));
+    });
+  }
+
+  progress();
+  final outDone = Completer<void>();
+  final errDone = Completer<void>();
+  final outSub = p.stdout
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .listen(
+        (line) {
+          if (!timedOut) progress();
+          onStdoutLine(line);
+        },
+        onDone: outDone.complete,
+        onError: (Object _) {},
+      );
+  final errSub = p.stderr
+      .transform(utf8.decoder)
+      .listen(
+        (chunk) {
+          if (!timedOut) progress();
+          err.write(chunk);
+        },
+        onDone: errDone.complete,
+        onError: (Object _) {},
+      );
   final code = await p.exitCode;
-  await Future.wait([out, errDone]);
-  return HelperRun(code, '$err');
+  idle?.cancel();
+  hardKill?.cancel();
+  await Future.wait([outDone.future, errDone.future]).timeout(const Duration(seconds: 3), onTimeout: () => const []);
+  await Future.wait([outSub.cancel(), errSub.cancel()]);
+  if (timedOut) err.writeln('helper bị treo: không có tiến triển sau ${idleTimeout.inSeconds} giây, đã dừng');
+  return HelperRun(code, '$err', timedOut: timedOut);
 }
 
 /// Any HTTP answer from [url] within a few seconds counts as "up".

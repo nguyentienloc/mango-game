@@ -333,10 +333,73 @@ void main() {
       expect(failures['en|Dog'], contains('139'));
     });
 
+    test('a helper stopped for hanging fails every part it did not write; the written ones are kept', () async {
+      final failures = await synth((cmd, onLine) async {
+        final job = jsonDecode(File(cmd.arguments.last).readAsStringSync()) as Map<String, dynamic>;
+        final first = (job['items'] as List).first as Map<String, dynamic>;
+        File(first['out'] as String)
+          ..createSync(recursive: true)
+          ..writeAsStringSync('RIFF');
+        onLine('OK 0');
+        return const HelperRun(-15, '', timedOut: true);
+      }).synthesize([vi('Một'), vi('Hai'), vi('Ba')]);
+      expect(failures.keys, ['vi|Hai', 'vi|Ba']);
+      expect(failures['vi|Hai'], contains('treo'));
+      expect(File('${tmp.path}/cache/${localPartCacheKey('vi', 'Một')}.wav').existsSync(), isTrue);
+    });
+
     test('a part in a language without a local voice fails without stopping the rest', () async {
       final failures = await synth(fakeRunner()).synthesize([UtterancePart('fr', 'Chat'), en('Cat')]);
       expect(failures.keys, ['fr|Chat']);
       expect(calls, hasLength(1));
+    });
+  });
+
+  group('runHelperProcess', () {
+    // Real processes stand in for a helper; /bin/sh is enough (no Python).
+    HelperCommand sh(String script) => HelperCommand('/bin/sh', ['-c', script]);
+
+    test('a helper that stops making progress is killed and reported as hanging', () async {
+      final lines = <String>[];
+      final watch = Stopwatch()..start();
+      final run = await runHelperProcess(
+        sh('echo OK 0; exec sleep 30'),
+        lines.add,
+        idleTimeout: const Duration(milliseconds: 400),
+      );
+      expect(run.timedOut, isTrue);
+      expect(run.exitCode, isNot(0));
+      expect(lines, ['OK 0']);
+      expect(watch.elapsed, lessThan(const Duration(seconds: 10)));
+    });
+
+    test('one that ignores the polite stop is killed hard, even if a child keeps its pipes open', () async {
+      final watch = Stopwatch()..start();
+      final run = await runHelperProcess(
+        sh("trap '' TERM; echo OK 0; sleep 30; echo never"),
+        (_) {},
+        idleTimeout: const Duration(milliseconds: 300),
+        killGrace: const Duration(milliseconds: 300),
+      );
+      expect(run.timedOut, isTrue);
+      expect(watch.elapsed, lessThan(const Duration(seconds: 15)));
+    });
+
+    test('a long run that keeps making progress is not stopped', () async {
+      final lines = <String>[];
+      final run = await runHelperProcess(
+        sh('for i in 0 1 2 3 4 5; do echo OK \$i; sleep 0.15; done; echo FAIL 9 boom >&2; exit 1'),
+        lines.add,
+        idleTimeout: const Duration(milliseconds: 600),
+      );
+      expect(run.timedOut, isFalse);
+      expect(run.exitCode, 1);
+      expect(lines, hasLength(6));
+      expect(parseHelperFailures(run.stderr), {9: 'boom'});
+    });
+
+    test('helpers get 20 minutes without progress by default', () {
+      expect(helperIdleTimeout, const Duration(minutes: 20));
     });
   });
 }
