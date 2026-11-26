@@ -1,6 +1,6 @@
 {
   "id": "conversation",
-  "version": 2,
+  "version": 4,
   "items": [
     {
       "id": "name",
@@ -17,46 +17,132 @@
       "aliases": { "five": ["5"], "four": ["fourth", "4"] }
     },
     {
-      "id": "how_are_you",
-      "question": "How are you?",
-      "model": "I'm fine, thank you!",
-      "accept": [["fine"], ["good"], ["great"], ["ok"], ["okay"], ["happy"]],
-      "aliases": { "fine": ["find"] }
+      "id": "merry_christmas",
+      "question": "Merry Christmas, {name_en}!",
+      "model": "Merry Christmas!",
+      "accept": [["christmas"], ["merry"]],
+      "aliases": { "christmas": ["xmas"], "merry": ["mary"] }
     },
     {
-      "id": "hello",
-      "question": "Hello, {name_en}!",
-      "model": "Hello, Elsa!",
-      "accept": [["hello"], ["hi"], ["hey"]],
-      "aliases": { "hello": ["hallo", "hullo"] }
+      "id": "who_brings_gifts",
+      "question": "Who brings presents at Christmas?",
+      "model": "Santa!",
+      "accept": [["santa"], ["father", "christmas"]],
+      "aliases": { "santa": ["santas"] }
     },
     {
-      "id": "goodbye",
-      "question": "Goodbye, {name_en}!",
-      "model": "Goodbye, Elsa!",
-      "accept": [["bye"], ["goodbye"]],
-      "aliases": { "bye": ["bai"] }
+      "id": "christmas_wish",
+      "question": "What do you want for Christmas?",
+      "model": "I want a teddy bear.",
+      "accept": [
+        ["teddy"], ["bear"], ["ball"], ["kite"], ["yoyo"], ["robot"], ["balloon"], ["puzzle"], ["drum"],
+        ["guitar"], ["skateboard"], ["crayon"], ["trumpet"], ["doll"], ["car"], ["bike"], ["gift"], ["present"]
+      ],
+      "aliases": {
+        "teddy": ["teddies"], "bear": ["bears"], "ball": ["balls"], "kite": ["kites"], "yoyo": ["yo-yo", "yo yo"],
+        "robot": ["robots"], "balloon": ["balloons"], "puzzle": ["puzzles"], "drum": ["drums"],
+        "guitar": ["guitars"], "skateboard": ["skateboards"], "crayon": ["crayons"], "trumpet": ["trumpets"],
+        "doll": ["dolls"], "car": ["cars"], "bike": ["bikes", "bicycle"], "gift": ["gifts"], "present": ["presents"]
+      }
     },
     {
-      "id": "color",
-      "question": "What color do you like?",
-      "model": "I like blue.",
-      "accept": [["red"], ["blue"], ["pink"], ["green"], ["yellow"], ["purple"], ["orange"], ["white"], ["black"]],
-      "aliases": { "red": ["read"], "blue": ["blew"] }
-    },
-    {
-      "id": "apples",
-      "question": "Do you like apples?",
+      "id": "like_snow",
+      "question": "Do you like snow?",
       "model": "Yes, I do!",
-      "accept": [["yes"], ["yeah"], ["no"], ["like", "apple"]],
-      "aliases": { "yes": ["yesh", "yep"], "apple": ["apples"] }
+      "accept": [["yes"], ["yeah"], ["no"], ["i", "do"]],
+      "aliases": { "yes": ["yesh", "yep"] }
     },
     {
-      "id": "flower",
-      "question": "Here is a flower for you!",
+      "id": "snowman_color",
+      "question": "What color is the snowman?",
+      "model": "White!",
+      "accept": [["white"]]
+    },
+    {
+      "id": "what_tree",
+      "question": "What's this?",
+      "model": "It's a Christmas tree.",
+      "image": "christmas_tree",
+      "accept": [["christmas"], ["tree"]],
+      "aliases": { "christmas": ["xmas"], "tree": ["trees"] }
+    },
+    {
+      "id": "what_gift",
+      "question": "What's this?",
+      "model": "It's a present.",
+      "image": "gift",
+      "accept": [["present"], ["gift"], ["box"]],
+      "aliases": { "present": ["presents"], "gift": ["gifts"], "box": ["boxes"] }
+    },
+    {
+      "id": "how_many_stars",
+      "question": "How many stars?",
+      "model": "Three!",
+      "emojiRow": "⭐⭐⭐",
+      "accept": [["three"], ["3"]],
+      "aliases": { "three": ["tree"] }
+    },
+    {
+      "id": "good_morning",
+      "question": "Good morning, {name_en}!",
+      "model": "Good morning!",
+      "accept": [["morning"]]
+    },
+    {
+      "id": "good_night",
+      "question": "Good night, {name_en}!",
+      "model": "Good night!",
+      "accept": [["night"], ["goodnight"]]
+    },
+    {
+      "id": "cold_today",
+      "question": "Is it cold today?",
+      "model": "Yes, it is cold.",
+      "accept": [["yes"], ["yeah"], ["no"], ["it is cold"]],
+      "aliases": { "yes": ["yesh", "yep"], "it is cold": ["its cold"] }
+    },
+    {
+      "id": "sing_song",
+      "question": "Can you sing a song?",
+      "model": "Yes, I can!",
+      "accept": [["yes"], ["yeah"], ["no"], ["i", "can"]],
+      "aliases": { "yes": ["yesh", "yep"] }
+    },
+    {
+      "id": "thank_you",
+      "question": "What do you say when you get a gift?",
       "model": "Thank you!",
       "accept": [["thank"], ["thanks"]],
       "aliases": { "thank": ["tank", "thanks", "thankyou"] }
+    },
+    {
+      "id": "where_live",
+      "question": "Where do you live?",
+      "model": "I live in Vietnam.",
+      "accept": [["vietnam"], ["hanoi"]],
+      "aliases": { "vietnam": ["viet nam", "việt nam"], "hanoi": ["ha noi", "hà nội"] }
+    },
+    {
+      "id": "love_mommy",
+      "question": "Do you love your mommy?",
+      "model": "Yes, I love Mommy!",
+      "accept": [["yes"], ["yeah"], ["i", "love"]],
+      "aliases": { "yes": ["yesh", "yep"] }
+    },
+    {
+      "id": "favorite_animal",
+      "question": "What's your favorite animal?",
+      "model": "I like cats.",
+      "accept": [
+        ["cat"], ["dog"], ["lion"], ["rabbit"], ["bear"], ["fish"], ["bird"], ["duck"], ["cow"], ["pig"],
+        ["horse"], ["tiger"], ["elephant"], ["monkey"], ["panda"], ["penguin"], ["unicorn"]
+      ],
+      "aliases": {
+        "cat": ["cats", "kitty", "kitten"], "dog": ["dogs", "puppy"], "lion": ["lions"], "rabbit": ["rabbits", "bunny"],
+        "bear": ["bears"], "fish": ["fishes"], "bird": ["birds"], "duck": ["ducks"], "cow": ["cows"], "pig": ["pigs"],
+        "horse": ["horses"], "tiger": ["tigers"], "elephant": ["elephants"], "monkey": ["monkeys"],
+        "panda": ["pandas"], "penguin": ["penguins"], "unicorn": ["unicorns"]
+      }
     }
   ]
 }

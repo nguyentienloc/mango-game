@@ -18,8 +18,8 @@ const _cell = 58.0;
 /// How a card looks once the question is answered.
 enum CardMark { none, winner, loser }
 
-final _softShadow = [BoxShadow(color: IceColors.deep.withValues(alpha: 0.18), blurRadius: 12, offset: const Offset(0, 5))];
-const _glow = [BoxShadow(color: IceColors.glow, blurRadius: 26, spreadRadius: 6)];
+final _softShadow = [BoxShadow(color: NoelColors.shadow.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 5))];
+const _glow = [BoxShadow(color: NoelColors.glow, blurRadius: 26, spreadRadius: 6)];
 
 /// Shakes sideways once when [shaking] turns true (a wrong tap).
 class Shake extends StatelessWidget {
@@ -125,7 +125,7 @@ class PictureCard extends StatelessWidget {
                 child: revealed
                     ? FittedBox(
                         key: Key('compare-count-$side'),
-                        child: Text('$count', style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: IceColors.deep, height: 1.1)),
+                        child: Text('$count', style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: NoelColors.ink, height: 1.1)),
                       )
                     : null,
               ),
@@ -162,7 +162,7 @@ class NumberCard extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 '$value',
-                style: TextStyle(fontSize: dots ? 96 : 80, fontWeight: FontWeight.w900, color: IceColors.deep, height: 1.05),
+                style: TextStyle(fontSize: dots ? 96 : 80, fontWeight: FontWeight.w900, color: NoelColors.ink, height: 1.05),
               ),
             ),
           ),

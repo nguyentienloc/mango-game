@@ -171,6 +171,8 @@ class ConversationItem {
     required this.model,
     required this.accept,
     this.aliases = const {},
+    this.image,
+    this.emojiRow,
   });
 
   factory ConversationItem.fromJson(Map<String, dynamic> json) => ConversationItem(
@@ -184,6 +186,8 @@ class ConversationItem {
           for (final e in (json['aliases'] as Map<String, dynamic>? ?? const {}).entries)
             e.key: [for (final a in e.value as List) a as String],
         },
+        image: json['image'] as String?,
+        emojiRow: json['emojiRow'] as String?,
       );
 
   final String id;
@@ -197,6 +201,12 @@ class ConversationItem {
 
   /// Words the speech recogniser often hears instead of an accepted word.
   final Map<String, List<String>> aliases;
+
+  /// Id of a vocabulary word whose picture is shown with the question, e.g. `christmas_tree`.
+  final String? image;
+
+  /// Emojis shown with the question instead of a picture, e.g. `⭐⭐⭐`.
+  final String? emojiRow;
 }
 
 class ContentBundle {

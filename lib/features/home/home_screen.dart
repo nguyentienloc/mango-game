@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../app/reward_controller.dart';
+import '../../app/theme.dart';
 import '../../core/rewards/reward_rules.dart';
 import '../../core/rewards/reward_state.dart';
 import '../../core/time.dart';
@@ -13,7 +14,7 @@ import '../../core/updater/app_updater.dart';
 import '../../shared/big_button.dart';
 import '../../shared/castle_view.dart';
 import '../../shared/character_view.dart';
-import '../../shared/ice_background.dart';
+import '../../shared/noel_background.dart';
 import '../../shared/quest_dots.dart';
 import '../../shared/snowflake_counter.dart';
 import '../castle/castle_screen.dart';
@@ -82,7 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final today = dayKey(ref.watch(clockProvider)());
     final hasUpdate = ref.watch(updateCheckProvider).value is UpdateAvailable;
     final games = <_GameEntry>[
-      _GameEntry('🐾', 'game_vocab', (_) => const VocabScreen()),
+      _GameEntry('🎁', 'game_vocab', (_) => const VocabScreen()),
       _GameEntry('🎈', 'game_balloon', (_) => const BalloonScreen()),
       _GameEntry('✏️', 'game_trace', (_) => const TraceChooserScreen()),
       _GameEntry('🗣️', 'game_talk', (_) => const TalkScreen()),
@@ -94,82 +95,109 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        body: IceBackground(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SnowflakeCounter(count: rewards.snowflakesTotal),
-                    QuestDots(done: roundsToday(rewards, today)),
-                  ],
-                ),
-              ),
-              Expanded(
-                // Full width so Elsa sits at the screen edge, not on top of the castle.
-                child: SizedBox(
-                  width: double.infinity,
-                  child: LayoutBuilder(
-                    builder: (context, c) {
-                      // Castle (300 wide, 255 tall) and Elsa (150) shrink together
-                      // when the area is shorter than the castle, so nothing clips.
-                      final scale = c.maxHeight.isFinite ? (c.maxHeight / (_castleWidth * 0.85)).clamp(0.0, 1.0) : 1.0;
-                      return Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          GestureDetector(
-                            key: const Key('home-castle'),
-                            onTap: _openCastle,
-                            child: CastleView(level: rewards.castleLevel, width: _castleWidth * scale),
+        backgroundColor: NoelColors.snow,
+        body: Column(
+          children: [
+            // The night sky, from behind the status bar down to the snow hill the castle stands on.
+            Expanded(
+              child: NoelSky(
+                scene: NoelScene.home,
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SnowflakeCounter(count: rewards.snowflakesTotal),
+                            QuestDots(done: roundsToday(rewards, today)),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        // Full width so Elsa sits at the screen edge, not on top of the castle.
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: LayoutBuilder(
+                            builder: (context, c) {
+                              // Castle (300 wide, 255 tall) and Elsa (150) shrink together
+                              // when the area is shorter than the castle, so nothing clips.
+                              final scale = c.maxHeight.isFinite ? (c.maxHeight / (_castleWidth * 0.85)).clamp(0.0, 1.0) : 1.0;
+                              return Stack(
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  GestureDetector(
+                                    key: const Key('home-castle'),
+                                    onTap: _openCastle,
+                                    child: CastleView(level: rewards.castleLevel, width: _castleWidth * scale),
+                                  ),
+                                  Positioned(
+                                    left: 8,
+                                    bottom: 0,
+                                    child: GestureDetector(
+                                      onTap: () => ref.read(voiceProvider).say('greet_en'),
+                                      child: CharacterView(id: 'elsa', size: 150 * scale),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
-                          Positioned(
-                            left: 8,
-                            bottom: 0,
-                            child: GestureDetector(
-                              onTap: () => ref.read(voiceProvider).say('greet_en'),
-                              child: CharacterView(id: 'elsa', size: 150 * scale),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              Padding(
-                // 8 dp at the sides so 4 x 76 + 3 x 12 fits a 360 dp phone.
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                child: LayoutBuilder(
-                  builder: (context, c) {
-                    // Rows of 4 + 3; 88 dp buttons when 4 of them fit, 76 dp otherwise.
-                    final size = c.maxWidth >= 4 * 88 + 3 * 12 ? 88.0 : 76.0;
-                    Widget row(Iterable<_GameEntry> items) => Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (final (i, g) in items.indexed) ...[
-                              if (i > 0) const SizedBox(width: 12),
-                              BigButton(emoji: g.emoji, size: size, onTap: () => _openGame(g)),
-                            ],
-                          ],
+            ),
+            // The game buttons on bright snow.
+            SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  Padding(
+                    // 8 dp at the sides so 4 x 76 + 3 x 12 fits a 360 dp phone.
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    child: LayoutBuilder(
+                      builder: (context, c) {
+                        // Rows of 4 + 3; 88 dp buttons when 4 of them fit, 76 dp otherwise.
+                        final size = c.maxWidth >= 4 * 88 + 3 * 12 ? 88.0 : 76.0;
+                        // Rings alternate red and green across the buttons.
+                        Widget row(Iterable<(int, _GameEntry)> items) => Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                for (final (j, (i, g)) in items.indexed) ...[
+                                  if (j > 0) const SizedBox(width: 12),
+                                  BigButton(
+                                    emoji: g.emoji,
+                                    size: size,
+                                    ring: i.isEven ? NoelColors.red : NoelColors.green,
+                                    onTap: () => _openGame(g),
+                                  ),
+                                ],
+                              ],
+                            );
+                        final all = games.indexed;
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [row(all.take(4)), const SizedBox(height: 12), row(all.skip(4))],
                         );
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [row(games.take(4)), const SizedBox(height: 12), row(games.skip(4))],
-                    );
-                  },
-                ),
+                      },
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: ParentLockButton(hasUpdate: hasUpdate),
+                    ),
+                  ),
+                ],
               ),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: ParentLockButton(hasUpdate: hasUpdate),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

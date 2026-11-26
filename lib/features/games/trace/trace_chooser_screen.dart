@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../app/theme.dart';
 import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/noel_background.dart';
 import '../letter_game_spec.dart';
 import 'trace_screen.dart';
 
@@ -48,50 +49,49 @@ class _TraceChooserScreenState extends ConsumerState<TraceChooserScreen> {
     return PopScope(
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Row(
+        body: NoelBackground(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    BigButton(
+                      emoji: '🏠',
+                      size: 64,
+                      onTap: () {
+                        _leavingByUs = true;
+                        ref.read(voiceProvider).say('go_home');
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const CharacterView(id: 'elsa', size: 120),
+              Expanded(
+                child: Center(
+                  child: Wrap(
+                    spacing: 24,
+                    runSpacing: 24,
+                    alignment: WrapAlignment.center,
                     children: [
                       BigButton(
-                        emoji: '🏠',
-                        size: 64,
-                        onTap: () {
-                          _leavingByUs = true;
-                          ref.read(voiceProvider).say('go_home');
-                          Navigator.of(context).pop();
-                        },
+                        emoji: '🔤',
+                        size: 110,
+                        onTap: () => _open('game_trace_letters', (_) => const TraceScreen(spec: LetterGameSpec.traceEnFromChooser)),
+                      ),
+                      BigButton(
+                        emoji: '🔢',
+                        size: 110,
+                        ring: NoelColors.green,
+                        onTap: () => _open('game_trace_numbers', (_) => const TraceScreen(spec: LetterGameSpec.traceNumbers)),
                       ),
                     ],
                   ),
                 ),
-                const CharacterView(id: 'elsa', size: 120),
-                Expanded(
-                  child: Center(
-                    child: Wrap(
-                      spacing: 24,
-                      runSpacing: 24,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        BigButton(
-                          emoji: '🔤',
-                          size: 110,
-                          onTap: () => _open('game_trace_letters', (_) => const TraceScreen(spec: LetterGameSpec.traceEnFromChooser)),
-                        ),
-                        BigButton(
-                          emoji: '🔢',
-                          size: 110,
-                          onTap: () => _open('game_trace_numbers', (_) => const TraceScreen(spec: LetterGameSpec.traceNumbers)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -6,6 +6,7 @@ import 'package:xoai_castle/core/content/models.dart';
 import 'package:xoai_castle/core/rewards/reward_state.dart';
 import 'package:xoai_castle/features/reward/reward_screen.dart';
 
+import '../../support/gold_text.dart';
 import '../../support/fakes.dart';
 import '../../support/test_app.dart';
 
@@ -97,6 +98,8 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
       expect(find.text('+20 ❄️'), findsOneWidget);
       expect(find.text('+30 ❄️'), findsOneWidget);
+      expectGoldOnSnow(tester, find.text('+20 ❄️'));
+      expectGoldOnSnow(tester, find.text('+30 ❄️'));
       expect(tts.texts.last, 'Oa! Quà là thật nhiều bông tuyết cho Xoài nè!');
 
       // A second tap does nothing more.

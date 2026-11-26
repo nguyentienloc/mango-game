@@ -1,0 +1,19 @@
+{
+  "id": "vocab_nature",
+  "version": 1,
+  "title_vi": "Thiên nhiên",
+  "items": [
+    { "id": "sun", "word": "sun", "vi": "mặt trời", "image": "images/vocab/sun.png", "emoji": "☀️" },
+    { "id": "moon", "word": "moon", "vi": "mặt trăng", "image": "images/vocab/moon.png", "emoji": "🌙" },
+    { "id": "cloud", "word": "cloud", "vi": "đám mây", "image": "images/vocab/cloud.png", "emoji": "☁️" },
+    { "id": "rain", "word": "rain", "vi": "mưa", "image": "images/vocab/rain.png", "emoji": "🌧️" },
+    { "id": "rainbow", "word": "rainbow", "vi": "cầu vồng", "image": "images/vocab/rainbow.png", "emoji": "🌈" },
+    { "id": "flower", "word": "flower", "vi": "bông hoa", "image": "images/vocab/flower.png", "emoji": "🌺" },
+    { "id": "tree", "word": "tree", "vi": "cái cây", "image": "images/vocab/tree.png", "emoji": "🌳" },
+    { "id": "leaf", "word": "leaf", "vi": "chiếc lá", "image": "images/vocab/leaf.png", "emoji": "🍃" },
+    { "id": "mountain", "word": "mountain", "vi": "ngọn núi", "image": "images/vocab/mountain.png", "emoji": "⛰️" },
+    { "id": "wave", "word": "wave", "vi": "con sóng", "image": "images/vocab/wave.png", "emoji": "🌊" },
+    { "id": "fire", "word": "fire", "vi": "ngọn lửa", "image": "images/vocab/fire.png", "emoji": "🔥" },
+    { "id": "rock", "word": "rock", "vi": "hòn đá", "image": "images/vocab/rock.png", "emoji": "🪨" }
+  ]
+}

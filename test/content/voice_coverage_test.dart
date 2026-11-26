@@ -29,9 +29,10 @@ void main() {
           if (!hasPart(part)) part.key,
     };
     expect(planned.where((p) => p.kind == UtteranceKind.balloon), isNotEmpty);
-    // 8 questions + 8 model answers, all spoken by the talk game; talk is a required kind.
-    expect(planned.where((p) => p.kind == UtteranceKind.talk), hasLength(content.conversation.length * 2));
-    expect(content.conversation, hasLength(8));
+    // 18 questions + 18 model answers, all spoken by the talk game (the two "What's this?" share
+    // one clip); talk is a required kind.
+    expect(planned.where((p) => p.kind == UtteranceKind.talk), hasLength(content.conversation.length * 2 - 1));
+    expect(content.conversation, hasLength(18));
     expect(planned.where((p) => p.kind == UtteranceKind.viLetters), hasLength(29 * 6));
     // Number tracing: prompt + done for 0..99; a required kind.
     expect(planned.where((p) => p.kind == UtteranceKind.traceNumbers), hasLength(100 * 2));

@@ -14,7 +14,7 @@ const compareRoundLength = 10;
 const compareLevelUpFirstTries = 8;
 
 /// Level 1 picture cards: one emoji per question, rotating through the round.
-const compareEmojis = ['🍎', '⭐', '🐟', '🌸', '🎈', '🍓', '🦋', '🍪', '🐥'];
+const compareEmojis = ['🎄', '⛄', '🎁', '🔔', '⭐', '🦌', '🍪', '🧦', '🍬'];
 
 /// Equal pairs per round on levels 2-4 (about one in five) and swapped-digit pairs on level 4.
 const _equalPerRound = 2;

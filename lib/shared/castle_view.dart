@@ -2,7 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-/// Placeholder ice castle drawn in code; each level adds a part.
+import '../app/theme.dart';
+
+/// Placeholder ice castle drawn in code; each level adds a part. Dressed for Christmas:
+/// fairy lights on the wall (from level 2) and a tree beside it.
 class CastleView extends StatelessWidget {
   const CastleView({super.key, required this.level, this.width = 260});
 
@@ -81,6 +84,106 @@ class CastlePainter extends CustomPainter {
         }
       }
     }
+    if (level >= 2) _fairyLights(canvas, size);
+    _tree(canvas, size);
+  }
+
+  static const _bulbs = [NoelColors.lightRed, NoelColors.gold, NoelColors.lightGreen, NoelColors.lightBlue];
+
+  /// A drooping string of coloured bulbs along the top of the wall (from tower to tower once
+  /// they are built).
+  void _fairyLights(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final from = Offset(w * (level >= 4 ? 0.18 : 0.25), h * (level >= 4 ? 0.36 : 0.46));
+    final to = Offset(w * (level >= 7 ? 0.82 : 0.75), h * (level >= 7 ? 0.36 : 0.46));
+    final sag = h * 0.07;
+    Offset at(double t) {
+      final p = Offset.lerp(from, to, t)!;
+      return p + Offset(0, sag * 4 * t * (1 - t));
+    }
+
+    final wire = Path()..moveTo(from.dx, from.dy);
+    for (var i = 1; i <= 20; i++) {
+      final p = at(i / 20);
+      wire.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(
+      wire,
+      Paint()
+        ..color = const Color(0xFF1B3A2A)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = max(1, w * 0.006),
+    );
+    const count = 9;
+    final r = w * 0.016;
+    for (var i = 0; i < count; i++) {
+      final p = at((i + 0.5) / count) + Offset(0, r * 0.8);
+      final color = _bulbs[i % _bulbs.length];
+      canvas
+        // A soft glow from a gradient, not a blur: it is drawn again with every snow frame.
+        ..drawCircle(
+          p,
+          r * 3.2,
+          Paint()
+            ..shader = RadialGradient(
+              colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.2), color.withValues(alpha: 0)],
+              stops: const [0, 0.55, 1],
+            ).createShader(Rect.fromCircle(center: p, radius: r * 3.2)),
+        )
+        ..drawCircle(p, r, Paint()..color = color);
+    }
+  }
+
+  /// The Christmas tree beside the castle, with a gold star and baubles.
+  void _tree(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final cx = w * 0.92;
+    final bottom = h * 0.9;
+    final height = h * 0.4;
+    final half = w * 0.075;
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(cx, bottom - height * 0.04), width: half * 0.4, height: height * 0.1),
+      Paint()..color = const Color(0xFF6D4C41),
+    );
+    final green = Paint()..color = NoelColors.green;
+    final dark = Paint()..color = const Color(0xFF1B5E20);
+    for (final (top, base, width, paint) in [
+      (0.0, 0.45, 0.6, dark),
+      (0.22, 0.72, 0.82, green),
+      (0.45, 0.92, 1.0, dark),
+    ]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx, bottom - height * (1 - top))
+          ..lineTo(cx + half * width, bottom - height * (1 - base))
+          ..lineTo(cx - half * width, bottom - height * (1 - base))
+          ..close(),
+        paint,
+      );
+    }
+    final r = w * 0.012;
+    for (final (dx, dy, color) in [
+      (-0.3, 0.42, NoelColors.lightRed),
+      (0.35, 0.5, NoelColors.gold),
+      (-0.45, 0.68, NoelColors.lightBlue),
+      (0.2, 0.72, NoelColors.lightRed),
+      (-0.1, 0.86, NoelColors.gold),
+      (0.55, 0.88, NoelColors.lightGreen),
+    ]) {
+      canvas.drawCircle(Offset(cx + dx * half, bottom - height * (1 - dy)), r, Paint()..color = color);
+    }
+    final star = Offset(cx, bottom - height);
+    final s = w * 0.03;
+    final path = Path();
+    for (var i = 0; i < 10; i++) {
+      final a = -pi / 2 + i * pi / 5;
+      final rr = i.isEven ? s : s * 0.45;
+      final p = star + Offset(cos(a), sin(a)) * rr;
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(path..close(), Paint()..color = NoelColors.gold);
   }
 
   @override

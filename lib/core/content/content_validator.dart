@@ -133,7 +133,13 @@ List<String> validateContent(Map<String, String> files, {Set<String>? assetPaths
   _checkLetters('letters_vi', docs['packs/letters_vi.json']!, errors, checkImage);
   _checkDigits(docs['packs/digits.json']!, errors);
   _checkTones(docs['packs/tones.json']!, errors);
-  _checkConversation(docs['packs/conversation.json']!, errors);
+  final vocabIds = {
+    for (final name in packs.keys.where((n) => n.startsWith('vocab_')))
+      if (docs['packs/$name.json']?['items'] case final List items)
+        for (final item in items)
+          if (item case {'id': final String id}) id,
+  };
+  _checkConversation(docs['packs/conversation.json']!, vocabIds, errors);
   _checkStories(docs['packs/stories.json']!, errors);
   _checkVocab(packs.keys, docs, errors, checkImage);
   _checkPhrases(docs['phrases.json']!, errors);
@@ -331,7 +337,8 @@ void _checkVocab(
   if (total < 4) errors.add('Cần ít nhất 4 từ vựng (hiện có $total)');
 }
 
-void _checkConversation(Map<String, dynamic> doc, List<String> errors) {
+/// [vocabIds]: the vocabulary words an item's `image` may name.
+void _checkConversation(Map<String, dynamic> doc, Set<String> vocabIds, List<String> errors) {
   const path = 'packs/conversation.json';
   final items = doc['items'];
   if (items is! List || items.isEmpty) {
@@ -354,6 +361,15 @@ void _checkConversation(Map<String, dynamic> doc, List<String> errors) {
     for (final field in ['question', 'model']) {
       if (!_nonEmpty(item[field])) errors.add('$where: thiếu "$field"');
     }
+    final image = item['image'];
+    final emojiRow = item['emojiRow'];
+    if (image != null && emojiRow != null) {
+      errors.add('$where: chỉ dùng một trong "image" hoặc "emojiRow"');
+    }
+    if (image != null && !(image is String && vocabIds.contains(image))) {
+      errors.add('$where: "image" phải là id của một từ vựng (không có "$image")');
+    }
+    if (emojiRow != null && !_nonEmpty(emojiRow)) errors.add('$where: "emojiRow" phải là chuỗi không rỗng');
     final accept = item['accept'];
     if (accept is! List || accept.isEmpty) {
       errors.add('$where: "accept" cần ít nhất một nhóm');

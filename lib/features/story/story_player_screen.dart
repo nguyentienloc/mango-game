@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/animation_flags.dart';
 import '../../app/providers.dart';
 import '../../core/screen/screen_awake.dart';
 import '../../shared/big_button.dart';
@@ -41,6 +42,9 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   late final StreamSubscription<StoryPlayerState> _sub;
   late final StreamSubscription<Duration> _positionSub;
   late final AppLifecycleListener _lifecycle;
+
+  /// The app-wide snow holds still while the video plays.
+  late final ValueNotifier<bool> _snowPaused;
   StoryPlayerState _state = StoryPlayerState.loading;
   Duration _position = Duration.zero;
   Duration? _duration;
@@ -61,6 +65,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     super.initState();
     _player = ref.read(storyPlayerFactoryProvider)(controls: false);
     _awake = ref.read(screenAwakeProvider);
+    _snowPaused = ref.read(snowfallPausedProvider);
     unawaited(_awake.enable());
     _duration = widget.story.duration;
     _sub = _player.states.listen(_onState);
@@ -96,12 +101,18 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
     // grid may already have started the next story (and its wakelock) during
     // our pop animation, so neither may be touched here.
     if (!_leaving) {
-      _run.isPlaying = false;
+      _setPlaying(false);
       if (identical(_run.session.current, widget.story)) _run.session.finishStory(completed: false);
       unawaited(_awake.disable());
     }
     _player.dispose();
     super.dispose();
+  }
+
+  /// Whether the video plays: for the session clock, and the snow stops meanwhile.
+  void _setPlaying(bool playing) {
+    _run.isPlaying = playing;
+    _snowPaused.value = playing;
   }
 
   void _onState(StoryPlayerState s) {
@@ -111,7 +122,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
       unawaited(_player.pause());
       return;
     }
-    _run.isPlaying = s == StoryPlayerState.playing;
+    _setPlaying(s == StoryPlayerState.playing);
     if (s == StoryPlayerState.playing && _duration == null) unawaited(_readDuration());
     setState(() => _state = s);
     switch (s) {
@@ -160,7 +171,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   void _leave({required bool completed}) {
     if (_leaving) return;
     _leaving = true;
-    _run.isPlaying = false;
+    _setPlaying(false);
     _run.session.finishStory(completed: completed);
     _pop();
   }
@@ -176,7 +187,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
   Future<void> _fail() async {
     if (_leaving) return;
     _leaving = true;
-    _run.isPlaying = false;
+    _setPlaying(false);
     _run.session.abandonStory();
     _run.failedThisRun.add(widget.story.id);
     // No new Elsa lines while the app is in the background.
@@ -208,7 +219,7 @@ class _StoryPlayerScreenState extends ConsumerState<StoryPlayerScreen> {
       }
     }
     if (mounted) await _player.pause();
-    _run.isPlaying = false;
+    _setPlaying(false);
     _run.session.finishStory(completed: fade);
     _pop();
   }

@@ -55,7 +55,7 @@ class NumberFace extends StatelessWidget {
         children: [
           Text(
             '$n',
-            style: const TextStyle(fontSize: 96, height: 1.1, fontWeight: FontWeight.bold, color: IceColors.deep),
+            style: const TextStyle(fontSize: 96, height: 1.1, fontWeight: FontWeight.bold, color: NoelColors.ink),
           ),
           below,
         ],

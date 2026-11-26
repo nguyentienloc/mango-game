@@ -5,6 +5,15 @@ Vocabulary pictures in `content/images/vocab/` are from https://github.com/micro
 (3D style), used under the MIT License. Copyright (c) Microsoft Corporation.
 Full license text: `content/images/vocab/LICENSE-fluentui-emoji.txt`.
 
+## Voices (VieNeu-TTS, Kokoro-82M)
+The voice clips in `content/audio/` were generated on our own machine with two open text-to-speech models,
+both under the Apache License 2.0:
+
+- Vietnamese: **VieNeu-TTS** by pnnbao-ump (model `VieNeu-TTS-v3-Turbo`, voice “Trúc Ly”) — https://huggingface.co/pnnbao-ump/VieNeu-TTS-v3-Turbo
+- English: **Kokoro-82M** by hexgrad (voice `af_heart`) — https://huggingface.co/hexgrad/Kokoro-82M
+
+Older clips, if any remain, were made with the Vbee text-to-speech service.
+
 ## Stories (YouTube embeds)
 The story list in `content/packs/stories.json` only links to these public YouTube videos;
 they are played in YouTube's official embedded player and remain the property of their channels.

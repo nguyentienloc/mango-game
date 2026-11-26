@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xoai_castle/app/animation_flags.dart';
 import 'package:xoai_castle/core/content/content_repository.dart';
 import 'package:xoai_castle/core/content/file_content_source.dart';
 import 'package:xoai_castle/core/content/models.dart';
@@ -333,6 +335,30 @@ void main() {
     await tester.tap(_playPause);
     await tester.pump();
     expect(env.player.pauses, 2);
+  });
+
+  testWidgets('the snow holds still while the video plays and falls again after', (tester) async {
+    final env = await pumpGrid(tester);
+    await openStory(tester, env, 'aaaaaaaaaaa');
+    final paused = ProviderScope.containerOf(tester.element(find.byType(StoryPlayerScreen))).read(snowfallPausedProvider);
+    expect(paused.value, isFalse, reason: 'still loading');
+    await emit(tester, env, StoryPlayerState.playing);
+    expect(paused.value, isTrue);
+    await emit(tester, env, StoryPlayerState.paused);
+    expect(paused.value, isFalse);
+    await emit(tester, env, StoryPlayerState.playing);
+    expect(paused.value, isTrue);
+    await tester.tap(_home);
+    await settle(tester);
+    expect(find.byType(StoryPlayerScreen), findsNothing);
+    expect(paused.value, isFalse);
+
+    // A story that ends by itself lets the snow go too.
+    await openStory(tester, env, 'bbbbbbbbbbb');
+    await emit(tester, env, StoryPlayerState.playing);
+    expect(paused.value, isTrue);
+    await emit(tester, env, StoryPlayerState.ended);
+    expect(paused.value, isFalse);
   });
 
   testWidgets('listen mode covers the video with Elsa and the title; watch mode shows it', (tester) async {

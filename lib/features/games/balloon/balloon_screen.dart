@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/reward_controller.dart';
-import '../../../app/theme.dart';
 import '../../../core/content/models.dart';
 import '../../../core/progress/item_stat.dart';
 import '../../../core/progress/question_picker.dart';
@@ -14,7 +13,8 @@ import '../../../core/time.dart';
 import '../../../core/voice/voice_service.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/counter_pill.dart';
+import '../../../shared/noel_background.dart';
 import '../../reward/reward_screen.dart';
 import '../letter_game_spec.dart';
 import '../pick_session.dart';
@@ -178,7 +178,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
       return PopScope(
         canPop: _session == null && !_spec.popToRootOnExit,
         onPopInvokedWithResult: _onPopInvoked,
-        child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
+        child: const Scaffold(body: NoelBackground(child: Center(child: CircularProgressIndicator()))),
       );
     }
     final q = session.current;
@@ -186,7 +186,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
       canPop: !_finishing && !_spec.popToRootOnExit,
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
+        body: NoelBackground(
           child: Column(
             children: [
               Padding(
@@ -204,10 +204,7 @@ class _BalloonScreenState extends ConsumerState<BalloonScreen> {
                       },
                     ),
                     const Spacer(),
-                    Text(
-                      '${session.index + 1}/${session.questions.length}',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: IceColors.deep),
-                    ),
+                    CounterPill('${session.index + 1}/${session.questions.length}'),
                   ],
                 ),
               ),

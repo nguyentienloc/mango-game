@@ -159,6 +159,25 @@ void main() {
     test('aliases are optional', () {
       expect(check((items) {}), isEmpty);
     });
+
+    test('image names a vocabulary word, emojiRow is a non-empty string', () {
+      expect(check((items) => (items[0] as Map)['image'] = 'lion'), isEmpty);
+      expect(check((items) => (items[0] as Map)['emojiRow'] = '⭐⭐⭐'), isEmpty);
+      expect(check((items) => (items[0] as Map)['image'] = 'unicorn'),
+          contains('$path items[0]: "image" phải là id của một từ vựng (không có "unicorn")'));
+      expect(check((items) => (items[0] as Map)['image'] = 3),
+          contains('$path items[0]: "image" phải là id của một từ vựng (không có "3")'));
+      expect(check((items) => (items[0] as Map)['emojiRow'] = ' '),
+          contains('$path items[0]: "emojiRow" phải là chuỗi không rỗng'));
+    });
+
+    test('image and emojiRow cannot both be set', () {
+      final errors = check((items) {
+        (items[0] as Map)['image'] = 'lion';
+        (items[0] as Map)['emojiRow'] = '⭐';
+      });
+      expect(errors, contains('$path items[0]: chỉ dùng một trong "image" hoặc "emojiRow"'));
+    });
   });
 
   group('stories pack', () {

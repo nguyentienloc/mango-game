@@ -13,7 +13,8 @@ import '../../../core/voice/say_capped.dart';
 import '../../../core/voice/voice_service.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/counter_pill.dart';
+import '../../../shared/noel_background.dart';
 import '../../reward/reward_screen.dart';
 import '../pick_session.dart';
 import 'compare_cards.dart';
@@ -161,7 +162,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
       return PopScope(
         canPop: _session == null,
         onPopInvokedWithResult: _onPopInvoked,
-        child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
+        child: const Scaffold(body: NoelBackground(child: Center(child: CircularProgressIndicator()))),
       );
     }
     final q = session.current;
@@ -170,7 +171,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
       canPop: !_finishing,
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
+        body: NoelBackground(
           child: Column(
             children: [
               Padding(
@@ -188,18 +189,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
                       },
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [BoxShadow(color: IceColors.deep.withValues(alpha: 0.15), blurRadius: 8, offset: const Offset(0, 3))],
-                      ),
-                      child: Text(
-                        '${session.index + 1}/${session.questions.length}',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: IceColors.deep),
-                      ),
-                    ),
+                    CounterPill('${session.index + 1}/${session.questions.length}', fontSize: 20),
                   ],
                 ),
               ),
@@ -224,7 +214,15 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
                     Expanded(
                       child: Center(
                         child: firstTry
-                            ? const Text('+1 ❄️', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: IceColors.deep))
+                            ? const Text(
+                                '+1 ❄️',
+                                style: TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w900,
+                                  color: NoelColors.gold,
+                                  shadows: NoelColors.goldTextShadows,
+                                ),
+                              )
                             : null,
                       ),
                     ),
@@ -267,7 +265,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
             child: Text(
               q.askMore ? 'Bên nào nhiều hơn?' : 'Bên nào ít hơn?',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: IceColors.deep),
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: NoelColors.onSky),
             ),
           ),
         ),
@@ -341,7 +339,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
                           ? Text(
                               q.sentence,
                               key: const Key('compare-sentence'),
-                              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: IceColors.deep),
+                              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: NoelColors.onSky),
                             )
                           : null,
                     ),

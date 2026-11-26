@@ -15,13 +15,31 @@ Game học tiếng Anh/tiếng Việt cho bé Xoài (Flutter, Android).
 
 Keystore nằm ở `~/.xoai-keystore/` (không commit). Mất keystore thì không cập nhật đè được app đã cài.
 
-## Giọng Vbee (HN – Ngọc Huyền + Clementine)
+## Giọng đọc (tạo trên máy: VieNeu-TTS + Kokoro)
 
 Sau khi sửa nội dung (`content/phrases.json`, `content/packs/*`): `dart run tool/gen_voice.dart`
-(cần `ffmpeg` có libopus). Tiếng Việt dùng giọng **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), tiếng Anh dùng **Clementine** (`en-GB-Standard-N`), tốc độ 0.9.
+(cần `ffmpeg` có libopus). Mặc định (`--provider local`) giọng được tạo ngay trên máy, không tốn tiền:
+
+- **Tiếng Việt: VieNeu-TTS, giọng “Trúc Ly”** (temperature 0.7), gọi qua server Gradio của VieNeu đang chạy.
+  Địa chỉ server lấy từ `VIENEU_URL` (mặc định `http://127.0.0.1:7860`); cần `uv` (`brew install uv`) để chạy `tool/tts/vieneu_batch.py`.
+- **Tiếng Anh: Kokoro-82M, giọng `af_heart`**, tốc độ `--en-speed` (mặc định **0.8**, đọc chậm cho bé; 0.5–2.0).
+  `KOKORO_PYTHON` trỏ tới python của venv đã cài gói `kokoro` (mô hình `hexgrad/Kokoro-82M` có sẵn trong `~/.cache/huggingface`, chạy offline).
+- Ví dụ: `VIENEU_URL=http://127.0.0.1:7860 KOKORO_PYTHON=~/venvs/kokoro/bin/python dart run tool/gen_voice.dart --prune`.
+  `--dry-run` cho biết còn bao nhiêu đoạn chưa có; `--only TEXT` để thử vài câu trước.
+- Mỗi đoạn được lưu đệm ở `build/voice-parts/<khóa>.wav` (khóa gồm giọng, cài đặt và tốc độ tiếng Anh), rồi cắt khoảng lặng, cân âm lượng (−19 dB) và nén Opus vào `content/audio/`.
+  Chạy lại chỉ tạo phần còn thiếu. Server chưa mở, thiếu `uv` hoặc thiếu Python Kokoro: dừng với mã thoát 2 và thông báo cần sửa gì. Đoạn nào lỗi thì mã thoát 1, chạy lại để thử lại.
+  Helper nào không in tiến độ suốt 20 phút (bị treo) sẽ bị dừng, các đoạn còn lại báo lỗi.
+- Đổi giọng hay tốc độ thì `index.json` bị coi là hết hạn và mọi clip được tạo lại. Trước khi commit `content/audio`, nên nghe thử vài số (0, 15, 101, 105, 999) và vài câu dài.
+
+### Dự phòng: Vbee (HN – Ngọc Huyền + Clementine)
+
+`dart run tool/gen_voice.dart --provider vbee` dùng lại đường cũ qua Vbee (tốn credit). Tiếng Việt dùng giọng **HN – Ngọc Huyền** (`hn_female_ngochuyen_full_48k-fhg`), tiếng Anh dùng **Clementine** (`en-GB-Standard-N`), tốc độ 0.9.
 Khóa Vbee nằm ở `~/.config/xoai/vbee.env` (hai dòng `VBEE_APP_ID=…` và `VBEE_TOKEN=…`, hoặc biến môi trường cùng tên), không commit.
 Mỗi đoạn một ngôn ngữ được đọc riêng (lưu đệm ở `build/voice-parts/`), các đoạn của một câu nối nhau cách 0,25 s. Tối đa 3 câu chạy song song; script tự chờ khi bị giới hạn đồng thời (HTTP 429) và chạy tiếp được.
 **Chi phí:** Vbee tính credit theo số ký tự gửi đi; `--dry-run` in số ký tự cần đọc (bỏ qua phần đã lưu đệm). Script dừng (mã thoát 2, in số câu còn thiếu) khi hết credit/gói, khi Vbee từ chối khóa (401/403), hoặc khi cùng một giọng lỗi 5 lần liên tiếp (thường do gói không hỗ trợ giọng đó, ví dụ giọng Premium/Beta bị chặn sau vài yêu cầu; nên dùng giọng thường). Lỗi từng đoạn ghi rõ `[ngôn ngữ giọng "văn bản"]` và cuối cùng có thống kê lỗi theo giọng. Có timeout kết nối 15 s và 60 s mỗi yêu cầu/tải về.
-Tùy chọn: `--limit N` (chỉ tạo N câu), `--only TEXT` (chỉ câu có khóa chứa TEXT), `--dry-run` (không gọi mạng). Đổi giọng/tốc độ thì `index.json` bị coi là hết hạn: mọi clip được tạo lại.
+Tùy chọn: `--limit N` (chỉ tạo N câu), `--only TEXT` (chỉ câu có khóa chứa TEXT), `--dry-run` (không gọi mạng), `--allow-api`, `--batch` (chỉ dùng với Vbee). Đổi giọng/tốc độ thì `index.json` bị coi là hết hạn: mọi clip được tạo lại.
+
+### Chung cho cả hai cách
+
 Clip "đóng băng" tên mặc định trong `content/profile_defaults.json`: nếu sau này cho đổi tên bé thì phải tạo lại clip (chạy lại `dart run tool/gen_voice.dart`).
 `--prune` xóa clip không còn dùng. Test `test/content/voice_coverage_test.dart` báo đỏ nếu thiếu giọng.

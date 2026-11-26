@@ -36,9 +36,9 @@ void main() {
     final vocab = keys(UtteranceKind.vocab).toSet();
     expect(vocab, hasLength(content.vocab.length * 3));
     expect(vocab, containsAll([
-      'en|Find the lion!',
-      'en|Lion! || vi|Con sư tử!',
-      'vi|Con sư tử ở đây nè! || en|Lion!',
+      'en|Find the Christmas tree!',
+      'en|Christmas tree! || vi|Cây thông Noel!',
+      'vi|Cây thông Noel ở đây nè! || en|Christmas tree!',
     ]));
   });
 
@@ -56,13 +56,17 @@ void main() {
 
   test('talk: every question and model answer, names filled in, say-after in two parts', () {
     final talk = keys(UtteranceKind.talk).toSet();
-    expect(talk, hasLength(content.conversation.length * 2));
+    // The two "What's this?" questions share one utterance.
+    final questions = content.conversation.map((i) => i.question).toSet();
+    final models = content.conversation.map((i) => i.model).toSet();
+    expect(talk, hasLength(questions.length + models.length));
     expect(talk, containsAll([
       "en|What's your name?",
-      'en|Hello, An!',
-      'en|Goodbye, An!',
+      "en|What's this?",
+      'en|Merry Christmas, An!',
+      'en|Good night, An!',
       'vi|Con nói theo Elsa nhé: || en|My name is An.',
-      "vi|Con nói theo Elsa nhé: || en|I'm fine, thank you!",
+      "vi|Con nói theo Elsa nhé: || en|It's a Christmas tree.",
     ]));
     final fixed = keys(UtteranceKind.fixed);
     expect(fixed, containsAll(['en|Hmm, can you say it again?', 'vi|Bấm giữ nút micro rồi nói nha!']));

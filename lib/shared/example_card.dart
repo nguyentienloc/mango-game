@@ -33,7 +33,7 @@ class ExampleCard extends StatelessWidget {
                 emoji,
               Text(
                 item.exampleWord,
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: IceColors.deep),
+                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: NoelColors.ink),
               ),
             ],
           ),

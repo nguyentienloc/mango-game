@@ -338,7 +338,7 @@ class _BalloonView extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.elliptical(d / 2, d * 0.575)),
-                boxShadow: [BoxShadow(color: IceColors.glow, blurRadius: 24 + 8 * sin(pulse * 6), spreadRadius: 10)],
+                boxShadow: [BoxShadow(color: NoelColors.glow, blurRadius: 24 + 8 * sin(pulse * 6), spreadRadius: 10)],
               ),
             ),
           ),
@@ -366,7 +366,8 @@ class _BalloonArt {
     stringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
-      ..color = const Color(0xFF14325C).withValues(alpha: 0.6);
+      // Pale, so the string shows on the night sky.
+      ..color = Colors.white.withValues(alpha: 0.7);
     knotPath = Path()
       ..moveTo(cx, bodyRect.bottom - 2)
       ..lineTo(cx - 6, bodyRect.bottom + 7)

@@ -5,12 +5,14 @@
     "letters_vi": 2,
     "digits": 1,
     "tones": 1,
-    "conversation": 2,
+    "conversation": 4,
     "stories": 1,
-    "vocab_animals": 1,
-    "vocab_fruits": 1,
-    "vocab_vegetables": 1,
-    "vocab_vehicles": 1
+    "vocab_christmas": 2,
+    "vocab_toys": 1,
+    "vocab_food": 1,
+    "vocab_body": 1,
+    "vocab_clothes": 1,
+    "vocab_nature": 1
   },
   "files": {
     "phrases": 13,

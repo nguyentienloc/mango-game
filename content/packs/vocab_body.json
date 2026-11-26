@@ -1,0 +1,18 @@
+{
+  "id": "vocab_body",
+  "version": 1,
+  "title_vi": "Cơ thể",
+  "items": [
+    { "id": "eye", "word": "eye", "vi": "mắt", "image": "images/vocab/eye.png", "emoji": "👁️" },
+    { "id": "ear", "word": "ear", "vi": "tai", "image": "images/vocab/ear.png", "emoji": "👂" },
+    { "id": "nose", "word": "nose", "vi": "mũi", "image": "images/vocab/nose.png", "emoji": "👃" },
+    { "id": "mouth", "word": "mouth", "vi": "miệng", "image": "images/vocab/mouth.png", "emoji": "👄" },
+    { "id": "tooth", "word": "tooth", "vi": "răng", "image": "images/vocab/tooth.png", "emoji": "🦷" },
+    { "id": "tongue", "word": "tongue", "vi": "lưỡi", "image": "images/vocab/tongue.png", "emoji": "👅" },
+    { "id": "hand", "word": "hand", "vi": "bàn tay", "image": "images/vocab/hand.png", "emoji": "✋" },
+    { "id": "foot", "word": "foot", "vi": "bàn chân", "image": "images/vocab/foot.png", "emoji": "🦶" },
+    { "id": "leg", "word": "leg", "vi": "cái chân", "image": "images/vocab/leg.png", "emoji": "🦵" },
+    { "id": "arm", "word": "arm", "vi": "cánh tay", "image": "images/vocab/arm.png", "emoji": "💪" },
+    { "id": "finger", "word": "finger", "vi": "ngón tay", "image": "images/vocab/finger.png", "emoji": "👆" }
+  ]
+}

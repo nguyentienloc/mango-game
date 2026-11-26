@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/reward_controller.dart';
-import '../../../app/theme.dart';
 import '../../../core/content/models.dart';
 import '../../../core/content/strokes.dart';
 import '../../../core/progress/item_stat.dart';
@@ -17,7 +16,8 @@ import '../../../core/voice/voice_service.dart';
 import '../../../core/voice/say_capped.dart';
 import '../../../shared/big_button.dart';
 import '../../../shared/character_view.dart';
-import '../../../shared/ice_background.dart';
+import '../../../shared/counter_pill.dart';
+import '../../../shared/noel_background.dart';
 import '../../reward/reward_screen.dart';
 import '../../../shared/example_card.dart';
 import '../letter_game_spec.dart';
@@ -205,14 +205,14 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
       return PopScope(
         canPop: _letters == null && !_spec.popToRootOnExit,
         onPopInvokedWithResult: _onPopInvoked,
-        child: const Scaffold(body: IceBackground(child: Center(child: CircularProgressIndicator()))),
+        child: const Scaffold(body: NoelBackground(child: Center(child: CircularProgressIndicator()))),
       );
     }
     return PopScope(
       canPop: !_finishing && !_spec.popToRootOnExit,
       onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
-        body: IceBackground(
+        body: NoelBackground(
           child: Column(
             children: [
               Padding(
@@ -230,10 +230,7 @@ class _TraceScreenState extends ConsumerState<TraceScreen> {
                       },
                     ),
                     const Spacer(),
-                    Text(
-                      '${_index + 1}/${letters.length}',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: IceColors.deep),
-                    ),
+                    CounterPill('${_index + 1}/${letters.length}'),
                   ],
                 ),
               ),
