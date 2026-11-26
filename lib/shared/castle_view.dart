@@ -121,12 +121,15 @@ class CastlePainter extends CustomPainter {
       final p = at((i + 0.5) / count) + Offset(0, r * 0.8);
       final color = _bulbs[i % _bulbs.length];
       canvas
+        // A soft glow from a gradient, not a blur: it is drawn again with every snow frame.
         ..drawCircle(
           p,
-          r * 2.2,
+          r * 3.2,
           Paint()
-            ..color = color.withValues(alpha: 0.35)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r),
+            ..shader = RadialGradient(
+              colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.2), color.withValues(alpha: 0)],
+              stops: const [0, 0.55, 1],
+            ).createShader(Rect.fromCircle(center: p, radius: r * 3.2)),
         )
         ..drawCircle(p, r, Paint()..color = color);
     }

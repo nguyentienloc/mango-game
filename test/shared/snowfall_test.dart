@@ -123,6 +123,67 @@ void main() {
     });
   });
 
+  group('the snow clock', () {
+    tearDown(() => WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed));
+
+    Widget overlay(ValueNotifier<bool> paused) => ProviderScope(
+          overrides: [
+            snowfallEnabledProvider.overrideWithValue(true),
+            snowfallPausedProvider.overrideWithValue(paused),
+          ],
+          child: const MaterialApp(builder: noelAppBuilder, home: SizedBox.expand()),
+        );
+
+    testWidgets('moves about 30 times a second, not on every vsync', (tester) async {
+      final paused = ValueNotifier(false);
+      addTearDown(paused.dispose);
+      await tester.pumpWidget(overlay(paused));
+      var steps = 0;
+      _painter(tester).time.addListener(() => steps++);
+      await tester.pump(const Duration(seconds: 1));
+      expect(steps, inInclusiveRange(25, 35));
+      // Nothing waits for the next vsync between two snow steps.
+      await tester.pump();
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('stops while the app is hidden, goes on when it is back', (tester) async {
+      final paused = ValueNotifier(false);
+      addTearDown(paused.dispose);
+      await tester.pumpWidget(overlay(paused));
+      await tester.pump(const Duration(milliseconds: 500));
+      for (final s in [AppLifecycleState.inactive, AppLifecycleState.hidden, AppLifecycleState.paused]) {
+        tester.binding.handleAppLifecycleStateChanged(s);
+      }
+      final stopped = _painter(tester).time.value;
+      await tester.pump(const Duration(seconds: 2));
+      expect(_painter(tester).time.value, stopped);
+      for (final s in [AppLifecycleState.hidden, AppLifecycleState.inactive, AppLifecycleState.resumed]) {
+        tester.binding.handleAppLifecycleStateChanged(s);
+      }
+      await tester.pump(const Duration(seconds: 1));
+      expect(_painter(tester).time.value, greaterThan(stopped));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('stops while a story plays (the pause flag), goes on after', (tester) async {
+      final paused = ValueNotifier(false);
+      addTearDown(paused.dispose);
+      await tester.pumpWidget(overlay(paused));
+      await tester.pump(const Duration(milliseconds: 500));
+      paused.value = true;
+      final stopped = _painter(tester).time.value;
+      await tester.pump(const Duration(seconds: 2));
+      expect(_painter(tester).time.value, stopped);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      paused.value = false;
+      await tester.pump(const Duration(seconds: 1));
+      expect(_painter(tester).time.value, greaterThan(stopped));
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
   test('the flakes: 50 by default, a fifth of them six-armed crystals, slow and soft', () {
     final flakes = SnowFlake.generate(50, Random(2026));
     expect(flakes, hasLength(50));

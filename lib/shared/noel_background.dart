@@ -1,9 +1,8 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../app/animation_flags.dart';
 import '../app/theme.dart';
 
 /// How much of the Noel scene to draw.
@@ -27,49 +26,142 @@ class NoelBackground extends StatelessWidget {
   Widget build(BuildContext context) => NoelSky(scene: scene, child: SafeArea(child: child));
 }
 
-/// The Christmas night sky, filling its box. The scene is painted once (cached in its own
-/// layer); only three small gold sparkles twinkle, unless animations are off.
-class NoelSky extends ConsumerWidget {
+/// Finds the sky's cached image layer in tests.
+const kNoelSkyImageKey = Key('noel-sky-image');
+
+/// The Christmas night sky, filling its box. Nothing in it moves: the whole scene is
+/// painted once per size into an image ([NoelSkyCache]) and every frame after that only
+/// draws the image (Impeller keeps no raster cache, so a painted scene would otherwise
+/// be redrawn with every snow frame).
+class NoelSky extends StatelessWidget {
   const NoelSky({super.key, this.scene = NoelScene.game, this.child});
 
   final NoelScene scene;
   final Widget? child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final twinkle = ref.watch(animationsEnabledProvider) && !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    return Stack(
-      fit: StackFit.expand,
-      alignment: Alignment.topLeft,
-      children: [
-        RepaintBoundary(child: CustomPaint(isComplex: true, painter: NoelSkyPainter(scene))),
-        RepaintBoundary(child: twinkle ? _Twinkle(scene) : CustomPaint(painter: SparklePainter(scene))),
-        ?child,
-      ],
-    );
+  Widget build(BuildContext context) => Stack(
+        fit: StackFit.expand,
+        alignment: Alignment.topLeft,
+        children: [
+          _SkyImage(key: kNoelSkyImageKey, scene: scene, scale: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1),
+          ?child,
+        ],
+      );
+}
+
+/// The painted skies, by scene and pixel size, newest last. A few are kept so going from
+/// screen to screen (home, games, rotations) never paints the scene again.
+class NoelSkyCache {
+  NoelSkyCache._();
+
+  static const maxImages = 4;
+
+  /// Pixels per logical pixel at most: the scene is soft, twice is sharp enough and
+  /// keeps a full-screen image around 5 MB on a 3x phone.
+  static const maxScale = 2.0;
+
+  /// The largest side of an image in pixels.
+  static const maxPixels = 4096;
+
+  static final _images = <(NoelScene, int, int), ui.Image>{};
+
+  /// How many times a scene has been painted (for tests).
+  static int debugRenders = 0;
+
+  /// How many images are kept (for tests).
+  static int get debugSize => _images.length;
+
+  /// The [scene] painted at [size] logical pixels and [devicePixelRatio], painted now if
+  /// it is not kept yet. The caller must not dispose it.
+  static ui.Image image(NoelScene scene, Size size, double devicePixelRatio) {
+    final scale = devicePixelRatio.clamp(0.5, maxScale);
+    final pw = (size.width * scale).round().clamp(1, maxPixels);
+    final ph = (size.height * scale).round().clamp(1, maxPixels);
+    final key = (scene, pw, ph);
+    final kept = _images.remove(key);
+    if (kept != null) return _images[key] = kept;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..scale(pw / size.width, ph / size.height);
+    NoelSkyPainter(scene).paint(canvas, size);
+    SparklePainter(scene).paint(canvas, size);
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(pw, ph);
+    picture.dispose();
+    debugRenders++;
+    _images[key] = image;
+    while (_images.length > maxImages) {
+      // Pictures already drawn with it keep their own reference to the pixels.
+      _images.remove(_images.keys.first)!.dispose();
+    }
+    return image;
+  }
+
+  /// Forgets every image (for tests).
+  static void clear() {
+    for (final image in _images.values) {
+      image.dispose();
+    }
+    _images.clear();
+    debugRenders = 0;
   }
 }
 
-class _Twinkle extends StatefulWidget {
-  const _Twinkle(this.scene);
+class _SkyImage extends LeafRenderObjectWidget {
+  const _SkyImage({super.key, required this.scene, required this.scale});
 
   final NoelScene scene;
+  final double scale;
 
   @override
-  State<_Twinkle> createState() => _TwinkleState();
+  RenderObject createRenderObject(BuildContext context) => _RenderSkyImage(scene, scale);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderSkyImage renderObject) => renderObject
+    ..scene = scene
+    ..scale = scale;
 }
 
-class _TwinkleState extends State<_Twinkle> with SingleTickerProviderStateMixin {
-  late final AnimationController _t = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+/// Fills its box with the cached sky image, in its own layer.
+class _RenderSkyImage extends RenderBox {
+  _RenderSkyImage(this._scene, this._scale);
 
-  @override
-  void dispose() {
-    _t.dispose();
-    super.dispose();
+  NoelScene _scene;
+  set scene(NoelScene v) {
+    if (v == _scene) return;
+    _scene = v;
+    markNeedsPaint();
+  }
+
+  double _scale;
+  set scale(double v) {
+    if (v == _scale) return;
+    _scale = v;
+    markNeedsPaint();
   }
 
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: SparklePainter(widget.scene, _t));
+  bool get isRepaintBoundary => true;
+
+  @override
+  bool get sizedByParent => true;
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) =>
+      constraints.biggest.isFinite ? constraints.biggest : constraints.smallest;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (size.width <= 0 || size.height <= 0) return;
+    final image = NoelSkyCache.image(_scene, size, _scale);
+    context.canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      offset & size,
+      Paint()..filterQuality = FilterQuality.low,
+    );
+  }
 }
 
 /// Fractions of the box for the parts that differ between the two scenes.
@@ -120,7 +212,7 @@ const _stars = [
   (0.94, 0.88, 1.1, 0.55),
 ];
 
-/// The still part of the scene. Never repaints unless its size changes.
+/// The scene itself; [NoelSkyCache] paints it into an image once per size.
 class NoelSkyPainter extends CustomPainter {
   const NoelSkyPainter(this.scene);
 
@@ -154,36 +246,39 @@ class NoelSkyPainter extends CustomPainter {
     }
   }
 
+  /// Two soft aurora bands. Each is drawn as narrow columns, each a vertical gradient
+  /// that fades in and out, so the wavy band has soft edges without a blur.
   void _aurora(Canvas canvas, Size size, _Layout layout) {
     final w = size.width;
     final h = size.height;
     final (top, bottom) = layout.aurora;
-    final blur = max(1.0, h * 0.015);
+    final columns = max(8, (w / 4).ceil());
+    final colWidth = w / columns;
+    final paint = Paint();
     for (final (shift, alpha) in [(0.0, 0.3), (0.35, 0.22)]) {
       final y0 = h * (top + (bottom - top) * shift * 0.5);
       final band = h * (bottom - top) * 0.45;
-      final path = Path()..moveTo(0, y0 + band * 0.4);
-      const steps = 24;
-      for (var i = 1; i <= steps; i++) {
-        final x = w * i / steps;
-        path.lineTo(x, y0 + band * 0.4 * sin(i / steps * 2 * pi * 1.2 + shift * 5) + band * 0.3 * (i / steps));
+      final fade = band * 0.35;
+      for (var i = 0; i < columns; i++) {
+        final f = (i + 0.5) / columns;
+        final upper = y0 + band * 0.4 * sin(f * 2 * pi * 1.2 + shift * 5) + band * 0.3 * f;
+        final lower = y0 + band + band * 0.3 * sin(f * 2 * pi * 0.9 + 1 + shift * 4) + band * 0.3 * f;
+        final color = Color.lerp(NoelColors.auroraGreen, NoelColors.auroraPurple, f)!;
+        final rect = Rect.fromLTRB(i * colWidth, upper - fade, (i + 1) * colWidth + 0.5, lower + fade);
+        if (rect.height <= 0) continue;
+        paint.shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            color.withValues(alpha: 0),
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.3, 0.7, 1],
+        ).createShader(rect);
+        canvas.drawRect(rect, paint);
       }
-      for (var i = steps; i >= 0; i--) {
-        final x = w * i / steps;
-        path.lineTo(x, y0 + band + band * 0.3 * sin(i / steps * 2 * pi * 0.9 + 1 + shift * 4) + band * 0.3 * (i / steps));
-      }
-      path.close();
-      canvas.drawPath(
-        path,
-        Paint()
-          ..shader = LinearGradient(
-            colors: [
-              NoelColors.auroraGreen.withValues(alpha: alpha),
-              NoelColors.auroraPurple.withValues(alpha: alpha),
-            ],
-          ).createShader(Offset.zero & size)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur),
-      );
     }
   }
 
@@ -280,10 +375,11 @@ class NoelSkyPainter extends CustomPainter {
       ..drawRect(Rect.fromLTWH(body.right - width * 0.16 - win, body.top + hgt * 0.3, win, win), light)
       ..drawCircle(
         body.center,
-        width * 0.7,
+        width,
         Paint()
-          ..color = NoelColors.window.withValues(alpha: 0.12)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.3),
+          ..shader = RadialGradient(
+            colors: [NoelColors.window.withValues(alpha: 0.14), NoelColors.window.withValues(alpha: 0)],
+          ).createShader(Rect.fromCircle(center: body.center, radius: width)),
       );
   }
 
@@ -377,12 +473,11 @@ class NoelSkyPainter extends CustomPainter {
   bool shouldRepaint(NoelSkyPainter old) => old.scene != scene;
 }
 
-/// Three pale gold four-point stars; with [twinkle] they slowly brighten and fade in turn.
+/// Three pale gold four-point stars (part of the cached sky image).
 class SparklePainter extends CustomPainter {
-  SparklePainter(this.scene, [this.twinkle]) : super(repaint: twinkle);
+  const SparklePainter(this.scene);
 
   final NoelScene scene;
-  final Animation<double>? twinkle;
 
   static const _home = [(0.14, 0.07, 7.0), (0.55, 0.04, 6.0), (0.4, 0.27, 5.0)];
   static const _game = [(0.12, 0.05, 6.0), (0.5, 0.03, 5.0), (0.66, 0.16, 5.0)];
@@ -390,10 +485,10 @@ class SparklePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width < 24 || size.height < 24) return;
-    final t = twinkle?.value ?? 0.25;
     final paint = Paint();
     for (final (i, (x, y, r)) in (scene == NoelScene.home ? _home : _game).indexed) {
-      final glow = 0.55 + 0.45 * sin(2 * pi * (t + i / 3));
+      // Each a little brighter or fainter than the others.
+      final glow = 0.55 + 0.45 * sin(2 * pi * (0.25 + i / 3));
       paint.color = NoelColors.sparkle.withValues(alpha: glow);
       final c = Offset(x * size.width, y * size.height);
       final s = r * (0.85 + 0.15 * glow);
@@ -415,5 +510,5 @@ class SparklePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(SparklePainter old) => old.scene != scene || old.twinkle != twinkle;
+  bool shouldRepaint(SparklePainter old) => old.scene != scene;
 }

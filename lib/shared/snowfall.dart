@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/animation_flags.dart';
@@ -29,7 +29,11 @@ class SnowfallOverlay extends ConsumerWidget {
       alignment: Alignment.topLeft,
       children: [
         child,
-        if (on) const IgnorePointer(key: kSnowfallKey, child: RepaintBoundary(child: Snowfall())),
+        if (on)
+          IgnorePointer(
+            key: kSnowfallKey,
+            child: RepaintBoundary(child: Snowfall(paused: ref.watch(snowfallPausedProvider))),
+          ),
       ],
     );
   }
@@ -92,34 +96,83 @@ class SnowFlake {
       ];
 }
 
-/// The falling snow: one ticker (about 30 frames a second, plenty for slow snow) drives one painter.
+/// The falling snow. A periodic timer (not a ticker) moves its clock about 30 times a
+/// second, and only the snow painter repaints: between two steps no frame is asked for,
+/// so the rest of the app is not redrawn at the display rate. The clock stops
+/// completely while the app is hidden or [paused] is true, and goes on afterwards.
 class Snowfall extends StatefulWidget {
-  const Snowfall({super.key, this.count = 50});
+  const Snowfall({super.key, this.count = 50, this.paused});
 
   final int count;
+
+  /// While true the snow holds still (e.g. a story video is playing).
+  final ValueListenable<bool>? paused;
+
+  /// Time between two snow steps.
+  static const step = Duration(microseconds: 1000000 ~/ 30);
 
   @override
   State<Snowfall> createState() => _SnowfallState();
 }
 
-class _SnowfallState extends State<Snowfall> with SingleTickerProviderStateMixin {
-  /// Seconds since the snow started.
+class _SnowfallState extends State<Snowfall> {
+  /// Seconds of snow so far (paused time does not count).
   final _time = ValueNotifier<double>(0);
   late final List<SnowFlake> _flakes = SnowFlake.generate(widget.count, Random(2026));
-  late final Ticker _ticker;
+  late final AppLifecycleListener _lifecycle;
+  Timer? _timer;
+  int _lastTick = 0;
+  bool _hidden = false;
+
+  static bool _isHidden(AppLifecycleState? s) =>
+      s == AppLifecycleState.hidden || s == AppLifecycleState.paused || s == AppLifecycleState.detached;
+
+  bool get _running => !_hidden && !(widget.paused?.value ?? false);
 
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker((elapsed) {
-      final t = elapsed.inMicroseconds / Duration.microsecondsPerSecond;
-      if (t - _time.value >= 1 / 30) _time.value = t;
-    })..start();
+    _hidden = _isHidden(WidgetsBinding.instance.lifecycleState);
+    _lifecycle = AppLifecycleListener(onStateChange: (s) {
+      _hidden = _isHidden(s);
+      _update();
+    });
+    widget.paused?.addListener(_update);
+    _update();
+  }
+
+  @override
+  void didUpdateWidget(Snowfall old) {
+    super.didUpdateWidget(old);
+    if (old.paused != widget.paused) {
+      old.paused?.removeListener(_update);
+      widget.paused?.addListener(_update);
+      _update();
+    }
+  }
+
+  /// Starts or stops the clock to match [_running].
+  void _update() {
+    if (_running) {
+      if (_timer != null) return;
+      _lastTick = 0;
+      _timer = Timer.periodic(Snowfall.step, (timer) {
+        // A late timer may skip ticks; the snow still moves by the real time.
+        final steps = timer.tick - _lastTick;
+        _lastTick = timer.tick;
+        _time.value += steps * Snowfall.step.inMicroseconds / Duration.microsecondsPerSecond;
+      });
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
   }
 
   @override
   void dispose() {
-    _ticker.dispose();
+    _timer?.cancel();
+    _lifecycle.dispose();
+    widget.paused?.removeListener(_update);
     _time.dispose();
     super.dispose();
   }

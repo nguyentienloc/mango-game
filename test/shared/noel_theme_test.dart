@@ -94,6 +94,61 @@ void main() {
     });
   });
 
+  group('the sky is a cached image', () {
+    setUp(NoelSkyCache.clear);
+
+    Widget screen(Widget home) => ProviderScope(child: MaterialApp(home: home));
+
+    testWidgets('painted once for a given size, then only the image is drawn', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(screen(const NoelBackground(child: Text('one'))));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(NoelSkyCache.debugRenders, 1);
+      final sky = find.byKey(kNoelSkyImageKey);
+      expect(tester.renderObject(sky), paints..drawImageRect());
+
+      // Painting again (a new frame, a parent repaint) draws the same image.
+      tester.renderObject(sky).markNeedsPaint();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(NoelSkyCache.debugRenders, 1);
+
+      // Another game screen of the same size reuses it.
+      await tester.pumpWidget(screen(const NoelBackground(child: Text('two'))));
+      await tester.pump();
+      expect(find.text('two'), findsOneWidget);
+      expect(NoelSkyCache.debugRenders, 1);
+
+      // A new size or scene is painted once more.
+      await tester.pumpWidget(screen(const Center(child: SizedBox(width: 300, height: 200, child: NoelSky()))));
+      await tester.pump();
+      expect(NoelSkyCache.debugRenders, 2);
+      await tester.pumpWidget(screen(const NoelSky(scene: NoelScene.home)));
+      await tester.pump();
+      expect(NoelSkyCache.debugRenders, 3);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    test('keeps only a few images', () {
+      for (var i = 0; i < 10; i++) {
+        NoelSkyCache.image(NoelScene.game, Size(100 + i.toDouble(), 100), 1);
+      }
+      expect(NoelSkyCache.debugRenders, 10);
+      expect(NoelSkyCache.debugSize, lessThanOrEqualTo(NoelSkyCache.maxImages));
+      // The newest is still there.
+      NoelSkyCache.image(NoelScene.game, const Size(109, 100), 1);
+      expect(NoelSkyCache.debugRenders, 10);
+    });
+
+    test('the image is at most twice the logical size', () {
+      final image = NoelSkyCache.image(NoelScene.game, const Size(360, 640), 3);
+      expect(image.width, 720);
+      expect(image.height, 1280);
+    });
+  });
+
   group('Noel screens at 360x640 with the twinkle running', () {
     late ContentBundle content;
 
