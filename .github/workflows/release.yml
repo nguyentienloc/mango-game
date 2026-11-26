@@ -19,6 +19,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Pinned to the version the app is built and tested with locally: a newer
+          # stable can raise the Android Gradle Plugin floor and break release builds.
+          flutter-version: 3.47.9
           cache: true
       - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - run: flutter pub get
